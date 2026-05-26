@@ -18,7 +18,14 @@ export function DashboardClient() {
         onQueryChange={setQuery}
         onSortChange={setSort}
       />
-      <BoardGrid query={query} sort={sort} />
+      <BoardGrid
+        query={query}
+        sort={sort}
+        onClearFilters={() => {
+          setQuery('');
+          setSort('recent');
+        }}
+      />
     </div>
   );
 }

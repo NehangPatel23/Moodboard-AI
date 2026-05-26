@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 
 type ConfirmationModalProps = {
@@ -23,16 +25,41 @@ export function ConfirmationModal({
   onConfirm,
   onCancel,
 }: ConfirmationModalProps) {
-  if (!open) return null;
+  useEffect(() => {
+    if (!open || typeof document === 'undefined') return;
 
-  return (
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCancel();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [open, onCancel]);
+
+  if (!open || typeof document === 'undefined') return null;
+
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirmation-title"
       aria-describedby="confirmation-description"
-      onMouseDown={onCancel}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onCancel();
+        }
+      }}
     >
       <div
         className="w-full max-w-md rounded-4xl border border-slate-200 bg-white p-6 shadow-[0_30px_80px_rgba(15,23,42,0.25)]"
@@ -46,7 +73,7 @@ export function ConfirmationModal({
         </p>
 
         <div className="mt-6 flex justify-end gap-3">
-          <Button variant="outline" type="button" onClick={onCancel}>
+          <Button variant="outline" type="button" onClick={onCancel} autoFocus>
             {cancelLabel}
           </Button>
           <Button
@@ -58,6 +85,7 @@ export function ConfirmationModal({
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

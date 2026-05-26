@@ -1,4 +1,4 @@
-import { BoardReadOnlyClient } from '@/components/board/BoardReadOnlyClient';
+import { BoardReadOnlyShell } from '@/components/page-shells/BoardReadOnlyShell';
 
 type BoardViewPageProps = {
   params: Promise<{ id: string }>;
@@ -6,5 +6,5 @@ type BoardViewPageProps = {
 
 export default async function BoardViewPage({ params }: BoardViewPageProps) {
   const { id } = await params;
-  return <BoardReadOnlyClient boardId={id} />;
+  return <BoardReadOnlyShell boardId={id} />;
 }

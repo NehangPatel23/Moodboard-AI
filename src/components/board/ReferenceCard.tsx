@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import type { ReferenceItem } from '@/types/board';
@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { ImageOff, Pencil, Trash2, X } from 'lucide-react';
+import { showToast } from '@/components/shared/toast-store';
 
 type ReferenceCardProps = {
   reference: ReferenceItem;
@@ -72,22 +73,13 @@ function ReferenceEditorModal({
   onSave: (next: ReferenceItem) => void;
   onClose: () => void;
 }) {
-  const [mounted, setMounted] = useState(false);
   const [draft, setDraft] = useState<ReferenceItem>(initialValue);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  if (!open || typeof document === 'undefined') return null;
 
-  useEffect(() => {
-    setDraft(initialValue);
-  }, [initialValue]);
-
-  if (!open || !mounted) return null;
-
-  function updateDraft(patch: Partial<ReferenceItem>) {
+  const updateDraft = (patch: Partial<ReferenceItem>) => {
     setDraft((current) => ({ ...current, ...patch }));
-  }
+  };
 
   const modal = (
     <div
@@ -255,6 +247,7 @@ export function ReferenceCard({
   function saveReference(next: ReferenceItem) {
     onChange?.(next);
     setEditorOpen(false);
+    showToast('Reference saved.', 'success');
   }
 
   return (
@@ -286,10 +279,13 @@ export function ReferenceCard({
           ) : null}
         </button>
 
-        {!readOnly ? (
+        {!readOnly && onRemove ? (
           <button
             type="button"
-            onClick={onRemove}
+            onClick={() => {
+              onRemove();
+              showToast('Reference removed.', 'success');
+            }}
             className="absolute right-3 top-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm transition hover:bg-slate-50"
             aria-label={`Remove ${reference.title}`}
           >
@@ -317,12 +313,14 @@ export function ReferenceCard({
         ) : null}
       </article>
 
-      <ReferenceEditorModal
-        open={editorOpen}
-        initialValue={reference}
-        onSave={saveReference}
-        onClose={() => setEditorOpen(false)}
-      />
+      {editorOpen ? (
+        <ReferenceEditorModal
+          open={editorOpen}
+          initialValue={reference}
+          onSave={saveReference}
+          onClose={() => setEditorOpen(false)}
+        />
+      ) : null}
     </>
   );
 }

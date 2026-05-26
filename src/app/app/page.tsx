@@ -1,5 +1,5 @@
-import { DashboardClient } from '@/components/dashboard/DashboardClient';
+import { DashboardShell } from '@/components/page-shells/DashboardShell';
 
 export default function DashboardPage() {
-  return <DashboardClient />;
+  return <DashboardShell />;
 }

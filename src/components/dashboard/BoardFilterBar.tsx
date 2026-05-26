@@ -11,7 +11,12 @@ type BoardFilterBarProps = {
   onSortChange: (value: 'recent' | 'favorite') => void;
 };
 
-export function BoardFilterBar({ query, sort, onQueryChange, onSortChange }: BoardFilterBarProps) {
+export function BoardFilterBar({
+  query,
+  sort,
+  onQueryChange,
+  onSortChange,
+}: BoardFilterBarProps) {
   const recentActive = sort === 'recent';
   const favoritesActive = sort === 'favorite';
 
@@ -33,6 +38,7 @@ export function BoardFilterBar({ query, sort, onQueryChange, onSortChange }: Boa
           variant={recentActive ? 'default' : 'outline'}
           type="button"
           onClick={() => onSortChange('recent')}
+          aria-pressed={recentActive}
         >
           Recent
         </Button>
@@ -41,6 +47,7 @@ export function BoardFilterBar({ query, sort, onQueryChange, onSortChange }: Boa
           variant={favoritesActive ? 'default' : 'outline'}
           type="button"
           onClick={() => onSortChange('favorite')}
+          aria-pressed={favoritesActive}
         >
           Favorites
         </Button>

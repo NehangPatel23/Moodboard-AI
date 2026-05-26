@@ -18,7 +18,6 @@ import { TypographyPairingCard } from './TypographyPairingCard';
 import { ReferenceGrid } from './ReferenceGrid';
 import { StickyNote } from './StickyNote';
 import { ConfirmationModal } from '@/components/shared/ConfirmationModal';
-import { Toast } from '@/components/shared/Toast';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { ShareModal } from '@/components/shared/ShareModal';
 import { ExportModal } from '@/components/shared/ExportModal';
@@ -26,12 +25,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
+import { showToast } from '@/components/shared/toast-store';
 
 type BoardEditorClientProps = {
   boardId: string;
 };
 
-type ToastTone = 'default' | 'success' | 'destructive';
 type RemovalKind = 'palette' | 'typography' | 'reference' | 'note';
 
 function cloneBoard(board: Board): Board {
@@ -62,8 +61,6 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const [exportOpen, setExportOpen] = useState(false);
   const [pendingRemoval, setPendingRemoval] = useState<{ kind: RemovalKind; index: number } | null>(null);
   const [saveStatus, setSaveStatus] = useState('Saved');
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [toastTone, setToastTone] = useState<ToastTone>('default');
   const [isDirty, setIsDirty] = useState(false);
 
   if (!savedBoard || !draft) {
@@ -105,38 +102,33 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
 
     const updated = updateBoard(boardId, () => cloneBoard(draft));
     if (!updated) {
-      setToastTone('destructive');
-      setToastMessage('Save failed.');
+      showToast('Save failed.', 'destructive');
       return;
     }
 
     setDraft(updated);
     setIsDirty(false);
     setSaveStatus('Saved');
-    setToastTone('success');
-    setToastMessage('Changes saved.');
     setSaveOpen(false);
+    showToast('Changes saved.', 'success');
   };
 
   const handleDuplicate = () => {
     if (isDirty) {
-      setToastTone('destructive');
-      setToastMessage('Save changes before duplicating.');
+      showToast('Save changes before duplicating.', 'destructive');
       return;
     }
 
     const copy = duplicateBoardById(boardId);
     if (!copy) {
-      setToastTone('destructive');
-      setToastMessage('Duplicate failed.');
+      showToast('Duplicate failed.', 'destructive');
       return;
     }
 
-    setToastTone('success');
-    setToastMessage('Board duplicated.');
+    showToast('Board duplicated.', 'success');
     window.setTimeout(() => {
       router.push(`/app/boards/${copy.id}`);
-    }, 120);
+    }, 180);
   };
 
   const handleDelete = () => {
@@ -144,20 +136,20 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     setDeleteOpen(false);
 
     if (!deleted) {
-      setToastTone('destructive');
-      setToastMessage('Delete failed.');
+      showToast('Delete failed.', 'destructive');
       return;
     }
 
-    setToastTone('destructive');
-    setToastMessage('Board deleted.');
+    showToast('Board deleted successfully.', 'success');
+
     window.setTimeout(() => {
       router.push('/app');
-    }, 120);
+    }, 450);
   };
 
   const handleToggleFavorite = () => {
     updateDraft((current) => ({ ...current, isFavorite: !current.isFavorite }));
+    showToast(draft.isFavorite ? 'Removed from favorites.' : 'Added to favorites.', 'success');
   };
 
   const handleAddNote = () => {
@@ -173,6 +165,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         ...current.notes,
       ],
     }));
+    showToast('Note added.', 'success');
   };
 
   const handleRequestRemoval = (kind: RemovalKind, index: number) => {
@@ -183,6 +176,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     if (!pendingRemoval) return;
     updateDraft((current) => applyRemoval(current, pendingRemoval.kind, pendingRemoval.index));
     setPendingRemoval(null);
+    showToast('Item removed.', 'success');
   };
 
   const handleAddPalette = () => {
@@ -198,6 +192,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         ...current.palette,
       ],
     }));
+    showToast('Color added.', 'success');
   };
 
   const handleAddTypography = () => {
@@ -213,6 +208,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         ...current.typography,
       ],
     }));
+    showToast('Typography row added.', 'success');
   };
 
   const handleAddReference = () => {
@@ -229,6 +225,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         ...current.references,
       ],
     }));
+    showToast('Reference added.', 'success');
   };
 
   const dirtyStatus = isDirty ? 'Unsaved changes' : saveStatus;
@@ -247,10 +244,19 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         onTitleChange={(value) => updateDraft((current) => ({ ...current, title: value }))}
         onSave={handleSave}
         onDuplicate={handleDuplicate}
-        onDelete={() => setDeleteOpen(true)}
+        onDelete={() => {
+          showToast('You are about to permanently delete this board.', 'destructive');
+          setDeleteOpen(true);
+        }}
         onToggleFavorite={handleToggleFavorite}
-        onShare={() => setShareOpen(true)}
-        onExport={() => setExportOpen(true)}
+        onShare={() => {
+          setShareOpen(true);
+          showToast('Share modal opened.', 'default');
+        }}
+        onExport={() => {
+          setExportOpen(true);
+          showToast('Export modal opened.', 'default');
+        }}
       />
 
       <div className="grid items-start gap-6 xl:grid-cols-[1.15fr_0.85fr]">
@@ -423,8 +429,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         sharePath={sharePath}
         onCopied={() => {
           setShareOpen(false);
-          setToastTone('success');
-          setToastMessage('Share link copied.');
+          showToast('Share link copied.', 'success');
         }}
         onClose={() => setShareOpen(false)}
       />
@@ -434,13 +439,10 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         board={draft}
         onExported={() => {
           setExportOpen(false);
-          setToastTone('success');
-          setToastMessage('Board exported as JSON.');
+          showToast('Board exported as JSON.', 'success');
         }}
         onClose={() => setExportOpen(false)}
       />
-
-      <Toast message={toastMessage} tone={toastTone} onClose={() => setToastMessage(null)} />
     </div>
   );
 }

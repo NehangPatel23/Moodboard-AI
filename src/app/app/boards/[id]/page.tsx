@@ -1,4 +1,4 @@
-import { BoardEditorClient } from '@/components/board/BoardEditorClient';
+import { BoardEditorShell } from '@/components/page-shells/BoardEditorShell';
 
 type BoardPageProps = {
   params: Promise<{ id: string }>;
@@ -6,5 +6,5 @@ type BoardPageProps = {
 
 export default async function BoardPage({ params }: BoardPageProps) {
   const { id } = await params;
-  return <BoardEditorClient boardId={id} />;
+  return <BoardEditorShell boardId={id} />;
 }

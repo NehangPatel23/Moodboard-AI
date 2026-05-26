@@ -1,21 +1,21 @@
 import type { Metadata } from 'next';
-import { Cormorant_Garamond, Inter } from 'next/font/google';
+import { Inter, Playfair_Display } from 'next/font/google';
 import './globals.css';
+import { Toast } from '@/components/shared/Toast';
 
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
 });
 
-const display = Cormorant_Garamond({
+const playfair = Playfair_Display({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-display',
+  variable: '--font-playfair',
 });
 
 export const metadata: Metadata = {
   title: 'MoodBoard AI',
-  description: 'Turn rough ideas into premium visual moodboards.',
+  description: 'AI-assisted moodboard and creative direction workspace.',
 };
 
 export default function RootLayout({
@@ -24,8 +24,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${display.variable}`}>
-      <body>{children}</body>
+    <html lang="en" className="scroll-smooth">
+      <body className={`${inter.variable} ${playfair.variable} bg-slate-50 text-slate-950 antialiased`}>
+        {children}
+        <Toast />
+      </body>
     </html>
   );
 }
