@@ -48,19 +48,23 @@ export function BoardCard({ board }: BoardCardProps) {
       onClick={openBoard}
       onKeyDown={handleKeyDown}
       aria-label={`Open ${board.title}`}
-      className="group relative h-full cursor-pointer overflow-hidden rounded-4xl border border-slate-200 bg-white/85 transition hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(15,23,42,0.10)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
+      className="group relative h-full cursor-pointer overflow-hidden rounded-4xl border border-slate-200/80 bg-white/90 shadow-[0_1px_0_rgba(255,255,255,0.9),0_16px_40px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1.5 hover:border-slate-300 hover:shadow-[0_28px_60px_rgba(15,23,42,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
     >
+      <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-transparent via-slate-200 to-transparent opacity-90" />
+
       <button
         type="button"
         onClick={handleFavorite}
-        aria-label={board.isFavorite ? `Remove ${board.title} from favorites` : `Add ${board.title} to favorites`}
+        aria-label={
+          board.isFavorite ? `Remove ${board.title} from favorites` : `Add ${board.title} to favorites`
+        }
         aria-pressed={board.isFavorite}
-        className="absolute right-4 top-4 z-20 inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm transition hover:bg-slate-50"
+        className="absolute right-4 top-4 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
       >
         {board.isFavorite ? (
-          <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+          <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
         ) : (
-          <StarOff className="h-4 w-4 text-slate-500" />
+          <StarOff className="h-5 w-5 text-slate-500" />
         )}
       </button>
 
@@ -83,7 +87,7 @@ export function BoardCard({ board }: BoardCardProps) {
               {board.palette.slice(0, 4).map((color, index) => (
                 <div key={`${board.id}-${color.hex}-${index}`} className="space-y-2">
                   <div
-                    className="h-12 rounded-2xl border border-slate-200"
+                    className="h-12 rounded-2xl border border-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]"
                     style={{ backgroundColor: color.hex }}
                   />
                   <p className="text-[11px] text-slate-500 wrap-break-word">{color.label}</p>

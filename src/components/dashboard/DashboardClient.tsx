@@ -6,26 +6,18 @@ import { BoardFilterBar } from './BoardFilterBar';
 import { BoardGrid } from './BoardGrid';
 
 export function DashboardClient() {
-  const [query, setQuery] = useState('');
   const [sort, setSort] = useState<'recent' | 'favorite'>('recent');
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 pb-10">
       <DashboardHeader />
+
       <BoardFilterBar
-        query={query}
         sort={sort}
-        onQueryChange={setQuery}
         onSortChange={setSort}
       />
-      <BoardGrid
-        query={query}
-        sort={sort}
-        onClearFilters={() => {
-          setQuery('');
-          setSort('recent');
-        }}
-      />
+
+      <BoardGrid sort={sort} />
     </div>
   );
 }

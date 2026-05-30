@@ -1,43 +1,55 @@
+'use client';
+
 import Link from 'next/link';
-import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
+import { openCommandPalette } from '@/components/shared/command-palette-store';
 
 type TopBarProps = {
   title: string;
-  description?: string;
-  primaryActionHref?: string;
-  primaryActionLabel?: string;
+  description: string;
 };
 
-export function TopBar({
-  title,
-  description,
-  primaryActionHref = '/app/new',
-  primaryActionLabel = 'New Board',
-}: TopBarProps) {
+export function TopBar({ title, description }: TopBarProps) {
   return (
-    <header className="flex flex-col gap-4 border-b border-slate-200 bg-white/80 px-4 py-4 backdrop-blur md:px-8">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-950">{title}</h1>
-          {description ? <p className="mt-1 text-sm text-slate-500">{description}</p> : null}
-        </div>
+    <header className="bg-slate-50">
+      <div className="mx-auto w-full max-w-7xl px-4 pt-6 md:px-8 md:pt-8">
+        <section className="relative overflow-hidden rounded-[2.5rem] border border-slate-200/80 bg-white/90 px-5 py-5 shadow-[0_24px_60px_rgba(15,23,42,0.06)] md:px-8 md:py-6">
+          <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-slate-200 to-transparent" />
+          <div className="absolute -right-24 top-0 h-48 w-48 rounded-full bg-slate-950/5 blur-3xl" />
+          <div className="absolute -left-20 bottom-0 h-40 w-40 rounded-full bg-sky-100/60 blur-3xl" />
 
-        <div className="flex items-center gap-3">
-          <Link
-            href={primaryActionHref}
-            className="inline-flex h-10 items-center justify-center rounded-full bg-slate-950 px-4 text-sm font-medium text-white! shadow-sm transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
+          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="max-w-3xl space-y-2">
+              <h1 className="text-3xl font-semibold tracking-tight text-slate-950 md:text-4xl">
+                {title}
+              </h1>
+              <p className="text-base leading-7 text-slate-500">{description}</p>
+            </div>
+
+            <Link
+              href="/app/new"
+              className="inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-slate-950 px-5 text-sm font-medium text-white! shadow-sm transition hover:bg-[#020617] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
+            >
+              New Board
+            </Link>
+          </div>
+
+          <button
+            type="button"
+            onClick={openCommandPalette}
+            aria-label="Open command palette"
+            aria-keyshortcuts="Control+K Meta+K"
+            className="group relative mt-5 flex h-14 w-full max-w-3xl items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 text-left shadow-sm transition hover:border-slate-300 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
           >
-            {primaryActionLabel}
-          </Link>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-3 md:flex-row md:items-center">
-        <div className="relative w-full md:max-w-md">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <Input className="pl-11" placeholder="Search boards, tags, or prompts" />
-        </div>
+            <Search className="h-5 w-5 shrink-0 text-slate-400 transition group-hover:text-slate-500" />
+            <span className="min-w-0 flex-1 truncate text-base text-slate-400 transition group-hover:text-slate-500">
+              Search boards, actions, templates, or settings
+            </span>
+            <span className="shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-medium text-slate-500 shadow-sm">
+              ⌘K
+            </span>
+          </button>
+        </section>
       </div>
     </header>
   );
