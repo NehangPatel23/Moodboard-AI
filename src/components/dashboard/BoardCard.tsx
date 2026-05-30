@@ -1,10 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import type { KeyboardEvent, MouseEvent } from 'react';
+import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react';
 import type { Board } from '@/types/board';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { formatDateTime } from '@/lib/utils';
 import { Star, StarOff } from 'lucide-react';
 import { toggleFavoriteById } from '@/lib/board-store';
@@ -13,6 +11,30 @@ import { showToast } from '@/components/shared/toast-store';
 type BoardCardProps = {
   board: Board;
 };
+
+function getPreviewTiles(board: Board): Array<Board['references'][number] | null> {
+  return Array.from({ length: 4 }, (_, index) => board.references[index] ?? null);
+}
+
+function getTileStyle(
+  board: Board,
+  tile: Board['references'][number] | null,
+  index: number,
+): CSSProperties {
+  const paletteFallback = board.palette[index % Math.max(board.palette.length, 1)]?.hex ?? '#e5e2e1';
+
+  if (tile?.imageUrl) {
+    return {
+      backgroundImage: `linear-gradient(180deg, rgba(17, 24, 39, 0.08), rgba(17, 24, 39, 0.18)), url(${tile.imageUrl})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+    };
+  }
+
+  return {
+    background: `linear-gradient(135deg, ${paletteFallback} 0%, rgba(255,255,255,0.9) 100%)`,
+  };
+}
 
 export function BoardCard({ board }: BoardCardProps) {
   const router = useRouter();
@@ -34,12 +56,11 @@ export function BoardCard({ board }: BoardCardProps) {
 
     const updated = toggleFavoriteById(board.id);
     if (updated) {
-      showToast(
-        updated.isFavorite ? 'Added to favorites.' : 'Removed from favorites.',
-        'success',
-      );
+      showToast(updated.isFavorite ? 'Added to favorites.' : 'Removed from favorites.', 'success');
     }
   };
+
+  const previewTiles = getPreviewTiles(board);
 
   return (
     <article
@@ -48,58 +69,75 @@ export function BoardCard({ board }: BoardCardProps) {
       onClick={openBoard}
       onKeyDown={handleKeyDown}
       aria-label={`Open ${board.title}`}
-      className="group relative h-full cursor-pointer overflow-hidden rounded-4xl border border-slate-200/80 bg-white/90 shadow-[0_1px_0_rgba(255,255,255,0.9),0_16px_40px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1.5 hover:border-slate-300 hover:shadow-[0_28px_60px_rgba(15,23,42,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
+      className="group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-4xl border border-black/5 bg-[#ecebe7] shadow-[0_22px_50px_rgba(15,23,42,0.10)] transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_32px_70px_rgba(15,23,42,0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
     >
-      <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-transparent via-slate-200 to-transparent opacity-90" />
-
       <button
         type="button"
         onClick={handleFavorite}
         aria-label={
-          board.isFavorite ? `Remove ${board.title} from favorites` : `Add ${board.title} to favorites`
+          board.isFavorite
+            ? `Remove ${board.title} from favorites`
+            : `Add ${board.title} to favorites`
         }
         aria-pressed={board.isFavorite}
-        className="absolute right-4 top-4 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+        className="absolute right-4 top-4 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/5 bg-white/90 shadow-sm transition hover:bg-white hover:shadow-md"
       >
         {board.isFavorite ? (
-          <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
+          <Star className="h-4.5 w-4.5 fill-amber-400 text-amber-400" />
         ) : (
-          <StarOff className="h-5 w-5 text-slate-500" />
+          <StarOff className="h-4.5 w-4.5 text-slate-500" />
         )}
       </button>
 
-      <div className="relative z-10">
-        <Card className="border-0 bg-transparent shadow-none">
-          <CardHeader className="space-y-3 pr-14">
-            <div className="flex flex-wrap gap-2">
-              {board.tags.slice(0, 3).map((tag) => (
-                <Badge key={`${board.id}-${tag}`} variant="secondary">
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-            <CardTitle className="wrap-break-word">{board.title}</CardTitle>
-            <CardDescription className="wrap-break-word">{board.summary}</CardDescription>
-          </CardHeader>
+      <div className="p-4 pb-0">
+        <div className="grid grid-cols-2 gap-2">
+          {previewTiles.map((tile, index) => (
+            <div
+              key={`${board.id}-${index}`}
+              className="relative aspect-square overflow-hidden rounded-[1.15rem] bg-black/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.3)]"
+              style={getTileStyle(board, tile, index)}
+            >
+              <div className="absolute inset-0 bg-linear-to-tr from-black/12 via-transparent to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 h-14 bg-linear-to-t from-black/25 to-transparent" />
 
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-4 gap-2">
-              {board.palette.slice(0, 4).map((color, index) => (
-                <div key={`${board.id}-${color.hex}-${index}`} className="space-y-2">
-                  <div
-                    className="h-12 rounded-2xl border border-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]"
-                    style={{ backgroundColor: color.hex }}
-                  />
-                  <p className="text-[11px] text-slate-500 wrap-break-word">{color.label}</p>
+              {!tile?.imageUrl ? (
+                <div className="absolute inset-0 flex items-end p-3">
+                  <span className="rounded-full bg-white/80 px-2.5 py-1 text-[10px] font-medium text-slate-700">
+                    {board.palette[index % Math.max(board.palette.length, 1)]?.label ?? 'Studio'}
+                  </span>
                 </div>
-              ))}
+              ) : null}
             </div>
+          ))}
+        </div>
+      </div>
 
-            <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
-              Updated {formatDateTime(board.updatedAt)}
-            </p>
-          </CardContent>
-        </Card>
+      <div className="flex flex-1 flex-col px-4 pb-4 pt-5">
+        <div className="flex flex-wrap gap-2">
+          {board.tags.slice(0, 3).map((tag) => (
+            <span
+              key={`${board.id}-${tag}`}
+              className="rounded-full bg-slate-700/75 px-3 py-1 text-[11px] font-medium tracking-wide text-white/90"
+            >
+              {tag}
+            </span>
+          ))}
+          <span className="rounded-full bg-slate-700/75 px-3 py-1 text-[11px] font-medium tracking-wide text-white/90">
+            {board.references.length} Assets
+          </span>
+        </div>
+
+        <h3 className="mt-4 [font-family:var(--font-display),serif] text-2xl leading-tight text-slate-900">
+          {board.title}
+        </h3>
+
+        <p className="mt-2 text-sm leading-6 text-slate-600">{board.summary}</p>
+
+        <div className="mt-auto flex items-center justify-between gap-4 pt-6">
+          <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+            Updated {formatDateTime(board.updatedAt)}
+          </p>
+        </div>
       </div>
     </article>
   );

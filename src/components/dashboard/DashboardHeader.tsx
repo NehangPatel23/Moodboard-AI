@@ -2,18 +2,18 @@
 
 export function DashboardHeader() {
   return (
-    <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-      <div className="space-y-2">
-        <p className="text-xs font-medium uppercase tracking-[0.28em] text-slate-400">
-          Dashboard
-        </p>
+    <section className="space-y-5">
+      <p className="text-xs font-medium uppercase tracking-[0.3em] text-slate-400">
+        Dashboard
+      </p>
 
-        <h2 className="text-4xl font-semibold tracking-tight text-slate-950">
-          My Boards
+      <div className="max-w-5xl space-y-4">
+        <h2 className="text-[clamp(3.5rem,8vw,5.75rem)] leading-[0.95] text-[#d8d2c8]">
+          Curated Spaces
         </h2>
 
-        <p className="max-w-3xl text-base leading-7 text-slate-500">
-          Browse saved moodboards, revisit ideas, and create new creative directions.
+        <p className="max-w-3xl text-base leading-7 text-slate-500 md:text-lg">
+          Browse saved boards, revisit directions, and continue shaping ideas into polished visual systems.
         </p>
       </div>
     </section>

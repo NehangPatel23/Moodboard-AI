@@ -9,14 +9,9 @@ export function DashboardClient() {
   const [sort, setSort] = useState<'recent' | 'favorite'>('recent');
 
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-10 pb-10">
       <DashboardHeader />
-
-      <BoardFilterBar
-        sort={sort}
-        onSortChange={setSort}
-      />
-
+      <BoardFilterBar sort={sort} onSortChange={setSort} />
       <BoardGrid sort={sort} />
     </div>
   );

@@ -8,44 +8,52 @@ type BoardFilterBarProps = {
   onSortChange: (value: 'recent' | 'favorite') => void;
 };
 
-export function BoardFilterBar({
-  sort,
-  onSortChange,
-}: BoardFilterBarProps) {
+export function BoardFilterBar({ sort, onSortChange }: BoardFilterBarProps) {
   const recentActive = sort === 'recent';
   const favoritesActive = sort === 'favorite';
 
   return (
-    <div
-      className="flex flex-wrap items-center justify-between gap-4"
-      aria-label="Board filters"
-    >
-      <div className="flex flex-wrap gap-2">
-        <Button
-          variant={recentActive ? 'default' : 'outline'}
-          type="button"
-          onClick={() => onSortChange('recent')}
-          aria-pressed={recentActive}
-        >
-          Recent
-        </Button>
+    <section className="border-b border-black/10 pb-5">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            onClick={() => onSortChange('recent')}
+            aria-pressed={recentActive}
+            aria-current={recentActive ? 'page' : undefined}
+            className={
+              recentActive
+                ? 'h-10 rounded-full bg-slate-900 px-5 text-sm font-medium text-white shadow-[0_10px_25px_rgba(15,23,42,0.14)] transition hover:bg-slate-800'
+                : 'h-10 rounded-full border border-black/10 bg-white px-5 text-sm font-medium text-slate-500 shadow-sm transition hover:border-black/15 hover:text-slate-900'
+            }
+            variant="ghost"
+          >
+            Recent
+          </Button>
 
-        <Button
-          variant={favoritesActive ? 'default' : 'outline'}
-          type="button"
-          onClick={() => onSortChange('favorite')}
-          aria-pressed={favoritesActive}
+          <Button
+            type="button"
+            onClick={() => onSortChange('favorite')}
+            aria-pressed={favoritesActive}
+            aria-current={favoritesActive ? 'page' : undefined}
+            className={
+              favoritesActive
+                ? 'h-10 rounded-full bg-slate-900 px-5 text-sm font-medium text-white shadow-[0_10px_25px_rgba(15,23,42,0.14)] transition hover:bg-slate-800'
+                : 'h-10 rounded-full border border-black/10 bg-white px-5 text-sm font-medium text-slate-500 shadow-sm transition hover:border-black/15 hover:text-slate-900'
+            }
+            variant="ghost"
+          >
+            Favorites
+          </Button>
+        </div>
+
+        <Link
+          href="/app/new"
+          className="inline-flex h-11 items-center justify-center rounded-full bg-[#cbd7c8] px-5 text-sm font-medium text-slate-950 shadow-[0_12px_30px_rgba(203,215,200,0.35)] transition hover:bg-[#bccab4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
         >
-          Favorites
-        </Button>
+          New Board
+        </Link>
       </div>
-
-      <Link
-        href="/app/new"
-        className="inline-flex h-10 items-center justify-center rounded-full border border-slate-200 bg-slate-100 px-4 text-sm font-medium text-slate-900 shadow-sm transition hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
-      >
-        New Board
-      </Link>
-    </div>
+    </section>
   );
 }

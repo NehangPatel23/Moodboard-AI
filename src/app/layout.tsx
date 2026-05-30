@@ -1,17 +1,17 @@
 import type { Metadata } from 'next';
-import { Inter, Playfair_Display } from 'next/font/google';
+import { DM_Sans, Bodoni_Moda } from 'next/font/google';
 import './globals.css';
 import { Toast } from '@/components/shared/Toast';
 import { CommandPalette } from '@/components/shared/CommandPalette';
 
-const inter = Inter({
+const dmSans = DM_Sans({
   subsets: ['latin'],
-  variable: '--font-inter',
+  variable: '--font-sans',
 });
 
-const playfair = Playfair_Display({
+const bodoni = Bodoni_Moda({
   subsets: ['latin'],
-  variable: '--font-playfair',
+  variable: '--font-display',
 });
 
 export const metadata: Metadata = {
@@ -26,7 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="scroll-smooth">
-      <body className={`${inter.variable} ${playfair.variable} bg-slate-50 text-slate-950 antialiased`}>
+      <body className={`${dmSans.variable} ${bodoni.variable} antialiased`}>
         {children}
         <Toast />
         <CommandPalette />

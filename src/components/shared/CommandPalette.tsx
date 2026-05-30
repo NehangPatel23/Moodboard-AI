@@ -308,7 +308,7 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[10060] flex items-start justify-center bg-slate-950/40 px-4 py-4 backdrop-blur-sm sm:px-6 sm:py-6"
+      className="fixed inset-0 z-10060 flex items-start justify-center bg-slate-950/40 px-4 py-4 backdrop-blur-sm sm:px-6 sm:py-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="command-palette-title"
@@ -319,7 +319,7 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
         key={sessionId}
         ref={panelRef}
         tabIndex={-1}
-        className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.28)]"
+        className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-4xl border border-slate-200 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.28)]"
         onMouseDown={(event) => event.stopPropagation()}
         onKeyDown={handlePanelKeyDown}
       >
@@ -403,7 +403,7 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
               ))}
             </div>
           ) : (
-            <div className="flex min-h-[220px] flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50 px-6 text-center">
+            <div className="flex min-h-55 flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-6 text-center">
               <p className="text-lg font-semibold tracking-tight text-slate-950">
                 No matching commands
               </p>
