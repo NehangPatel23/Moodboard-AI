@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Star, StarOff, Copy, Trash2, ExternalLink, Share2, Download } from 'lucide-react';
+import { Star, Copy, Trash2, ExternalLink, Share2, Download } from 'lucide-react';
 
 type BoardActionsMenuProps = {
   isFavorite: boolean;
@@ -54,7 +54,7 @@ export function BoardActionsMenu({
         onClick={onToggleFavorite}
         className="shrink-0 whitespace-nowrap px-3"
       >
-        {isFavorite ? <StarOff className="h-4 w-4" /> : <Star className="h-4 w-4" />}
+        {isFavorite ? <Star className="h-4 w-4" /> : <Star className="h-4 w-4" />}
         {isFavorite ? 'Unfavorite' : 'Favorite'}
       </Button>
 

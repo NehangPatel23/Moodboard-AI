@@ -52,12 +52,45 @@ export type Board = {
   visibility: BoardVisibility;
 };
 
+export type BoardTemplatePaletteItem = {
+  label: string;
+  hex: string;
+  usage: string;
+};
+
+export type BoardTemplateTypographyItem = {
+  role: TypographyRole;
+  fontName: string;
+  note: string;
+};
+
+export type BoardTemplateReferenceItem = {
+  title: string;
+  category: string;
+  source?: string;
+  imageUrl?: string;
+};
+
+export type BoardTemplateNoteItem = {
+  text: string;
+  type: NoteType;
+};
+
 export type BoardTemplate = {
   id: string;
   name: string;
   description: string;
   prompt: string;
   tags: string[];
+
+  mood?: string;
+  summary?: string;
+  tone?: string[];
+
+  palette?: BoardTemplatePaletteItem[];
+  typography?: BoardTemplateTypographyItem[];
+  references?: BoardTemplateReferenceItem[];
+  notes?: BoardTemplateNoteItem[];
 };
 
 export type BoardDraftInput = {

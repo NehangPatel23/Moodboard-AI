@@ -3,6 +3,7 @@ import { DM_Sans, Bodoni_Moda } from 'next/font/google';
 import './globals.css';
 import { Toast } from '@/components/shared/Toast';
 import { CommandPalette } from '@/components/shared/CommandPalette';
+import { Analytics } from '@vercel/analytics/next';
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -28,6 +29,7 @@ export default function RootLayout({
     <html lang="en" className="scroll-smooth">
       <body className={`${dmSans.variable} ${bodoni.variable} antialiased`}>
         {children}
+        <Analytics />
         <Toast />
         <CommandPalette />
       </body>

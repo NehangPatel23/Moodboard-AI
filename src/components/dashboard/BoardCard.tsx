@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react';
 import type { Board } from '@/types/board';
 import { formatDateTime } from '@/lib/utils';
-import { Star, StarOff } from 'lucide-react';
+import { Star } from 'lucide-react';
 import { toggleFavoriteById } from '@/lib/board-store';
 import { showToast } from '@/components/shared/toast-store';
 
@@ -85,7 +85,7 @@ export function BoardCard({ board }: BoardCardProps) {
         {board.isFavorite ? (
           <Star className="h-4.5 w-4.5 fill-amber-400 text-amber-400" />
         ) : (
-          <StarOff className="h-4.5 w-4.5 text-slate-500" />
+          <Star className="h-4.5 w-4.5 text-slate-500" />
         )}
       </button>
 

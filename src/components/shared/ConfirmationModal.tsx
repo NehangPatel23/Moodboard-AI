@@ -50,7 +50,7 @@ export function ConfirmationModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4"
+      className="fixed inset-0 z-[10050] flex items-center justify-center bg-black/35 px-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirmation-title"
@@ -62,24 +62,43 @@ export function ConfirmationModal({
       }}
     >
       <div
-        className="w-full max-w-md rounded-4xl border border-slate-200 bg-white p-6 shadow-[0_30px_80px_rgba(15,23,42,0.25)]"
+        className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_30px_80px_rgba(15,23,42,0.15)]"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <h2 id="confirmation-title" className="text-2xl font-semibold tracking-tight text-slate-950">
+        <h2
+          id="confirmation-title"
+          className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-slate-950"
+        >
           {title}
         </h2>
-        <p id="confirmation-description" className="mt-3 text-sm leading-6 text-slate-500">
+
+        <p
+          id="confirmation-description"
+          className="mt-3 text-sm leading-6 text-slate-500"
+        >
           {description}
         </p>
 
-        <div className="mt-6 flex justify-end gap-3">
-          <Button variant="outline" type="button" onClick={onCancel} autoFocus>
+        <div className="mt-6 flex flex-wrap justify-end gap-3">
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onCancel}
+            autoFocus
+            className="rounded-full"
+          >
             {cancelLabel}
           </Button>
+
           <Button
             type="button"
             variant={destructive ? 'destructive' : 'default'}
             onClick={onConfirm}
+            className={
+              destructive
+                ? 'rounded-full'
+                : 'rounded-full bg-slate-950 text-white hover:bg-slate-800'
+            }
           >
             {confirmLabel}
           </Button>

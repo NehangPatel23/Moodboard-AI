@@ -4,7 +4,6 @@ import { useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { loadBoards, subscribeBoards } from '@/lib/board-store';
 import { BoardCard } from './BoardCard';
-import { Button } from '@/components/ui/button';
 
 type BoardGridProps = {
   sort: 'recent' | 'favorite';
