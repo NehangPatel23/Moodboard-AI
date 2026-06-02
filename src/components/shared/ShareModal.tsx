@@ -47,7 +47,7 @@ export function ShareModal({
 
   return (
     <div
-      className="fixed inset-0 z-[10050] flex items-center justify-center bg-black/35 px-4 backdrop-blur-sm"
+      className="fixed inset-0 z-10050 flex items-center justify-center bg-black/35 px-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="share-title"
@@ -55,7 +55,7 @@ export function ShareModal({
       onMouseDown={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_30px_80px_rgba(15,23,42,0.15)]"
+        className="w-full max-w-lg rounded-4xl border border-slate-200 bg-white p-6 shadow-[0_30px_80px_rgba(15,23,42,0.15)]"
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="space-y-2">

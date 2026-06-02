@@ -19,6 +19,7 @@ import {
 import {
   closeCommandPalette,
   getCommandPaletteSnapshot,
+  isCommandPaletteEnabled,
   openCommandPalette,
   subscribeCommandPalette,
 } from './command-palette-store';
@@ -447,6 +448,7 @@ export function CommandPalette() {
       const key = event.key.toLowerCase();
 
       if ((event.metaKey || event.ctrlKey) && key === 'k') {
+        if (!isCommandPaletteEnabled()) return;
         event.preventDefault();
         openCommandPalette();
       }
