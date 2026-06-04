@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -19,21 +18,15 @@ export function ShareModal({
   onCopied,
   onClose,
 }: ShareModalProps) {
-  const [copied, setCopied] = useState(false);
-  const [fullUrl, setFullUrl] = useState('');
-
-  useEffect(() => {
-    if (open && typeof window !== 'undefined') {
-      setFullUrl(`${window.location.origin}${sharePath}`);
-      setCopied(false);
-    }
-  }, [open, sharePath]);
-
   if (!open) return null;
 
+  const fullUrl =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}${sharePath}`
+      : '';
+
   async function handleCopy() {
-    const urlToCopy =
-      fullUrl || `${window.location.origin}${sharePath}`;
+    const urlToCopy = fullUrl || `${window.location.origin}${sharePath}`;
 
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(urlToCopy);
@@ -41,13 +34,12 @@ export function ShareModal({
       window.prompt('Copy this link', urlToCopy);
     }
 
-    setCopied(true);
     onCopied();
   }
 
   return (
     <div
-      className="fixed inset-0 z-10050 flex items-center justify-center bg-black/35 px-4 backdrop-blur-sm"
+      className="fixed inset-0 z-10050 flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="share-title"
@@ -55,39 +47,36 @@ export function ShareModal({
       onMouseDown={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-4xl border border-slate-200 bg-white p-6 shadow-[0_30px_80px_rgba(15,23,42,0.15)]"
+        className="w-full max-w-lg rounded-4xl border border-(--border) bg-(--surface) p-6 text-(--text) shadow-[0_30px_80px_rgba(15,23,42,0.15)]"
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="space-y-2">
-          <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+          <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
             Share board
           </p>
 
           <h2
             id="share-title"
-            className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-slate-950"
+            className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)"
           >
             View-only link
           </h2>
 
           <p
             id="share-description"
-            className="text-sm leading-6 text-slate-500"
+            className="text-sm leading-6 text-(--text-muted)"
           >
             Copy a view-only link for{' '}
-            <span className="font-medium text-slate-700">
+            <span className="font-medium text-(--text-strong)">
               {boardTitle}
             </span>.
           </p>
         </div>
 
         <div className="mt-5 space-y-3">
-          <Input
-            readOnly
-            value={fullUrl}
-          />
+          <Input readOnly value={fullUrl} />
 
-          <p className="text-xs leading-5 text-slate-400">
+          <p className="text-xs leading-5 text-(--text-muted)">
             Anyone with this link can view the board.
           </p>
         </div>
@@ -105,9 +94,9 @@ export function ShareModal({
           <Button
             type="button"
             onClick={handleCopy}
-            className="rounded-full bg-slate-950 text-white hover:bg-slate-800"
+            className="rounded-full"
           >
-            {copied ? 'Copied' : 'Copy link'}
+            Copy link
           </Button>
         </div>
       </div>

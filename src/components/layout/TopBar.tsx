@@ -1,24 +1,31 @@
 'use client';
 
+import Link from 'next/link';
 import { Search } from 'lucide-react';
 import { openCommandPalette } from '@/components/shared/command-palette-store';
+import { WorkspaceAvatar } from '@/components/layout/WorkspaceAvatar';
+import { AppIcon } from '@/components/shared/AppIcon';
 
-type TopBarProps = {
-  title: string;
-  description: string;
-};
-
-export function TopBar({ title, description }: TopBarProps) {
+export function TopBar() {
   return (
-    <header className="border-b border-black/5 bg-[rgba(248,247,244,0.88)] backdrop-blur-xl">
+    <header className="border-b border-[var(--border)] bg-[var(--surface-elevated)] backdrop-blur-xl">
       <div className="mx-auto w-full max-w-360 px-4 md:px-8">
         <div className="flex items-center justify-between gap-4 py-4">
-          <div className="min-w-0">
-            <p className="[font-family:var(--font-display),serif] text-2xl tracking-tight text-slate-900 md:text-[2rem]">
-              {title}
-            </p>
-            <p className="text-sm text-slate-500">{description}</p>
-          </div>
+          <Link
+            href="/"
+            aria-label="MoodBoard AI home"
+            className="flex min-w-0 items-center gap-3 rounded-2xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] shadow-sm">
+              <AppIcon className="h-6 w-6" />
+            </span>
+            <div className="min-w-0">
+              <p className="[font-family:var(--font-display),serif] truncate text-2xl tracking-tight text-[var(--text-strong)] md:text-[2rem]">
+                MoodBoard AI
+              </p>
+              <p className="truncate text-sm text-[var(--text-muted)]">Creative direction workspace</p>
+            </div>
+          </Link>
 
           <div className="flex items-center gap-3">
             <button
@@ -26,21 +33,19 @@ export function TopBar({ title, description }: TopBarProps) {
               onClick={openCommandPalette}
               aria-label="Open command palette"
               aria-keyshortcuts="Control+K Meta+K"
-              className="flex h-11 items-center gap-3 rounded-full border border-black/5 bg-white px-4 text-sm text-slate-500 shadow-sm transition hover:border-black/10 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+              className="flex h-11 items-center gap-3 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 text-sm text-[var(--text-muted)] shadow-sm transition hover:text-[var(--text-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
             >
               <Search className="h-4.5 w-4.5" />
               <span className="hidden sm:inline">Search</span>
-              <span className="rounded-full border border-black/5 bg-[#f6f4ef] px-2.5 py-1 text-[11px] font-medium text-slate-500">
+              <span className="rounded-full border border-[var(--border)] bg-[var(--surface-subtle)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-muted)]">
                 ⌘K
               </span>
             </button>
 
-            <div
-              aria-hidden="true"
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-black/5 bg-slate-900 text-[11px] font-medium text-white shadow-sm"
-            >
-              MB
-            </div>
+            <WorkspaceAvatar
+              className="h-11 w-11 rounded-full text-xs"
+              emojiClassName="text-2xl"
+            />
           </div>
         </div>
       </div>

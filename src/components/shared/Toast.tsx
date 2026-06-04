@@ -9,7 +9,7 @@ import { CheckCircle2, AlertTriangle, Info, X } from 'lucide-react';
 function getToneStyles(tone: 'default' | 'success' | 'destructive') {
   if (tone === 'success') {
     return {
-      wrapper: 'border-emerald-200/80 bg-white/95 text-slate-950',
+      wrapper: 'border-emerald-200/80 bg-[var(--surface)] text-[var(--text-strong)]',
       icon: 'text-emerald-600',
       accent: 'bg-gradient-to-b from-emerald-400 via-emerald-500 to-emerald-600',
       title: 'Success',
@@ -19,7 +19,7 @@ function getToneStyles(tone: 'default' | 'success' | 'destructive') {
 
   if (tone === 'destructive') {
     return {
-      wrapper: 'border-rose-200/80 bg-white/95 text-slate-950',
+      wrapper: 'border-rose-200/80 bg-[var(--surface)] text-[var(--text-strong)]',
       icon: 'text-rose-600',
       accent: 'bg-gradient-to-b from-rose-400 via-rose-500 to-rose-600',
       title: 'Attention',
@@ -28,8 +28,8 @@ function getToneStyles(tone: 'default' | 'success' | 'destructive') {
   }
 
   return {
-    wrapper: 'border-slate-200/80 bg-white/95 text-slate-950',
-    icon: 'text-slate-700',
+    wrapper: 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-strong)]',
+    icon: 'text-[var(--text-muted)]',
     accent: 'bg-gradient-to-b from-slate-300 via-slate-400 to-slate-500',
     title: 'Note',
     iconNode: <Info className="h-4 w-4" />,
@@ -63,21 +63,21 @@ export function Toast() {
         <div className={cn('h-1 w-full', tone.accent)} />
 
         <div className="flex gap-4 p-4">
-          <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 shadow-sm">
+          <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-(--border) bg-(--surface-subtle) text-(--text-strong) shadow-sm">
             <span className={tone.icon}>{tone.iconNode}</span>
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-slate-400">
+            <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-(--text-muted)">
               {tone.title}
             </p>
-            <p className="mt-1 text-sm leading-6 text-slate-700">{toast.message}</p>
+            <p className="mt-1 text-sm leading-6 text-(--text)">{toast.message}</p>
           </div>
 
           <button
             type="button"
             onClick={dismissToast}
-            className="shrink-0 rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
+            className="shrink-0 rounded-full p-1.5 text-(--text-muted) transition hover:bg-(--surface-subtle) hover:text-(--text-strong)"
             aria-label="Dismiss toast"
           >
             <X className="h-4 w-4" />

@@ -15,5 +15,9 @@ type BoardEditorShellProps = {
 };
 
 export function BoardEditorShell({ boardId }: BoardEditorShellProps) {
-  return <BoardEditorClient boardId={boardId} />;
+  return (
+    <div className="board-editor-page">
+      <BoardEditorClient boardId={boardId} />
+    </div>
+  );
 }

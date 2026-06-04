@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Loading() {
   return (
-    <div className="space-y-6">
+    <div className="board-editor-page space-y-6">
       <section className="rounded-4xl border border-slate-200 bg-white/85 p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-2">

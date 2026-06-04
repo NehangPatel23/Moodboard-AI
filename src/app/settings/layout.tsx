@@ -4,9 +4,7 @@ import { TopBar } from '@/components/layout/TopBar';
 
 export default function SettingsLayout({ children }: { children: ReactNode }) {
   return (
-    <AppShell
-      topBar={<TopBar title="Settings" description="Configure your workspace, preferences, and app behavior." />}
-    >
+    <AppShell topBar={<TopBar />}>
       {children}
     </AppShell>
   );

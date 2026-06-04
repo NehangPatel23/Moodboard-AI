@@ -11,15 +11,14 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const variantClasses: Record<ButtonVariant, string> = {
   default:
-    'bg-slate-950 text-white shadow-sm hover:bg-slate-800 focus-visible:ring-slate-950',
+    'bg-[var(--text-strong)] text-[var(--background)] shadow-[0_12px_30px_rgba(15,23,42,0.14)] hover:opacity-90 focus-visible:ring-[var(--ring)] dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200',
   secondary:
-    'bg-slate-100 text-slate-900 hover:bg-slate-200 focus-visible:ring-slate-400',
+    'bg-[var(--surface-elevated)] text-[var(--text-strong)] hover:bg-[var(--surface-subtle)] focus-visible:ring-[var(--ring)] dark:bg-[rgba(255,255,255,0.06)] dark:text-[var(--text-strong)] dark:hover:bg-[rgba(255,255,255,0.1)]',
   outline:
-    'border border-slate-200 bg-white text-slate-900 hover:bg-slate-50 focus-visible:ring-slate-400',
+    'border border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-strong)] hover:bg-[var(--surface-subtle)] focus-visible:ring-[var(--ring)] dark:bg-[rgba(255,255,255,0.04)] dark:text-[var(--text-strong)] dark:hover:bg-[rgba(255,255,255,0.08)]',
   ghost:
-    'bg-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-950 focus-visible:ring-slate-400',
-  destructive:
-    'bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-600',
+    'bg-transparent text-[var(--text-muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--text-strong)] focus-visible:ring-[var(--ring)] dark:text-[var(--text-muted)] dark:hover:bg-[rgba(255,255,255,0.06)] dark:hover:text-[var(--text-strong)]',
+  destructive: 'bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-500',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -37,7 +36,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         type={type}
         className={cn(
           'inline-flex items-center justify-center gap-2 rounded-full font-medium transition-colors',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)',
           'disabled:pointer-events-none disabled:opacity-50',
           variantClasses[variant],
           sizeClasses[size],

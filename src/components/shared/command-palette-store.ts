@@ -1,13 +1,13 @@
 'use client';
 
+import { readAppSettings } from '@/lib/settings-store';
+
 export type CommandPaletteSnapshot = {
   open: boolean;
   sessionId: number;
 };
 
 type Listener = () => void;
-
-const SETTINGS_STORAGE_KEY = 'moodboard-settings-v1';
 
 let snapshot: CommandPaletteSnapshot = {
   open: false,
@@ -21,17 +21,7 @@ function emit() {
 }
 
 function readKeyboardShortcutsEnabled(): boolean {
-  if (typeof window === 'undefined') return true;
-
-  try {
-    const raw = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
-    if (!raw) return true;
-
-    const parsed = JSON.parse(raw) as { keyboardShortcutsEnabled?: boolean };
-    return parsed.keyboardShortcutsEnabled !== false;
-  } catch {
-    return true;
-  }
+  return readAppSettings().keyboardShortcutsEnabled;
 }
 
 export function isCommandPaletteEnabled(): boolean {

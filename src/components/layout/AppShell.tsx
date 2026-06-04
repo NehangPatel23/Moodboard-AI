@@ -1,7 +1,16 @@
+'use client';
+
 import type { ReactNode } from 'react';
+import { useSyncExternalStore } from 'react';
+import { cn } from '@/lib/utils';
 import { Sidebar } from './Sidebar';
 import { MobileNav } from './MobileNav';
 import { BoardStoreBootstrap } from './BoardStoreBootstrap';
+import {
+  getServerSidebarCollapsed,
+  readSidebarCollapsed,
+  subscribeSidebar,
+} from './sidebar-store';
 
 type AppShellProps = {
   children: ReactNode;
@@ -9,12 +18,20 @@ type AppShellProps = {
 };
 
 export function AppShell({ children, topBar }: AppShellProps) {
+  const collapsed = useSyncExternalStore(
+    subscribeSidebar,
+    readSidebarCollapsed,
+    getServerSidebarCollapsed,
+  );
+
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.9),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(203,215,200,0.18),transparent_28%),linear-gradient(180deg,#f8f7f4_0%,#fbfaf8_100%)] text-slate-900">
+    <div
+      className="min-h-screen bg-[var(--background)] text-[var(--text)]"
+    >
       <BoardStoreBootstrap />
       <Sidebar />
 
-      <div className="min-h-screen md:pl-72">
+      <div className={cn('min-h-screen transition-[padding] duration-200', collapsed ? 'md:pl-20' : 'md:pl-72')}>
         {topBar ? <div className="sticky top-0 z-30">{topBar}</div> : null}
 
         <main className="mx-auto w-full max-w-360 px-4 pb-24 pt-6 md:px-8 md:pb-16 md:pt-10">

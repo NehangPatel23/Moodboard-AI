@@ -2,6 +2,7 @@ import type {
   Board,
   BoardDraftInput,
   BoardTemplate,
+  BoardVisibility,
   NoteItem,
   PaletteItem,
   ReferenceItem,
@@ -142,6 +143,17 @@ export function duplicateBoardById(boardId: string): Board | null {
 
 export function toggleFavoriteById(boardId: string): Board | null {
   return updateBoard(boardId, (board) => ({ ...board, isFavorite: !board.isFavorite }));
+}
+
+export function setBoardVisibility(boardId: string, visibility: BoardVisibility): Board | null {
+  return updateBoard(boardId, (board) => ({ ...board, visibility }));
+}
+
+export function toggleVisibilityById(boardId: string): Board | null {
+  return updateBoard(boardId, (board) => ({
+    ...board,
+    visibility: board.visibility === 'shared' ? 'private' : 'shared',
+  }));
 }
 
 export function updatePaletteItem(boardId: string, index: number, patch: Partial<PaletteItem>): Board | null {

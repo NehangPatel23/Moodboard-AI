@@ -16,6 +16,7 @@ import {
   getQuickPromptSuggestions,
 } from '@/lib/ai';
 import { loadBoards, saveBoards, upsertBoard } from '@/lib/board-store';
+import { readAppSettings } from '@/lib/settings-store';
 import { cn } from '@/lib/utils';
 
 type SuggestionPillsProps = {
@@ -33,9 +34,9 @@ function SuggestionPills({ suggestions, onSelect }: SuggestionPillsProps) {
           variant="outline"
           size="sm"
           onClick={() => onSelect(suggestion)}
-          className="rounded-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-950"
+          className="rounded-full border-(--border) bg-(--surface) text-(--text-muted) hover:bg-(--surface-subtle) hover:text-(--text-strong) dark:bg-[rgba(255,255,255,0.05)] dark:text-(--text-muted) dark:hover:bg-[rgba(255,255,255,0.08)] dark:hover:text-(--text-strong)"
         >
-          {suggestion}
+          {suggestion.charAt(0).toUpperCase() + suggestion.slice(1)}
         </Button>
       ))}
     </div>
@@ -48,11 +49,19 @@ type TemplatePickerProps = {
   onCreateTemplate: (templateId: string) => void;
 };
 
+const templateAccentGradients = [
+  'linear-gradient(90deg, rgba(125, 211, 252, 0.98) 0%, rgba(167, 243, 208, 0.98) 100%)',
+  'linear-gradient(90deg, rgba(52, 211, 153, 0.98) 0%, rgba(251, 191, 36, 0.98) 100%)',
+  'linear-gradient(90deg, rgba(251, 191, 36, 0.98) 0%, rgba(251, 146, 60, 0.98) 55%, rgba(244, 114, 182, 0.98) 100%)',
+  'linear-gradient(90deg, rgba(167, 139, 250, 0.98) 0%, rgba(96, 165, 250, 0.98) 100%)',
+];
+
 function TemplatePicker({ templates, activeTemplateId, onCreateTemplate }: TemplatePickerProps) {
   return (
     <div className="grid gap-4 md:grid-cols-3" aria-label="Board templates">
-      {templates.map((template) => {
+      {templates.map((template, index) => {
         const isActive = activeTemplateId === template.id;
+        const accentGradient = templateAccentGradients[index % templateAccentGradients.length];
 
         return (
           <button
@@ -62,44 +71,60 @@ function TemplatePicker({ templates, activeTemplateId, onCreateTemplate }: Templ
             aria-pressed={isActive}
             aria-label={`Create board from template ${template.name}`}
             className={cn(
-              'group text-left transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2',
-              'rounded-[1.75rem]',
-              isActive ? 'ring-1 ring-slate-200' : '',
+              'group rounded-[1.75rem] text-left transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background) dark:focus-visible:ring-[rgba(255,255,255,0.22)]',
+              isActive ? 'ring-1 ring-(--border) dark:ring-white/10' : '',
             )}
           >
-            <Card className="h-full rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
-              <div className="h-1.5 bg-linear-to-r from-slate-200 via-[#cbd7c8] to-[#d7c4b3]" />
+            <Card className="h-full overflow-hidden rounded-[1.75rem] border border-(--border) bg-(--surface-elevated) shadow-[0_10px_30px_rgba(15,23,42,0.06)] dark:shadow-[0_18px_50px_rgba(0,0,0,0.22)]">
+              <div
+                className="h-1.5 w-full"
+                style={{
+                  backgroundImage: accentGradient,
+                  boxShadow: '0 0 18px rgba(255, 255, 255, 0.08)',
+                }}
+              />
+
               <div className="p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="[font-family:var(--font-display),serif] text-2xl tracking-tight text-slate-950">
+                    <h3 className="[font-family:var(--font-display),serif] text-2xl tracking-tight text-(--text-strong)">
                       {template.name}
                     </h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">{template.description}</p>
+                    <p className="mt-2 text-sm leading-6 text-(--text-muted)">
+                      {template.description}
+                    </p>
                   </div>
 
                   <Badge variant="secondary">Instant board</Badge>
                 </div>
 
-                <div className="mt-4 rounded-[1.35rem] border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
-                    Mood
-                  </p>
-                  <p className="[font-family:var(--font-display),serif] mt-2 text-xl tracking-tight text-slate-950">
-                    {template.mood ?? template.name}
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-slate-500">
-                    {template.summary ?? template.prompt}
-                  </p>
-                </div>
+                {template.mood || template.summary ? (
+                  <div className="mt-4 rounded-[1.35rem] border border-(--border) bg-(--surface) p-4 dark:bg-[rgba(255,255,255,0.04)]">
+                    <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
+                      Mood
+                    </p>
+                    {template.mood ? (
+                      <p className="[font-family:var(--font-display),serif] mt-2 text-xl capitalize tracking-tight text-(--text-strong)">
+                        {template.mood}
+                      </p>
+                    ) : null}
+                    {template.summary ? (
+                      <p className="mt-2 text-sm leading-6 text-(--text-muted)">
+                        {template.summary}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
 
-                <p className="mt-4 text-sm leading-6 text-slate-600">{template.prompt}</p>
+                <p className="mt-4 text-sm leading-6 text-(--text-strong)">
+                  {template.prompt.charAt(0).toUpperCase() + template.prompt.slice(1)}
+                </p>
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   {template.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-medium tracking-wide text-slate-600"
+                      className="rounded-full border border-(--border) bg-(--surface) px-3 py-1 text-[11px] font-medium tracking-wide text-(--text-muted) dark:bg-[rgba(255,255,255,0.04)]"
                     >
                       {tag}
                     </span>
@@ -116,7 +141,7 @@ function TemplatePicker({ templates, activeTemplateId, onCreateTemplate }: Templ
 
 function LoadingPreview() {
   return (
-    <section className="rounded-[2.25rem] border border-slate-200 bg-white p-6 shadow-[0_20px_50px_rgba(15,23,42,0.08)]">
+    <section className="rounded-[2.25rem] border border-(--border) bg-(--surface-elevated) p-6 shadow-[0_20px_50px_rgba(15,23,42,0.06)] dark:shadow-[0_24px_60px_rgba(0,0,0,0.22)]">
       <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
         <div className="space-y-4">
           <Skeleton className="h-4 w-28" />
@@ -197,7 +222,8 @@ export function PromptComposer() {
     try {
       await new Promise((resolve) => window.setTimeout(resolve, 850));
 
-      const { board, followUpPrompt } = generateBoardDraft(trimmedPrompt);
+      const { board: generatedBoard, followUpPrompt } = generateBoardDraft(trimmedPrompt);
+      const board = { ...generatedBoard, visibility: readAppSettings().defaultVisibility };
       const existingBoards = loadBoards();
       const nextBoards = upsertBoard(existingBoards, board);
       saveBoards(nextBoards);
@@ -235,15 +261,16 @@ export function PromptComposer() {
         throw new Error('Template generation failed');
       }
 
+      const board = { ...generated.board, visibility: readAppSettings().defaultVisibility };
       const existingBoards = loadBoards();
-      const nextBoards = upsertBoard(existingBoards, generated.board);
+      const nextBoards = upsertBoard(existingBoards, board);
       saveBoards(nextBoards);
 
-      setStatus(`Created ${generated.board.title}. ${generated.followUpPrompt}`);
+      setStatus(`Created ${board.title}. ${generated.followUpPrompt}`);
 
       redirectTimerRef.current = window.setTimeout(() => {
         setIsGenerating(false);
-        router.push(`/app/boards/${generated.board.id}`);
+        router.push(`/app/boards/${board.id}`);
       }, 500);
     } catch {
       setIsGenerating(false);
@@ -253,19 +280,22 @@ export function PromptComposer() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-[0_24px_60px_rgba(15,23,42,0.06)] md:p-8">
+      <section className="rounded-[2.5rem] border border-(--border) bg-(--surface-elevated) p-6 shadow-[0_24px_60px_rgba(15,23,42,0.06)] md:p-8 dark:shadow-[0_24px_60px_rgba(0,0,0,0.22)]">
         <div className="grid gap-8 xl:grid-cols-[1.15fr_0.85fr]">
           <div className="space-y-6">
             <div className="space-y-4">
-              <Badge variant="outline" className="w-fit rounded-full px-3 py-1">
-                Step 1
+              <Badge
+                variant="outline"
+                className="w-fit rounded-full border-(--border) bg-(--surface) px-3 py-1 text-[11px] uppercase tracking-[0.28em] text-(--text-muted) dark:bg-[rgba(255,255,255,0.05)]"
+              >
+                Prompt your board
               </Badge>
 
               <div className="space-y-2">
-                <h2 className="[font-family:var(--font-display),serif] text-[clamp(2.6rem,6vw,5rem)] leading-[0.94] tracking-[-0.04em] text-slate-950">
+                <h2 className="[font-family:var(--font-display),serif] text-[clamp(2.6rem,6vw,5rem)] leading-[0.94] tracking-[-0.04em] text-(--text-strong)">
                   Describe your vision
                 </h2>
-                <p className="max-w-2xl text-sm leading-6 text-slate-500 md:text-base">
+                <p className="max-w-2xl text-sm leading-6 text-(--text-muted) md:text-base">
                   Write a prompt and the studio will shape mood, palette, typography, references, and notes.
                 </p>
               </div>
@@ -273,7 +303,7 @@ export function PromptComposer() {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+                <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
                   Prompt
                 </label>
 
@@ -282,12 +312,12 @@ export function PromptComposer() {
                   onChange={(event) => updatePrompt(event.target.value)}
                   onKeyDown={handleComposerKeyDown}
                   placeholder="e.g. soft, modern brand for a skincare startup"
-                  className="min-h-52.5 resize-y rounded-[1.75rem] border-slate-200 bg-white px-4 py-4 text-base text-slate-900 shadow-none placeholder:text-slate-400 focus-visible:ring-slate-900"
+                  className="min-h-56 resize-y rounded-[1.75rem] border-(--border) bg-(--surface) px-4 py-4 text-base text-(--text-strong) shadow-none placeholder:text-(--text-muted)! focus-visible:ring-(--ring) dark:bg-[rgba(255,255,255,0.04)] dark:placeholder:text-[rgba(219,229,242,0.45)]"
                   disabled={isGenerating}
                 />
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-7">
                 <SuggestionPills suggestions={suggestions} onSelect={updatePrompt} />
 
                 <Button
@@ -295,16 +325,16 @@ export function PromptComposer() {
                   onClick={() => void handleGenerate()}
                   disabled={!canGenerate}
                   aria-busy={isGenerating}
-                  className="rounded-full bg-slate-950 px-5 text-white shadow-sm hover:bg-slate-800"
+                  className="rounded-full bg-(--text-strong)! px-5 text-(--background)! shadow-sm hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
                 >
                   {isGenerating ? 'Generating...' : 'Generate board'}
                 </Button>
               </div>
 
-              <p className="text-xs text-slate-400">Press Ctrl/Cmd + Enter to generate faster.</p>
+              <p className="text-xs text-(--text-muted)">Press Ctrl/Cmd + Enter to generate faster.</p>
 
               {status ? (
-                <p className="text-sm leading-6 text-slate-600" role="status" aria-live="polite">
+                <p className="text-sm leading-6 text-(--text-muted)" role="status" aria-live="polite">
                   {status}
                 </p>
               ) : null}
@@ -312,26 +342,26 @@ export function PromptComposer() {
           </div>
 
           <aside className="space-y-4">
-            <div className="rounded-4xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
-              <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+            <div className="rounded-4xl border border-(--border) bg-(--surface) p-5 shadow-[0_10px_30px_rgba(15,23,42,0.04)] dark:bg-[rgba(255,255,255,0.04)] dark:shadow-[0_12px_30px_rgba(0,0,0,0.18)]">
+              <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
                 Studio guide
               </p>
-              <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
+              <ul className="mt-4 space-y-3 text-sm leading-6 text-(--text-muted)">
                 <li>Describe mood, audience, and materiality.</li>
                 <li>Use a single sentence or a full brief.</li>
                 <li>Templates give you a faster starting point.</li>
               </ul>
             </div>
 
-            <div className="rounded-4xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="rounded-4xl border border-(--border) bg-(--surface) p-5 shadow-[0_10px_30px_rgba(15,23,42,0.04)] dark:bg-[rgba(255,255,255,0.04)] dark:shadow-[0_12px_30px_rgba(0,0,0,0.18)]">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+                <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
                   Templates
                 </p>
                 <Badge variant="secondary">{templates.length} ready-made directions</Badge>
               </div>
 
-              <p className="mt-3 text-sm leading-6 text-slate-500">
+              <p className="mt-3 text-sm leading-6 text-(--text-muted)">
                 Pick a direction and create a fully populated board instantly.
               </p>
 
@@ -346,18 +376,23 @@ export function PromptComposer() {
                       onClick={() => void handleTemplateCreate(template.id)}
                       aria-pressed={active}
                       className={cn(
-                        'w-full rounded-3xl border text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2',
-                        active ? 'border-slate-200 bg-slate-50' : 'border-slate-200 bg-white hover:bg-slate-50',
+                        'w-full rounded-3xl border text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background) dark:focus-visible:ring-[rgba(255,255,255,0.22)]',
+                        active
+                          ? 'border-(--border) bg-(--surface-subtle) dark:border-white/10 dark:bg-[rgba(255,255,255,0.06)]'
+                          : 'border-(--border) bg-(--surface-elevated) hover:bg-(--surface-subtle) dark:border-white/10 dark:bg-[rgba(255,255,255,0.03)] dark:hover:bg-[rgba(255,255,255,0.06)]',
                       )}
                     >
                       <div className="p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <h3 className="[font-family:var(--font-display),serif] text-xl tracking-tight text-slate-950">
+                            <h3 className="[font-family:var(--font-display),serif] text-xl tracking-tight text-(--text-strong)">
                               {template.name}
                             </h3>
-                            <p className="mt-2 text-sm leading-6 text-slate-500">{template.description}</p>
+                            <p className="mt-2 text-sm leading-6 text-(--text-muted)">
+                              {template.description}
+                            </p>
                           </div>
+
                           {active ? (
                             <Badge variant="secondary">Creating...</Badge>
                           ) : (
@@ -365,13 +400,15 @@ export function PromptComposer() {
                           )}
                         </div>
 
-                        <p className="mt-3 text-sm leading-6 text-slate-600">{template.prompt}</p>
+                        <p className="mt-3 text-sm leading-6 text-(--text-muted)">
+                          {template.prompt}
+                        </p>
 
                         <div className="mt-4 flex flex-wrap gap-2">
                           {template.tags.map((tag) => (
                             <span
                               key={tag}
-                              className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-medium tracking-wide text-slate-600"
+                              className="rounded-full border border-(--border) bg-(--surface) px-3 py-1 text-[11px] font-medium tracking-wide text-(--text-muted) dark:bg-[rgba(255,255,255,0.04)]"
                             >
                               {tag}
                             </span>
@@ -389,10 +426,10 @@ export function PromptComposer() {
 
       <section className="space-y-4">
         <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-[0.3em] text-slate-400">
+          <p className="text-xs font-medium uppercase tracking-[0.3em] text-(--text-muted)">
             Templates
           </p>
-          <h3 className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-slate-950">
+          <h3 className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)">
             Start from a direction, then refine it.
           </h3>
         </div>

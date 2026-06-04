@@ -4,9 +4,7 @@ import { TopBar } from '@/components/layout/TopBar';
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
-    <AppShell
-      topBar={<TopBar title="MoodBoard AI" description="Your saved creative direction boards." />}
-    >
+    <AppShell topBar={<TopBar />}>
       {children}
     </AppShell>
   );

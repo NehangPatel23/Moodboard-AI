@@ -8,9 +8,11 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default: 'bg-slate-950 text-white',
-  secondary: 'bg-slate-100 text-slate-700',
-  outline: 'border border-slate-200 bg-white text-slate-700',
+  default: 'bg-[var(--text-strong)] text-[var(--background)] dark:bg-white dark:text-slate-950',
+  secondary:
+    'bg-[var(--surface-subtle)] text-[var(--text-strong)] dark:bg-[rgba(255,255,255,0.08)] dark:text-[var(--text-strong)]',
+  outline:
+    'border border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-strong)] dark:bg-[rgba(255,255,255,0.05)] dark:text-[var(--text-strong)]',
 };
 
 export function Badge({ className, variant = 'secondary', ...props }: BadgeProps) {

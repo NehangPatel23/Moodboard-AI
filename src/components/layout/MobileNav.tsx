@@ -10,7 +10,7 @@ const items = [
 
 export function MobileNav() {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/90 px-3 py-2 backdrop-blur md:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 backdrop-blur md:hidden">
       <div className="grid grid-cols-3 gap-2">
         {items.map((item) => {
           const Icon = item.icon;
@@ -19,8 +19,8 @@ export function MobileNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex flex-col items-center gap-1 rounded-2xl px-2 py-2 text-xs font-medium text-slate-600',
-                'hover:bg-slate-100 hover:text-slate-950',
+                'flex flex-col items-center gap-1 rounded-2xl px-2 py-2 text-xs font-medium text-[var(--text-muted)]',
+                'hover:bg-[var(--surface-subtle)] hover:text-[var(--text-strong)]',
               )}
             >
               <Icon className="h-4 w-4" />

@@ -2,14 +2,34 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useSyncExternalStore } from 'react';
 import { cn } from '@/lib/utils';
-import { Layers3, LayoutDashboard, Plus, Settings2, Sparkles } from 'lucide-react';
+import {
+  LayoutDashboard,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Plus,
+  Settings,
+  Sparkles,
+} from 'lucide-react';
+import {
+  DEFAULT_APP_SETTINGS,
+  readAppSettings,
+  subscribeAppSettings,
+} from '@/lib/settings-store';
+import {
+  getServerSidebarCollapsed,
+  readSidebarCollapsed,
+  subscribeSidebar,
+  toggleSidebarCollapsed,
+} from '@/components/layout/sidebar-store';
+import { WorkspaceAvatar } from '@/components/layout/WorkspaceAvatar';
 
 const navItems = [
-  { href: '/app', label: 'My Boards', icon: LayoutDashboard },
-  { href: '/app/new', label: 'New Board', icon: Plus },
+  { href: '/app', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/app/new', label: 'Create Board', icon: Plus },
   { href: '/templates', label: 'Templates', icon: Sparkles },
-  { href: '/settings', label: 'Settings', icon: Settings2 },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
 function isActivePath(pathname: string, href: string) {
@@ -22,26 +42,51 @@ function isActivePath(pathname: string, href: string) {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const settings = useSyncExternalStore(
+    subscribeAppSettings,
+    readAppSettings,
+    () => DEFAULT_APP_SETTINGS,
+  );
+  const collapsed = useSyncExternalStore(
+    subscribeSidebar,
+    readSidebarCollapsed,
+    getServerSidebarCollapsed,
+  );
 
   return (
-    <aside className="fixed inset-y-0 left-0 hidden w-72 border-r border-black/5 bg-[rgba(248,247,244,0.82)] px-5 py-6 backdrop-blur-xl md:flex md:flex-col">
+    <aside
+      className={cn(
+        'fixed inset-y-0 left-0 hidden border-r border-[var(--border)] bg-[var(--surface-soft)] py-6 backdrop-blur-xl transition-[width] duration-200 md:flex md:flex-col',
+        collapsed ? 'w-20 px-3' : 'w-72 px-5',
+      )}
+    >
       <Link
         href="/"
-        className="flex items-center gap-3 rounded-2xl px-3 py-2 transition hover:bg-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+        title={collapsed ? settings.workspaceName : undefined}
+        className={cn(
+          'flex items-center rounded-2xl transition hover:bg-[var(--surface-elevated)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]',
+          collapsed ? 'justify-center py-2' : 'gap-3 px-3 py-2',
+        )}
       >
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-sm">
-          <Layers3 className="h-5 w-5" />
-        </div>
-        <div className="min-w-0">
-          <div className="text-sm font-semibold text-slate-900">MoodBoard AI</div>
-          <div className="text-xs text-slate-500">Creative direction workspace</div>
-        </div>
+        <WorkspaceAvatar className="h-11 w-11 shrink-0 rounded-2xl text-sm" emojiClassName="text-2xl" />
+        {!collapsed ? (
+          <div className="min-w-0">
+            <div className="truncate text-sm font-semibold text-[var(--text-strong)]">
+              {settings.workspaceName}
+            </div>
+            <div className="truncate text-xs text-[var(--text-muted)]">{settings.workspaceTagline}</div>
+          </div>
+        ) : null}
       </Link>
 
-      <div className="mt-8 px-3">
-        <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
-          Workspace
-        </p>
+      <div className="mt-8">
+        {!collapsed ? (
+          <p className="px-3 text-[10px] font-medium uppercase tracking-[0.28em] text-[var(--text-muted)]">
+            Workspace
+          </p>
+        ) : (
+          <div className="mx-auto h-px w-8 bg-[var(--border)]" aria-hidden="true" />
+        )}
       </div>
 
       <nav className="mt-3 space-y-1" aria-label="Primary">
@@ -54,19 +99,43 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               aria-current={active ? 'page' : undefined}
+              title={collapsed ? item.label : undefined}
+              aria-label={collapsed ? item.label : undefined}
               className={cn(
-                'flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition',
+                'flex items-center rounded-2xl py-3 text-sm font-medium transition',
+                collapsed ? 'justify-center' : 'gap-3 px-3',
                 active
-                  ? 'bg-white text-slate-900 shadow-[0_10px_30px_rgba(15,23,42,0.06)] ring-1 ring-black/5'
-                  : 'text-slate-500 hover:bg-white/70 hover:text-slate-900',
+                  ? 'bg-[var(--surface)] text-[var(--text-strong)] shadow-[0_10px_30px_rgba(15,23,42,0.06)] ring-1 ring-[var(--border)]'
+                  : 'text-[var(--text-muted)] hover:bg-[var(--surface-elevated)] hover:text-[var(--text-strong)]',
               )}
             >
-              <Icon className={cn('h-4 w-4', active ? 'text-slate-900' : 'text-slate-400')} />
-              <span>{item.label}</span>
+              <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-[var(--text-strong)]' : 'text-[var(--text-muted)]')} />
+              {!collapsed ? <span>{item.label}</span> : null}
             </Link>
           );
         })}
       </nav>
+
+      <button
+        type="button"
+        onClick={toggleSidebarCollapsed}
+        aria-expanded={!collapsed}
+        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        className={cn(
+          'mt-auto flex items-center rounded-2xl py-3 text-sm font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-elevated)] hover:text-[var(--text-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]',
+          collapsed ? 'justify-center' : 'gap-3 px-3',
+        )}
+      >
+        {collapsed ? (
+          <PanelLeftOpen className="h-4 w-4 shrink-0" />
+        ) : (
+          <>
+            <PanelLeftClose className="h-4 w-4 shrink-0" />
+            <span>Collapse</span>
+          </>
+        )}
+      </button>
     </aside>
   );
 }

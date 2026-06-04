@@ -4,9 +4,7 @@ import { TopBar } from '@/components/layout/TopBar';
 
 export default function TemplatesLayout({ children }: { children: ReactNode }) {
   return (
-    <AppShell
-      topBar={<TopBar title="Templates" description="Browse curated starting points for creative direction boards." />}
-    >
+    <AppShell topBar={<TopBar />}>
       {children}
     </AppShell>
   );

@@ -309,7 +309,7 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-10060 flex items-start justify-center bg-slate-950/40 px-4 py-4 backdrop-blur-sm sm:px-6 sm:py-6"
+      className="fixed inset-0 z-10060 flex items-start justify-center bg-slate-950/45 px-4 py-4 backdrop-blur-sm sm:px-6 sm:py-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="command-palette-title"
@@ -320,13 +320,13 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
         key={sessionId}
         ref={panelRef}
         tabIndex={-1}
-        className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-4xl border border-slate-200 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.28)]"
+        className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-4xl border border-(--border) bg-(--surface) shadow-[0_30px_80px_rgba(15,23,42,0.28)]"
         onMouseDown={(event) => event.stopPropagation()}
         onKeyDown={handlePanelKeyDown}
       >
-        <div className="shrink-0 border-b border-slate-200 bg-white/95 px-4 py-4 sm:px-5">
-          <div className="flex items-center gap-3 rounded-[1.35rem] border border-slate-200 bg-slate-50 px-4 py-3 shadow-sm focus-within:ring-2 focus-within:ring-slate-950/15">
-            <Search className="h-5 w-5 shrink-0 text-slate-400" />
+        <div className="shrink-0 border-b border-(--border) bg-(--surface-elevated) px-4 py-4 sm:px-5">
+          <div className="flex items-center gap-3 rounded-[1.35rem] border border-(--border) bg-(--surface-soft) px-4 py-3 shadow-sm focus-within:ring-2 focus-within:ring-(--ring)">
+            <Search className="h-5 w-5 shrink-0 text-(--text-muted)" />
             <input
               id="command-palette-title"
               ref={inputRef}
@@ -334,13 +334,13 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
               onChange={(event) => handleQueryChange(event.target.value)}
               placeholder="Search pages, boards, or actions..."
               aria-describedby="command-palette-description"
-              className="h-8 w-full border-0 bg-transparent p-0 text-base text-slate-950 placeholder:text-slate-400 focus:outline-none focus:ring-0"
+              className="h-8 w-full border-0 bg-transparent p-0 text-base text-(--text-strong) placeholder:text-(--text-muted) focus:outline-none focus:ring-0"
               autoComplete="off"
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck={false}
             />
-            <div className="flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-medium text-slate-500 shadow-sm">
+            <div className="flex shrink-0 items-center gap-1 rounded-full border border-(--border) bg-(--surface) px-3 py-1.5 text-[11px] font-medium text-(--text-muted) shadow-sm">
               <span>⌘</span>
               <span>K</span>
             </div>
@@ -356,7 +356,7 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
             <div className="space-y-6">
               {sections.map((section) => (
                 <section key={section.title} aria-label={section.title}>
-                  <h2 className="mb-2 px-2 text-xs font-medium uppercase tracking-[0.28em] text-slate-400">
+                  <h2 className="mb-2 px-2 text-xs font-medium uppercase tracking-[0.28em] text-(--text-muted)">
                     {section.title}
                   </h2>
                   <div className="space-y-1">
@@ -374,28 +374,32 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
                           aria-label={`${item.title}. ${item.description}`}
                           className={cn(
                             'flex w-full items-start gap-4 rounded-[1.4rem] px-4 py-4 text-left transition',
-                            active ? 'bg-sky-100/90 ring-1 ring-sky-300/70' : 'hover:bg-slate-50',
+                            active
+                              ? 'bg-(--surface-subtle) ring-1 ring-(--border) shadow-[0_10px_30px_rgba(15,23,42,0.10)]'
+                              : 'hover:bg-(--surface-subtle)',
                           )}
                         >
                           <span
                             className={cn(
                               'mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border bg-white shadow-sm',
-                              active ? 'border-sky-200 text-sky-700' : 'border-slate-200 text-slate-500',
+                              active
+                                ? 'border-(--border) bg-(--surface) text-(--text-strong)'
+                                : 'border-(--border) text-(--text-muted)',
                             )}
                           >
                             {item.icon}
                           </span>
 
                           <span className="min-w-0 flex-1">
-                            <span className="block text-base font-semibold tracking-tight text-slate-950">
+                            <span className="block text-base font-semibold tracking-tight text-(--text-strong)">
                               {item.title}
                             </span>
-                            <span className="mt-1 block text-sm leading-6 text-slate-500">
+                            <span className="mt-1 block text-sm leading-6 text-(--text-muted)">
                               {item.description}
                             </span>
                           </span>
 
-                          <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-slate-400" />
+                          <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-(--text-muted)" />
                         </button>
                       );
                     })}
@@ -404,25 +408,25 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
               ))}
             </div>
           ) : (
-            <div className="flex min-h-55 flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-6 text-center">
-              <p className="text-lg font-semibold tracking-tight text-slate-950">
+            <div className="flex min-h-55 flex-col items-center justify-center rounded-3xl border border-dashed border-(--border) bg-(--surface-soft) px-6 text-center">
+              <p className="text-lg font-semibold tracking-tight text-(--text-strong)">
                 No matching commands
               </p>
-              <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">
+              <p className="mt-2 max-w-sm text-sm leading-6 text-(--text-muted)">
                 Try a different keyword, or create a new board from the actions above.
               </p>
               <div className="mt-5 flex flex-wrap justify-center gap-3">
                 <button
                   type="button"
                   onClick={() => router.push('/app/new')}
-                  className="inline-flex h-10 items-center justify-center rounded-full bg-slate-950 px-4 text-sm font-medium text-white shadow-sm transition hover:bg-[#020617]"
+                  className="inline-flex h-10 items-center justify-center rounded-full bg-(--text-strong) px-4 text-sm font-medium text-(--background) shadow-sm transition hover:opacity-90"
                 >
                   Create board
                 </button>
                 <button
                   type="button"
                   onClick={() => router.push('/app')}
-                  className="inline-flex h-10 items-center justify-center rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-900 transition hover:bg-slate-50"
+                  className="inline-flex h-10 items-center justify-center rounded-full border border-(--border) bg-(--surface) px-4 text-sm font-medium text-(--text-strong) transition hover:bg-(--surface-subtle)"
                 >
                   Open dashboard
                 </button>

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react';
 import type { Board } from '@/types/board';
 import { formatDateTime } from '@/lib/utils';
-import { Star } from 'lucide-react';
+import { Globe, Lock, Star } from 'lucide-react';
 import { toggleFavoriteById } from '@/lib/board-store';
 import { showToast } from '@/components/shared/toast-store';
 
@@ -69,7 +69,7 @@ export function BoardCard({ board }: BoardCardProps) {
       onClick={openBoard}
       onKeyDown={handleKeyDown}
       aria-label={`Open ${board.title}`}
-      className="group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-4xl border border-black/5 bg-[#ecebe7] shadow-[0_22px_50px_rgba(15,23,42,0.10)] transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_32px_70px_rgba(15,23,42,0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+      className="group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-4xl border border-[var(--border)] bg-[var(--surface)] shadow-[0_22px_50px_rgba(15,23,42,0.10)] transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_32px_70px_rgba(15,23,42,0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
     >
       <button
         type="button"
@@ -80,12 +80,12 @@ export function BoardCard({ board }: BoardCardProps) {
             : `Add ${board.title} to favorites`
         }
         aria-pressed={board.isFavorite}
-        className="absolute right-4 top-4 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/5 bg-white/90 shadow-sm transition hover:bg-white hover:shadow-md"
+        className="absolute right-4 top-4 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] shadow-sm transition hover:bg-[var(--surface-elevated)] hover:shadow-md"
       >
         {board.isFavorite ? (
           <Star className="h-4.5 w-4.5 fill-amber-400 text-amber-400" />
         ) : (
-          <Star className="h-4.5 w-4.5 text-slate-500" />
+          <Star className="h-4.5 w-4.5 text-[var(--text-muted)]" />
         )}
       </button>
 
@@ -117,24 +117,32 @@ export function BoardCard({ board }: BoardCardProps) {
           {board.tags.slice(0, 3).map((tag) => (
             <span
               key={`${board.id}-${tag}`}
-              className="rounded-full bg-slate-700/75 px-3 py-1 text-[11px] font-medium tracking-wide text-white/90"
+              className="rounded-full bg-[var(--surface-subtle)] px-3 py-1 text-[11px] font-medium tracking-wide text-[var(--text-muted)]"
             >
               {tag}
             </span>
           ))}
-          <span className="rounded-full bg-slate-700/75 px-3 py-1 text-[11px] font-medium tracking-wide text-white/90">
+          <span className="rounded-full bg-[var(--surface-subtle)] px-3 py-1 text-[11px] font-medium tracking-wide text-[var(--text-muted)]">
             {board.references.length} Assets
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-subtle)] px-3 py-1 text-[11px] font-medium tracking-wide text-[var(--text-muted)]">
+            {board.visibility === 'shared' ? (
+              <Globe className="h-3 w-3" />
+            ) : (
+              <Lock className="h-3 w-3" />
+            )}
+            {board.visibility === 'shared' ? 'Shared' : 'Private'}
           </span>
         </div>
 
-        <h3 className="mt-4 [font-family:var(--font-display),serif] text-2xl leading-tight text-slate-900">
+        <h3 className="mt-4 [font-family:var(--font-display),serif] text-2xl leading-tight text-[var(--text-strong)]">
           {board.title}
         </h3>
 
-        <p className="mt-2 text-sm leading-6 text-slate-600">{board.summary}</p>
+        <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{board.summary}</p>
 
         <div className="mt-auto flex items-center justify-between gap-4 pt-6">
-          <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+          <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-[var(--text-muted)]">
             Updated {formatDateTime(board.updatedAt)}
           </p>
         </div>

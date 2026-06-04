@@ -50,7 +50,7 @@ export function ConfirmationModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[10050] flex items-center justify-center bg-black/35 px-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[10050] flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirmation-title"
@@ -62,19 +62,19 @@ export function ConfirmationModal({
       }}
     >
       <div
-        className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_30px_80px_rgba(15,23,42,0.15)]"
+        className="w-full max-w-md rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-6 text-[var(--text)] shadow-[0_30px_80px_rgba(15,23,42,0.15)]"
         onMouseDown={(event) => event.stopPropagation()}
       >
         <h2
           id="confirmation-title"
-          className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-slate-950"
+          className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-[var(--text-strong)]"
         >
           {title}
         </h2>
 
         <p
           id="confirmation-description"
-          className="mt-3 text-sm leading-6 text-slate-500"
+          className="mt-3 text-sm leading-6 text-[var(--text-muted)]"
         >
           {description}
         </p>
@@ -94,11 +94,7 @@ export function ConfirmationModal({
             type="button"
             variant={destructive ? 'destructive' : 'default'}
             onClick={onConfirm}
-            className={
-              destructive
-                ? 'rounded-full'
-                : 'rounded-full bg-slate-950 text-white hover:bg-slate-800'
-            }
+            className="rounded-full"
           >
             {confirmLabel}
           </Button>

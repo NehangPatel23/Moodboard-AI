@@ -38,6 +38,16 @@ import {
   StarOff,
   Trash2,
   X,
+  ClipboardList, 
+  Lightbulb, 
+  Tag,
+  Sparkles,
+  Palette,
+  Type,
+  Layers3,
+  Image as ImageIcon,
+  Globe,
+  Lock,
 } from 'lucide-react';
 import { showToast } from '@/components/shared/toast-store';
 
@@ -46,6 +56,7 @@ type BoardEditorClientProps = {
 };
 
 type RemovalKind = 'palette' | 'typography' | 'reference' | 'note';
+type BoardAction = 'duplicate' | 'share' | 'export' | 'view';
 
 const TITLE_LIMIT = 80;
 
@@ -72,11 +83,153 @@ const noteTypeOptions: { value: NoteType; label: string }[] = [
 
 const referenceCategoryOptions = ['Editorial', 'Lifestyle', 'Campaign', 'Product', 'UI', 'Mood'];
 
+const fontOptions = [
+  'Inter',
+  'DM Sans',
+  'Manrope',
+  'Sora',
+  'Plus Jakarta Sans',
+  'IBM Plex Sans',
+  'Bodoni Moda',
+  'Cormorant Garamond',
+  'Playfair Display',
+  'Libre Baskerville',
+  'Merriweather',
+];
+
+const EDITOR_SECTIONS = ['overview', 'palette', 'typography', 'references', 'notes'] as const;
+type EditorSection = (typeof EDITOR_SECTIONS)[number];
+
+const EDITOR_SECTION_META: Record<
+  EditorSection,
+  {
+    label: string;
+    description: string;
+    icon: typeof Sparkles;
+  }
+> = {
+  overview: {
+    label: 'Overview',
+    description: 'Creative direction and summary.',
+    icon: Sparkles,
+  },
+  palette: {
+    label: 'Palette',
+    description: 'Core color direction.',
+    icon: Palette,
+  },
+  typography: {
+    label: 'Typography',
+    description: 'Font choices and usage notes.',
+    icon: Type,
+  },
+  references: {
+    label: 'References',
+    description: 'Inspiration grid and visual assets.',
+    icon: ImageIcon,
+  },
+  notes: {
+    label: 'Notes',
+    description: 'Captured ideas and instructions.',
+    icon: Layers3,
+  },
+};
+
 const panelClass =
   'rounded-[2rem] border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]';
 
 const fieldClass =
   'border-slate-200 bg-white text-slate-900 shadow-none placeholder:text-slate-400 focus-visible:ring-slate-900';
+
+const noteToneClasses: Record<
+  NoteType,
+  {
+    accent: string;
+    badge: string;
+    card: string;
+  }
+> = {
+  idea: {
+    accent: 'bg-amber-400/80',
+    badge: 'border-transparent bg-amber-100 text-amber-950 dark:bg-amber-300/18 dark:text-amber-50',
+    card: 'border-amber-200 bg-amber-50/90 dark:border-amber-300/25 dark:bg-amber-300/10',
+  },
+  instruction: {
+    accent: 'bg-sky-400/80',
+    badge: 'border-transparent bg-sky-100 text-sky-950 dark:bg-sky-300/18 dark:text-sky-50',
+    card: 'border-sky-200 bg-sky-50/90 dark:border-sky-300/25 dark:bg-sky-300/10',
+  },
+  keyword: {
+    accent: 'bg-violet-400/80',
+    badge: 'border-transparent bg-violet-100 text-violet-950 dark:bg-violet-300/18 dark:text-violet-50',
+    card: 'border-violet-200 bg-violet-50/90 dark:border-violet-300/25 dark:bg-violet-300/10',
+  },
+};
+
+function NoteTypeIcon({ type }: { type: NoteType }) {
+  const className = 'h-3.5 w-3.5 shrink-0';
+
+  switch (type) {
+    case 'idea':
+      return <Lightbulb className={className} />;
+    case 'instruction':
+      return <ClipboardList className={className} />;
+    case 'keyword':
+      return <Tag className={className} />;
+    default:
+      return null;
+  }
+}
+
+function EditorTabPill({
+  label,
+  description,
+  icon: Icon,
+  active,
+  onClick,
+  index,
+}: {
+  label: string;
+  description: string;
+  icon: typeof Sparkles;
+  active: boolean;
+  onClick: () => void;
+  index: number;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      aria-label={`Edit ${label} section`}
+      className={[
+        'flex min-w-40 items-start gap-3 rounded-3xl border px-4 py-3 text-left transition',
+        'border-(--border) bg-(--surface) text-(--text-strong)',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)',
+        'hover:bg-(--surface-subtle) dark:bg-[rgba(255,255,255,0.03)] dark:hover:bg-[rgba(255,255,255,0.06)]',
+        active ? 'bg-(--surface-subtle) shadow-sm dark:bg-[rgba(255,255,255,0.08)]' : '',
+      ].join(' ')}
+    >
+      <div
+        className={[
+          'mt-0.5 flex h-8 w-8 items-center justify-center rounded-full border',
+          'border-(--border) bg-(--surface-elevated) dark:bg-[rgba(255,255,255,0.05)]',
+        ].join(' ')}
+      >
+        <Icon
+          className={active ? 'h-4 w-4 text-(--text-strong)' : 'h-4 w-4 text-(--text-muted)'}
+        />
+      </div>
+
+      <div className="min-w-0">
+        <p className="text-sm font-medium">
+          {index + 1}. {label}
+        </p>
+        <p className="mt-1 text-xs text-(--text-muted)">{description}</p>
+      </div>
+    </button>
+  );
+}
 
 function cloneBoard(board: Board): Board {
   return JSON.parse(JSON.stringify(board)) as Board;
@@ -88,14 +241,42 @@ function applyRemoval(board: Board, kind: RemovalKind, index: number): Board {
   }
 
   if (kind === 'typography') {
-    return { ...board, typography: board.typography.filter((_, currentIndex) => currentIndex !== index) };
+    return {
+      ...board,
+      typography: board.typography.filter((_, currentIndex) => currentIndex !== index),
+    };
   }
 
   if (kind === 'reference') {
-    return { ...board, references: board.references.filter((_, currentIndex) => currentIndex !== index) };
+    return {
+      ...board,
+      references: board.references.filter((_, currentIndex) => currentIndex !== index),
+    };
   }
 
   return { ...board, notes: board.notes.filter((_, currentIndex) => currentIndex !== index) };
+}
+
+function getFontFamily(fontName: string): string {
+  const trimmed = fontName.trim();
+
+  if (!trimmed) {
+    return 'var(--font-sans), system-ui, sans-serif';
+  }
+
+  const serifFonts = new Set([
+    'Bodoni Moda',
+    'Cormorant Garamond',
+    'Playfair Display',
+    'Libre Baskerville',
+    'Merriweather',
+  ]);
+
+  if (serifFonts.has(trimmed)) {
+    return `'${trimmed}', var(--font-display), Georgia, serif`;
+  }
+
+  return `'${trimmed}', var(--font-sans), system-ui, sans-serif`;
 }
 
 function ReferenceEditorModal({
@@ -109,11 +290,9 @@ function ReferenceEditorModal({
   onSave: (next: ReferenceItem) => void;
   onClose: () => void;
 }) {
-  const [draft, setDraft] = useState<ReferenceItem | null>(reference);
-
-  useEffect(() => {
-    setDraft(reference);
-  }, [reference]);
+  const [draft, setDraft] = useState<ReferenceItem | null>(() =>
+    reference ? { ...reference } : null,
+  );
 
   useEffect(() => {
     if (!open || typeof document === 'undefined') return;
@@ -293,15 +472,49 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const boards = useSyncExternalStore(subscribeBoards, loadBoards, loadBoards);
   const savedBoard = boards.find((item) => item.id === boardId) ?? null;
 
-  const [draft, setDraft] = useState<Board | null>(() => (savedBoard ? cloneBoard(savedBoard) : null));
+  const [draft, setDraft] = useState<Board | null>(() =>
+    savedBoard ? cloneBoard(savedBoard) : null,
+  );
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
-  const [pendingRemoval, setPendingRemoval] = useState<{ kind: RemovalKind; index: number } | null>(null);
+  const [pendingRemoval, setPendingRemoval] = useState<{
+    kind: RemovalKind;
+    index: number;
+  } | null>(null);
+  const [pendingAction, setPendingAction] = useState<BoardAction | null>(null);
+  const [unsavedChangesOpen, setUnsavedChangesOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState('Saved');
   const [isDirty, setIsDirty] = useState(false);
   const [editingReferenceIndex, setEditingReferenceIndex] = useState<number | null>(null);
+  const [activeSectionIndex, setActiveSectionIndex] = useState(0);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const el = event.target as HTMLElement | null;
+      const tag = el?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el?.isContentEditable) {
+        return;
+      }
+
+      if (event.key === 'ArrowRight' || event.key === ' ') {
+        event.preventDefault();
+        setActiveSectionIndex((current) => (current + 1) % EDITOR_SECTIONS.length);
+        return;
+      }
+
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        setActiveSectionIndex(
+          (current) => (current - 1 + EDITOR_SECTIONS.length) % EDITOR_SECTIONS.length,
+        );
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   if (!savedBoard || !draft) {
     return (
@@ -316,7 +529,11 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
           The link may be outdated or the board may have been removed from your studio.
         </p>
         <div className="mt-6">
-          <Button type="button" onClick={() => router.push('/app')} className="rounded-full bg-slate-950 text-white">
+          <Button
+            type="button"
+            onClick={() => router.push('/app')}
+            className="rounded-full bg-slate-950 text-white"
+          >
             Back to boards
           </Button>
         </div>
@@ -328,7 +545,9 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const toneText = draft.tone.join(', ');
   const tagsText = draft.tags.join(', ');
   const dirtyStatus = isDirty ? 'Unsaved changes' : saveStatus;
-  const currentReference = editingReferenceIndex !== null ? draft.references[editingReferenceIndex] ?? null : null;
+  const currentReference =
+    editingReferenceIndex !== null ? draft.references[editingReferenceIndex] ?? null : null;
+  const activeSection: EditorSection = EDITOR_SECTIONS[activeSectionIndex];
 
   const markDirty = () => {
     if (!isDirty) {
@@ -343,6 +562,52 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
       markDirty();
       return updater(cloneBoard(current));
     });
+  };
+
+  const performBoardAction = (action: BoardAction) => {
+    switch (action) {
+      case 'duplicate': {
+        const copy = duplicateBoardById(boardId);
+
+        if (!copy) {
+          showToast('Duplicate failed.', 'destructive');
+          return;
+        }
+
+        showToast('Board duplicated.', 'success');
+
+        window.setTimeout(() => {
+          router.push(`/app/boards/${copy.id}`);
+        }, 180);
+
+        return;
+      }
+
+      case 'share':
+        setShareOpen(true);
+        showToast('Share modal opened.', 'default');
+        return;
+
+      case 'export':
+        setExportOpen(true);
+        showToast('Export modal opened.', 'default');
+        return;
+
+      case 'view':
+        router.push(sharePath);
+        return;
+    }
+  };
+
+  const requireSavedChanges = (action: BoardAction) => {
+    if (isDirty) {
+      setPendingAction(action);
+      setUnsavedChangesOpen(true);
+      showToast('Save your changes before continuing.', 'default');
+      return;
+    }
+
+    performBoardAction(action);
   };
 
   const handleSave = () => {
@@ -365,22 +630,29 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     showToast('Changes saved.', 'success');
   };
 
-  const handleDuplicate = () => {
-    if (isDirty) {
-      showToast('Save changes before duplicating.', 'destructive');
+  const handleSaveAndContinue = () => {
+    if (!draft) return;
+
+    const nextAction = pendingAction;
+
+    const updated = updateBoard(boardId, () => cloneBoard(draft));
+    if (!updated) {
+      showToast('Save failed.', 'destructive');
       return;
     }
 
-    const copy = duplicateBoardById(boardId);
-    if (!copy) {
-      showToast('Duplicate failed.', 'destructive');
-      return;
-    }
+    setDraft(updated);
+    setIsDirty(false);
+    setSaveStatus('Saved');
+    setUnsavedChangesOpen(false);
+    setPendingAction(null);
+    showToast('Changes saved.', 'success');
 
-    showToast('Board duplicated.', 'success');
-    window.setTimeout(() => {
-      router.push(`/app/boards/${copy.id}`);
-    }, 180);
+    if (nextAction) {
+      window.setTimeout(() => {
+        performBoardAction(nextAction);
+      }, 150);
+    }
   };
 
   const handleDelete = () => {
@@ -402,6 +674,15 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const handleToggleFavorite = () => {
     updateDraft((current) => ({ ...current, isFavorite: !current.isFavorite }));
     showToast(draft.isFavorite ? 'Removed from favorites.' : 'Added to favorites.', 'success');
+  };
+
+  const handleToggleVisibility = () => {
+    const nextVisibility = draft.visibility === 'shared' ? 'private' : 'shared';
+    updateDraft((current) => ({ ...current, visibility: nextVisibility }));
+    showToast(
+      nextVisibility === 'shared' ? 'Board set to shared.' : 'Board set to private.',
+      'success',
+    );
   };
 
   const handleAddNote = () => {
@@ -487,7 +768,9 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
 
     updateDraft((current) => ({
       ...current,
-      references: current.references.map((item, index) => (index === editingReferenceIndex ? next : item)),
+      references: current.references.map((item, index) =>
+        index === editingReferenceIndex ? next : item,
+      ),
     }));
 
     setEditingReferenceIndex(null);
@@ -510,7 +793,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 type="button"
                 onClick={handleSave}
                 disabled={!isDirty}
-                className="rounded-full bg-slate-950 px-4 text-white hover:bg-slate-800"
+                className="rounded-full border border-transparent bg-(--text-strong) px-4 text-(--background) shadow-sm transition-colors hover:bg-slate-800 dark:border-white/10 dark:bg-[rgba(255,255,255,0.08)] dark:text-white dark:hover:bg-[rgba(255,255,255,0.14)]"
               >
                 Save
               </Button>
@@ -528,7 +811,22 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
               <Button
                 type="button"
                 variant="outline"
-                onClick={handleDuplicate}
+                onClick={handleToggleVisibility}
+                aria-pressed={draft.visibility === 'shared'}
+                className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
+              >
+                {draft.visibility === 'shared' ? (
+                  <Globe className="h-4 w-4" />
+                ) : (
+                  <Lock className="h-4 w-4" />
+                )}
+                {draft.visibility === 'shared' ? 'Shared' : 'Private'}
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => requireSavedChanges('duplicate')}
                 className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
               >
                 <Copy className="h-4 w-4" />
@@ -538,10 +836,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  setShareOpen(true);
-                  showToast('Share modal opened.', 'default');
-                }}
+                onClick={() => requireSavedChanges('share')}
                 className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
               >
                 <Share2 className="h-4 w-4" />
@@ -551,10 +846,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  setExportOpen(true);
-                  showToast('Export modal opened.', 'default');
-                }}
+                onClick={() => requireSavedChanges('export')}
                 className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
               >
                 <Download className="h-4 w-4" />
@@ -564,7 +856,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => router.push(sharePath)}
+                onClick={() => requireSavedChanges('view')}
                 className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
               >
                 <ExternalLink className="h-4 w-4" />
@@ -621,11 +913,34 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
               </div>
             </aside>
           </div>
+
+          <div className="flex flex-col gap-3 border-t border-slate-200 pt-5">
+            <div className="flex flex-wrap gap-2" aria-label="Editor sections">
+              {EDITOR_SECTIONS.map((section, index) => {
+                const meta = EDITOR_SECTION_META[section];
+                return (
+                  <EditorTabPill
+                    key={section}
+                    label={meta.label}
+                    description={meta.description}
+                    icon={meta.icon}
+                    active={index === activeSectionIndex}
+                    onClick={() => setActiveSectionIndex(index)}
+                    index={index}
+                  />
+                );
+              })}
+            </div>
+
+            <p className="text-center text-sm leading-6 text-(--text-muted)" aria-live="polite">
+              Use ← → or Space to move through sections.
+            </p>
+          </div>
         </div>
       </section>
 
-      <div className="grid items-start gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <div className="space-y-6">
+      <div className="space-y-6">
+        {activeSection === 'overview' ? (
           <Card className={panelClass}>
             <CardHeader>
               <div className="flex items-center gap-2">
@@ -706,7 +1021,9 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
               </div>
             </CardContent>
           </Card>
+        ) : null}
 
+        {activeSection === 'references' ? (
           <Card className={panelClass}>
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <div>
@@ -763,7 +1080,9 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                         <div className="space-y-2 p-4">
                           <div className="flex flex-wrap items-center gap-2">
                             <Badge variant="secondary">{reference.category}</Badge>
-                            {reference.source ? <span className="text-xs text-slate-400">{reference.source}</span> : null}
+                            {reference.source ? (
+                              <span className="text-xs text-slate-400">{reference.source}</span>
+                            ) : null}
                           </div>
 
                           <p className="line-clamp-2 text-sm leading-6 text-slate-700">
@@ -792,7 +1111,9 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
               )}
             </CardContent>
           </Card>
+        ) : null}
 
+        {activeSection === 'notes' ? (
           <Card className={panelClass}>
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <div>
@@ -820,81 +1141,85 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
 
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2">
-                {draft.notes.map((note, index) => {
-                  const noteToneClasses: Record<NoteType, string> = {
-                    idea: 'border-amber-200 bg-amber-50',
-                    instruction: 'border-sky-200 bg-sky-50',
-                    keyword: 'border-violet-200 bg-violet-50',
-                  };
+                {draft.notes.map((note, index) => (
+                  <Card
+                    key={note.id}
+                    className="overflow-hidden rounded-[1.75rem] border border-(--border) bg-(--surface-elevated) shadow-[0_10px_30px_rgba(15,23,42,0.06)] dark:shadow-[0_14px_40px_rgba(0,0,0,0.22)]"
+                  >
+                    <div className={`h-1.5 ${noteToneClasses[note.type].accent}`} />
 
-                  return (
-                    <Card key={note.id} className={`${noteToneClasses[note.type]} rounded-3xl border`}>
-                      <CardHeader className="flex flex-row items-start justify-between gap-3 pb-4">
-                        <div className="space-y-2">
-                          <Badge variant="secondary">{note.type}</Badge>
-                          <p className="text-xs uppercase tracking-[0.28em] text-slate-400">
-                            Note {index + 1}
-                          </p>
-                        </div>
-
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRequestRemoval('note', index)}
-                          aria-label={`Remove note ${index + 1}`}
-                          className="h-9 w-9 rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    <CardHeader className="flex flex-row items-start justify-between gap-3 pb-4">
+                      <div className="space-y-2">
+                        <Badge
+                          variant="secondary"
+                          className={`gap-1.5 text-slate-900! dark:text-slate-50! ${noteToneClasses[note.type].badge}`}
                         >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </CardHeader>
+                          <NoteTypeIcon type={note.type} />
+                          {note.type}
+                        </Badge>
 
-                      <CardContent className="space-y-4">
-                        <div className="grid gap-2">
-                          <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
-                            Note type
-                          </label>
-                          <select
-                            value={note.type}
-                            onChange={(e) =>
-                              updateDraft((current) => ({
-                                ...current,
-                                notes: current.notes.map((item, currentIndex) =>
-                                  currentIndex === index ? { ...item, type: e.target.value as NoteType } : item,
-                                ),
-                              }))
-                            }
-                            className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-slate-900"
-                          >
-                            {noteTypeOptions.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                        <p className="text-xs uppercase tracking-[0.28em] text-(--text-muted)">
+                          Note {index + 1}
+                        </p>
+                      </div>
 
-                        <div className="grid gap-2">
-                          <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
-                            Note text
-                          </label>
-                          <Textarea
-                            value={note.text}
-                            onChange={(event) =>
-                              updateDraft((current) => ({
-                                ...current,
-                                notes: current.notes.map((item, currentIndex) =>
-                                  currentIndex === index ? { ...item, text: event.target.value } : item,
-                                ),
-                              }))
-                            }
-                            className="min-h-35 rounded-3xl border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus-visible:ring-slate-900"
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRequestRemoval('note', index)}
+                        aria-label={`Remove note ${index + 1}`}
+                        className="h-9 w-9 rounded-full border border-(--border) bg-(--surface) text-(--text-muted) hover:bg-(--surface-subtle) hover:text-(--text-strong) dark:bg-[rgba(255,255,255,0.04)] dark:hover:bg-[rgba(255,255,255,0.08)]"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </CardHeader>
+
+                    <CardContent className="space-y-4">
+                      <div className="grid gap-2">
+                        <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
+                          Note type
+                        </label>
+                        <select
+                          value={note.type}
+                          onChange={(e) =>
+                            updateDraft((current) => ({
+                              ...current,
+                              notes: current.notes.map((item, currentIndex) =>
+                                currentIndex === index ? { ...item, type: e.target.value as NoteType } : item,
+                              ),
+                            }))
+                          }
+                          className="h-11 w-full rounded-2xl border border-(--border) bg-(--surface) px-4 text-sm text-(--text-strong) outline-none focus:ring-2 focus:ring-(--ring) dark:bg-[rgba(255,255,255,0.04)]"
+                        >
+                          {noteTypeOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="grid gap-2">
+                        <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
+                          Note text
+                        </label>
+                        <Textarea
+                          value={note.text}
+                          onChange={(event) =>
+                            updateDraft((current) => ({
+                              ...current,
+                              notes: current.notes.map((item, currentIndex) =>
+                                currentIndex === index ? { ...item, text: event.target.value } : item,
+                              ),
+                            }))
+                          }
+                          className="min-h-35 rounded-3xl border border-(--border) bg-(--surface) text-(--text-strong) placeholder:text-(--text-muted) focus-visible:ring-(--ring) dark:bg-[rgba(255,255,255,0.04)] dark:text-(--text-strong)"
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
 
               {!draft.notes.length ? (
@@ -904,9 +1229,9 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
               ) : null}
             </CardContent>
           </Card>
-        </div>
+        ) : null}
 
-        <div className="space-y-6">
+        {activeSection === 'palette' ? (
           <Card className={panelClass}>
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <div>
@@ -934,10 +1259,24 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
 
             <CardContent className="space-y-4">
               {draft.palette.map((item: PaletteItem, index) => (
-                <Card key={item.id} className="rounded-[1.75rem] border border-slate-200 bg-slate-50">
+                <Card
+                  key={item.id}
+                  className="relative rounded-[1.75rem] border border-slate-200 bg-slate-50"
+                >
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleRequestRemoval('palette', index)}
+                    aria-label={`Remove color ${item.label}`}
+                    className="absolute right-4 top-4 z-10 h-9 w-9 rounded-full border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+
                   <CardContent className="space-y-4 p-4">
                     <div
-                      className="h-24 overflow-hidden rounded-3xl border border-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]"
+                      className="mr-14 h-24 overflow-hidden rounded-3xl border border-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]"
                       style={{ backgroundColor: item.hex }}
                     />
 
@@ -1016,25 +1355,15 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                           className={fieldClass}
                         />
                       </div>
-
-                      <div className="flex justify-end">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          onClick={() => handleRequestRemoval('palette', index)}
-                          className="rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-950"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Remove
-                        </Button>
-                      </div>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </CardContent>
           </Card>
+        ) : null}
 
+        {activeSection === 'typography' ? (
           <Card className={panelClass}>
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <div>
@@ -1061,91 +1390,154 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
             </CardHeader>
 
             <CardContent className="space-y-4">
-              {draft.typography.map((item: TypographyItem, index) => (
-                <Card key={item.id} className="rounded-[1.75rem] border border-slate-200 bg-slate-50">
-                  <CardContent className="space-y-4 p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <Badge variant="secondary">{item.role}</Badge>
+              {draft.typography.map((item: TypographyItem, index) => {
+                const presetValue = fontOptions.includes(item.fontName)
+                  ? item.fontName
+                  : '__custom__';
 
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRequestRemoval('typography', index)}
-                        className="rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-950"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Remove
-                      </Button>
-                    </div>
+                const previewFontFamily = getFontFamily(item.fontName);
 
-                    <div className="grid gap-2">
-                      <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
-                        Type badge
-                      </label>
-                      <select
-                        value={item.role}
-                        onChange={(e) =>
-                          updateDraft((current) => ({
-                            ...current,
-                            typography: current.typography.map((type, currentIndex) =>
-                              currentIndex === index ? { ...type, role: e.target.value as TypographyRole } : type,
-                            ),
-                          }))
-                        }
-                        className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-slate-900"
-                      >
-                        {typographyRoleOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                return (
+                  <Card
+                    key={item.id}
+                    className="relative rounded-[1.75rem] border border-slate-200 bg-slate-50"
+                  >
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRequestRemoval('typography', index)}
+                      aria-label={`Remove ${item.role} typography`}
+                      className="absolute right-4 top-4 z-10 h-9 w-9 rounded-full border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
 
-                    <div className="grid gap-2">
-                      <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
-                        Font name
-                      </label>
-                      <Input
-                        value={item.fontName}
-                        onChange={(e) =>
-                          updateDraft((current) => ({
-                            ...current,
-                            typography: current.typography.map((type, currentIndex) =>
-                              currentIndex === index ? { ...type, fontName: e.target.value } : type,
-                            ),
-                          }))
-                        }
-                        placeholder="Cormorant Garamond"
-                        className={fieldClass}
-                      />
-                    </div>
+                    <CardContent className="space-y-4 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <Badge variant="secondary">{item.role}</Badge>
+                      </div>
 
-                    <div className="grid gap-2">
-                      <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
-                        Usage note
-                      </label>
-                      <Input
-                        value={item.note}
-                        onChange={(e) =>
-                          updateDraft((current) => ({
-                            ...current,
-                            typography: current.typography.map((type, currentIndex) =>
-                              currentIndex === index ? { ...type, note: e.target.value } : type,
-                            ),
-                          }))
-                        }
-                        placeholder="Elegant, editorial, high-trust"
-                        className={fieldClass}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      <div className="grid gap-2">
+                        <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+                          Type badge
+                        </label>
+                        <select
+                          value={item.role}
+                          onChange={(e) =>
+                            updateDraft((current) => ({
+                              ...current,
+                              typography: current.typography.map((type, currentIndex) =>
+                                currentIndex === index
+                                  ? { ...type, role: e.target.value as TypographyRole }
+                                  : type,
+                              ),
+                            }))
+                          }
+                          className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-slate-900"
+                        >
+                          {typographyRoleOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="grid gap-2">
+                        <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+                          Font preset
+                        </label>
+                        <select
+                          value={presetValue}
+                          onChange={(e) => {
+                            const nextValue = e.target.value;
+                            if (nextValue === '__custom__') return;
+
+                            updateDraft((current) => ({
+                              ...current,
+                              typography: current.typography.map((type, currentIndex) =>
+                                currentIndex === index
+                                  ? { ...type, fontName: nextValue }
+                                  : type,
+                              ),
+                            }));
+                          }}
+                          className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-slate-900"
+                        >
+                          <option value="__custom__">Custom / typed below</option>
+                          {fontOptions.map((font) => (
+                            <option key={font} value={font}>
+                              {font}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="grid gap-2">
+                        <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+                          Font name
+                        </label>
+                        <Input
+                          value={item.fontName}
+                          onChange={(e) =>
+                            updateDraft((current) => ({
+                              ...current,
+                              typography: current.typography.map((type, currentIndex) =>
+                                currentIndex === index ? { ...type, fontName: e.target.value } : type,
+                              ),
+                            }))
+                          }
+                          placeholder="Cormorant Garamond"
+                          className={fieldClass}
+                        />
+                      </div>
+
+                      <div className="grid gap-2">
+                        <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+                          Usage note
+                        </label>
+                        <Input
+                          value={item.note}
+                          onChange={(e) =>
+                            updateDraft((current) => ({
+                              ...current,
+                              typography: current.typography.map((type, currentIndex) =>
+                                currentIndex === index ? { ...type, note: e.target.value } : type,
+                              ),
+                            }))
+                          }
+                          placeholder="Elegant, editorial, high-trust"
+                          className={fieldClass}
+                        />
+                      </div>
+
+                      <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-none">
+                        <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+                          Preview
+                        </p>
+
+                        <p
+                          className="mt-3 text-3xl leading-tight text-slate-950"
+                          style={{ fontFamily: previewFontFamily }}
+                        >
+                          The quick brown fox
+                        </p>
+
+                        <p
+                          className="mt-2 text-sm leading-6 text-slate-600"
+                          style={{ fontFamily: previewFontFamily }}
+                        >
+                          {item.note || 'Usage note preview'}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </CardContent>
           </Card>
-        </div>
+        ) : null}
       </div>
 
       <ConfirmationModal
@@ -1180,7 +1572,21 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         onCancel={() => setPendingRemoval(null)}
       />
 
+      <ConfirmationModal
+        open={unsavedChangesOpen}
+        title="Unsaved changes"
+        description="Save your changes before continuing?"
+        confirmLabel="Save & continue"
+        cancelLabel="Cancel"
+        onConfirm={handleSaveAndContinue}
+        onCancel={() => {
+          setUnsavedChangesOpen(false);
+          setPendingAction(null);
+        }}
+      />
+
       <ReferenceEditorModal
+        key={editingReferenceIndex ?? currentReference?.id ?? 'reference-editor'}
         open={editingReferenceIndex !== null}
         reference={currentReference}
         onSave={handleSaveReference}
