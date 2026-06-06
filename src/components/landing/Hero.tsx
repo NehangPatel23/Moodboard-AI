@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
+import { useGatedHref } from '@/components/auth/use-gated-href';
 
 const primaryButtonClass =
   'inline-flex h-11 items-center justify-center rounded-full border border-transparent bg-[var(--text-strong)]! px-5 text-sm font-medium text-[var(--background)]! shadow-[0_12px_30px_rgba(15,23,42,0.14)] transition-[transform,background-color,box-shadow,color,border-color] duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-[0_16px_36px_rgba(15,23,42,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] dark:border-white/10 dark:bg-white dark:text-slate-950 dark:shadow-[0_12px_30px_rgba(0,0,0,0.22)] dark:hover:bg-slate-200 dark:hover:shadow-[0_16px_36px_rgba(0,0,0,0.28)] dark:focus-visible:ring-offset-[var(--background)]';
@@ -11,6 +12,8 @@ const secondaryButtonClass =
 
 export function Hero() {
   const reduceMotion = useReducedMotion();
+  const startBoardHref = useGatedHref('/app/new');
+  const viewBoardsHref = useGatedHref('/app');
 
   return (
     <section className="grid gap-10 py-10 lg:grid-cols-[1.08fr_0.92fr] lg:items-center lg:py-16">
@@ -49,11 +52,11 @@ export function Hero() {
           viewport={{ once: true, amount: 0.35 }}
           transition={{ duration: 0.75, delay: 0.22, ease: [0.22, 1, 0.36, 1] }}
         >
-          <Link href="/app/new" className={primaryButtonClass}>
+          <Link href={startBoardHref} className={primaryButtonClass}>
             Start a board
           </Link>
 
-          <Link href="/app" className={secondaryButtonClass}>
+          <Link href={viewBoardsHref} className={secondaryButtonClass}>
             View my boards
           </Link>
         </motion.div>

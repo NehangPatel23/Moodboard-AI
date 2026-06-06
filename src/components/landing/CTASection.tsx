@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
+import { useGatedHref } from '@/components/auth/use-gated-href';
 
 function MoodBoardMark({ className = 'h-8 w-8' }: { className?: string }) {
   return (
@@ -123,6 +124,7 @@ const primaryButtonClass =
 
 export function CTASection() {
   const reduceMotion = useReducedMotion();
+  const beginBoardHref = useGatedHref('/app/new');
 
   return (
     <motion.section
@@ -152,7 +154,7 @@ export function CTASection() {
           </p>
 
           <div className="mt-7">
-            <Link href="/app/new" className={primaryButtonClass}>
+            <Link href={beginBoardHref} className={primaryButtonClass}>
               Begin your first board
             </Link>
           </div>

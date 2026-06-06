@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Search } from 'lucide-react';
 import { openCommandPalette } from '@/components/shared/command-palette-store';
-import { WorkspaceAvatar } from '@/components/layout/WorkspaceAvatar';
+import { AccountMenu } from '@/components/layout/AccountMenu';
 import { AppIcon } from '@/components/shared/AppIcon';
 
 export function TopBar() {
@@ -42,10 +42,7 @@ export function TopBar() {
               </span>
             </button>
 
-            <WorkspaceAvatar
-              className="h-11 w-11 rounded-full text-xs"
-              emojiClassName="text-2xl"
-            />
+            <AccountMenu />
           </div>
         </div>
       </div>

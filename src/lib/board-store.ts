@@ -11,8 +11,11 @@ import type {
 import { createId, safeParse, slugify } from './utils';
 import { mockBoards, boardTemplates } from './mock-data';
 
-const STORAGE_KEY = 'moodboard-ai:boards';
+/** Legacy, pre-auth global key. Kept for one-time migration to the demo user. */
+const LEGACY_STORAGE_KEY = 'moodboard-ai:boards';
+const STORAGE_KEY_PREFIX = 'moodboard-ai:boards';
 const BOARD_STORAGE_EVENT = 'moodboard-ai:boards-updated';
+const DEMO_USER_ID = 'user_demo_admin';
 
 let cachedBoards: Board[] = mockBoards.map((board) => ({
   ...board,
@@ -23,12 +26,23 @@ let cachedBoards: Board[] = mockBoards.map((board) => ({
 }));
 let hydratedFromStorage = false;
 
+/**
+ * Boards are scoped to the signed-in user so each account has its own
+ * workspace. `null` falls back to the legacy global key (only relevant before
+ * a user is active; the app routes that read boards are auth-gated).
+ */
+let activeUserId: string | null = null;
+
 function nowIso(): string {
   return new Date().toISOString();
 }
 
 function canUseStorage(): boolean {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+}
+
+function storageKeyFor(userId: string | null): string {
+  return userId ? `${STORAGE_KEY_PREFIX}:${userId}` : LEGACY_STORAGE_KEY;
 }
 
 function notifyBoardsChanged(): void {
@@ -40,18 +54,63 @@ function cloneBoard(board: Board): Board {
   return JSON.parse(JSON.stringify(board)) as Board;
 }
 
-function readBoardsFromStorage(): Board[] | null {
+function readBoardsFromKey(key: string): Board[] | null {
   if (!canUseStorage()) return null;
-  const raw = window.localStorage.getItem(STORAGE_KEY);
+  const raw = window.localStorage.getItem(key);
   if (!raw) return null;
   const parsed = safeParse<Board[]>(raw, []);
   return parsed.length > 0 ? parsed : null;
 }
 
+function readBoardsFromStorage(): Board[] | null {
+  return readBoardsFromKey(storageKeyFor(activeUserId));
+}
+
+/**
+ * Switches the active board workspace to the given user. Loads that user's
+ * boards from storage, seeding a fresh copy of the sample boards for brand-new
+ * accounts. The demo account additionally adopts any pre-auth (legacy) data.
+ */
+export function setActiveBoardUser(userId: string | null): void {
+  if (hydratedFromStorage && userId === activeUserId) return;
+
+  activeUserId = userId;
+  hydratedFromStorage = true;
+
+  if (!canUseStorage()) {
+    cachedBoards = getSeedBoards();
+    notifyBoardsChanged();
+    return;
+  }
+
+  const key = storageKeyFor(userId);
+  let boards = readBoardsFromKey(key);
+
+  // One-time migration: the demo account inherits any boards created before
+  // auth existed (which lived under the legacy global key).
+  if (!boards && userId === DEMO_USER_ID) {
+    const legacyBoards = readBoardsFromKey(LEGACY_STORAGE_KEY);
+    if (legacyBoards) {
+      boards = legacyBoards;
+    }
+  }
+
+  if (!boards) {
+    boards = getSeedBoards();
+  }
+
+  cachedBoards = boards;
+  window.localStorage.setItem(key, JSON.stringify(boards));
+  notifyBoardsChanged();
+}
+
+/**
+ * Back-compat shim. Board loading is now driven by `setActiveBoardUser` (called
+ * from `BoardStoreBootstrap` once the auth user resolves).
+ */
 export function hydrateBoardStore(): void {
   if (!canUseStorage() || hydratedFromStorage) return;
 
-  hydratedFromStorage = true;
   const storedBoards = readBoardsFromStorage();
   if (storedBoards) {
     cachedBoards = storedBoards;
@@ -95,7 +154,7 @@ export function getBoardById(boardId: string): Board | undefined {
 export function saveBoards(boards: Board[]): void {
   cachedBoards = boards;
   if (canUseStorage()) {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(boards));
+    window.localStorage.setItem(storageKeyFor(activeUserId), JSON.stringify(boards));
   }
   notifyBoardsChanged();
 }
