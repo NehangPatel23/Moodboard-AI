@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import './globals.css';
 import { Toast } from '@/components/shared/Toast';
 import { CommandPalette } from '@/components/shared/CommandPalette';
+import { SettingsBootstrap } from '@/components/shared/SettingsBootstrap';
 import { ThemeSync } from '@/components/shared/ThemeSync';
 import { Analytics } from '@vercel/analytics/next';
 
@@ -26,14 +27,21 @@ export const metadata: Metadata = {
 const themeInitScript = `
 (function () {
   try {
-    var storageKey = 'moodboard-settings-v1';
     var themeMode = 'system';
-    var raw = window.localStorage.getItem(storageKey);
-
-    if (raw) {
-      var parsed = JSON.parse(raw);
-      if (parsed && (parsed.themeMode === 'light' || parsed.themeMode === 'dark' || parsed.themeMode === 'system')) {
-        themeMode = parsed.themeMode;
+    var cookieMatch = document.cookie.match(/(?:^|; )moodboard-theme-mode=([^;]+)/);
+    if (cookieMatch) {
+      var cookieValue = decodeURIComponent(cookieMatch[1]);
+      if (cookieValue === 'light' || cookieValue === 'dark' || cookieValue === 'system') {
+        themeMode = cookieValue;
+      }
+    } else {
+      var storageKey = 'moodboard-settings-v1';
+      var raw = window.localStorage.getItem(storageKey);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (parsed && (parsed.themeMode === 'light' || parsed.themeMode === 'dark' || parsed.themeMode === 'system')) {
+          themeMode = parsed.themeMode;
+        }
       }
     }
 
@@ -74,6 +82,7 @@ export default function RootLayout({
         <Script id="theme-init" strategy="beforeInteractive">
           {themeInitScript}
         </Script>
+        <SettingsBootstrap />
         <ThemeSync />
         {children}
         <Analytics />

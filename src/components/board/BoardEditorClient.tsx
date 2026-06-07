@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { GenerationSourceBadge } from '@/components/creation/GenerationSourceBadge';
 import type {
   Board,
   NoteType,
@@ -15,10 +16,18 @@ import type {
 import {
   deleteBoardById,
   duplicateBoardById,
-  loadBoards,
+  getBoardStoreSnapshot,
+  getServerBoardStoreSnapshot,
+  isBoardStoreResolving,
   subscribeBoards,
   updateBoard,
 } from '@/lib/board-store';
+import {
+  getServerAuthSnapshot,
+  readAuthState,
+  subscribeAuth,
+} from '@/lib/auth-store';
+import { BoardEditorSkeleton } from '@/components/board/BoardEditorSkeleton';
 import { formatDateTime } from '@/lib/utils';
 import { ConfirmationModal } from '@/components/shared/ConfirmationModal';
 import { ShareModal } from '@/components/shared/ShareModal';
@@ -469,12 +478,24 @@ function ReferenceEditorModal({
 
 export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const router = useRouter();
-  const boards = useSyncExternalStore(subscribeBoards, loadBoards, loadBoards);
-  const savedBoard = boards.find((item) => item.id === boardId) ?? null;
-
-  const [draft, setDraft] = useState<Board | null>(() =>
-    savedBoard ? cloneBoard(savedBoard) : null,
+  const searchParams = useSearchParams();
+  const generationSource = searchParams.get('source') === 'gemini' ? 'gemini' : null;
+  const auth = useSyncExternalStore(subscribeAuth, readAuthState, getServerAuthSnapshot);
+  const boardStore = useSyncExternalStore(
+    subscribeBoards,
+    getBoardStoreSnapshot,
+    getServerBoardStoreSnapshot,
   );
+  const savedBoard = boardStore.boards.find((item) => item.id === boardId) ?? null;
+  const isResolvingBoard = isBoardStoreResolving(auth.status);
+
+  const [draft, setDraft] = useState<Board | null>(null);
+  const editorBoard = useMemo(() => {
+    if (draft) return draft;
+    const board = boardStore.boards.find((item) => item.id === boardId);
+    if (!board) return null;
+    return cloneBoard(board);
+  }, [draft, boardId, boardStore.boards]);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -489,6 +510,12 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const [isDirty, setIsDirty] = useState(false);
   const [editingReferenceIndex, setEditingReferenceIndex] = useState<number | null>(null);
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
+
+  useEffect(() => {
+    if (generationSource === 'gemini') {
+      showToast('Board generated with Gemini.', 'success');
+    }
+  }, [generationSource]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -516,7 +543,11 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  if (!savedBoard || !draft) {
+  if (isResolvingBoard) {
+    return <BoardEditorSkeleton />;
+  }
+
+  if (!editorBoard) {
     return (
       <section className="rounded-[2.5rem] border border-slate-200 bg-white p-8 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
         <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
@@ -541,12 +572,12 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     );
   }
 
-  const sharePath = `/app/boards/${draft.id}/view`;
-  const toneText = draft.tone.join(', ');
-  const tagsText = draft.tags.join(', ');
+  const sharePath = `/app/boards/${editorBoard.id}/view`;
+  const toneText = editorBoard.tone.join(', ');
+  const tagsText = editorBoard.tags.join(', ');
   const dirtyStatus = isDirty ? 'Unsaved changes' : saveStatus;
   const currentReference =
-    editingReferenceIndex !== null ? draft.references[editingReferenceIndex] ?? null : null;
+    editingReferenceIndex !== null ? editorBoard.references[editingReferenceIndex] ?? null : null;
   const activeSection: EditorSection = EDITOR_SECTIONS[activeSectionIndex];
 
   const markDirty = () => {
@@ -558,9 +589,10 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
 
   const updateDraft = (updater: (current: Board) => Board) => {
     setDraft((current) => {
-      if (!current) return current;
+      const base = current ?? (savedBoard ? cloneBoard(savedBoard) : null);
+      if (!base) return null;
       markDirty();
-      return updater(cloneBoard(current));
+      return updater(cloneBoard(base));
     });
   };
 
@@ -615,9 +647,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   };
 
   const confirmSave = () => {
-    if (!draft) return;
-
-    const updated = updateBoard(boardId, () => cloneBoard(draft));
+    const updated = updateBoard(boardId, () => cloneBoard(editorBoard));
     if (!updated) {
       showToast('Save failed.', 'destructive');
       return;
@@ -631,11 +661,9 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   };
 
   const handleSaveAndContinue = () => {
-    if (!draft) return;
-
     const nextAction = pendingAction;
 
-    const updated = updateBoard(boardId, () => cloneBoard(draft));
+    const updated = updateBoard(boardId, () => cloneBoard(editorBoard));
     if (!updated) {
       showToast('Save failed.', 'destructive');
       return;
@@ -673,11 +701,11 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
 
   const handleToggleFavorite = () => {
     updateDraft((current) => ({ ...current, isFavorite: !current.isFavorite }));
-    showToast(draft.isFavorite ? 'Removed from favorites.' : 'Added to favorites.', 'success');
+    showToast(editorBoard.isFavorite ? 'Removed from favorites.' : 'Added to favorites.', 'success');
   };
 
   const handleToggleVisibility = () => {
-    const nextVisibility = draft.visibility === 'shared' ? 'private' : 'shared';
+    const nextVisibility = editorBoard.visibility === 'shared' ? 'private' : 'shared';
     updateDraft((current) => ({ ...current, visibility: nextVisibility }));
     showToast(
       nextVisibility === 'shared' ? 'Board set to shared.' : 'Board set to private.',
@@ -783,8 +811,8 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         <div className="flex flex-col gap-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline">Board editor</Badge>
-              <Badge variant="secondary">{draft.visibility}</Badge>
+              {generationSource ? <GenerationSourceBadge source={generationSource} /> : null}
+              <Badge variant="secondary">{editorBoard.visibility}</Badge>
               <Badge variant="secondary">{dirtyStatus}</Badge>
             </div>
 
@@ -804,23 +832,23 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 onClick={handleToggleFavorite}
                 className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
               >
-                {draft.isFavorite ? <StarOff className="h-4 w-4" /> : <Star className="h-4 w-4" />}
-                {draft.isFavorite ? 'Unfavorite' : 'Favorite'}
+                {editorBoard.isFavorite ? <StarOff className="h-4 w-4" /> : <Star className="h-4 w-4" />}
+                {editorBoard.isFavorite ? 'Unfavorite' : 'Favorite'}
               </Button>
 
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleToggleVisibility}
-                aria-pressed={draft.visibility === 'shared'}
+                aria-pressed={editorBoard.visibility === 'shared'}
                 className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
               >
-                {draft.visibility === 'shared' ? (
+                {editorBoard.visibility === 'shared' ? (
                   <Globe className="h-4 w-4" />
                 ) : (
                   <Lock className="h-4 w-4" />
                 )}
-                {draft.visibility === 'shared' ? 'Shared' : 'Private'}
+                {editorBoard.visibility === 'shared' ? 'Shared' : 'Private'}
               </Button>
 
               <Button
@@ -884,7 +912,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 Board title
               </label>
               <Textarea
-                value={draft.title}
+                value={editorBoard.title}
                 onChange={(event) =>
                   updateDraft((current) => ({
                     ...current,
@@ -897,7 +925,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 placeholder="Untitled board"
               />
               <p className="text-xs text-slate-400">
-                Up to {TITLE_LIMIT} characters • {draft.title.length}/{TITLE_LIMIT}
+                Up to {TITLE_LIMIT} characters • {editorBoard.title.length}/{TITLE_LIMIT}
               </p>
             </div>
 
@@ -905,10 +933,10 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
               <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
                 Prompt
               </p>
-              <p className="mt-3 text-sm leading-6 text-slate-700">{draft.prompt}</p>
+              <p className="mt-3 text-sm leading-6 text-slate-700">{editorBoard.prompt}</p>
               <div className="mt-5 grid gap-3 text-xs text-slate-400">
-                <p>Updated {formatDateTime(draft.updatedAt)}</p>
-                <p>Board ID {draft.id}</p>
+                <p>Updated {formatDateTime(editorBoard.updatedAt)}</p>
+                <p>Board ID {editorBoard.id}</p>
                 <p>Creative direction canvas</p>
               </div>
             </aside>
@@ -943,9 +971,6 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         {activeSection === 'overview' ? (
           <Card className={panelClass}>
             <CardHeader>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">Creative direction</Badge>
-              </div>
               <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-slate-950">
                 Direction, tone, and summary
               </CardTitle>
@@ -960,7 +985,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                   Mood
                 </label>
                 <Input
-                  value={draft.mood}
+                  value={editorBoard.mood}
                   onChange={(e) => updateDraft((current) => ({ ...current, mood: e.target.value }))}
                   placeholder="calm luxury"
                   className={fieldClass}
@@ -972,7 +997,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                   Creative summary
                 </label>
                 <Textarea
-                  value={draft.summary}
+                  value={editorBoard.summary}
                   onChange={(e) => updateDraft((current) => ({ ...current, summary: e.target.value }))}
                   className="min-h-42.5 rounded-3xl border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus-visible:ring-slate-900"
                 />
@@ -1027,10 +1052,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
           <Card className={panelClass}>
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">References</Badge>
-                </div>
-                <CardTitle className="mt-2 [font-family:var(--font-display),serif] text-3xl tracking-tight text-slate-950">
+                <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-slate-950">
                   Inspiration grid
                 </CardTitle>
                 <CardDescription className="max-w-2xl text-slate-500">
@@ -1050,9 +1072,9 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
             </CardHeader>
 
             <CardContent>
-              {draft.references.length ? (
+              {editorBoard.references.length ? (
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {draft.references.map((reference, index) => (
+                  {editorBoard.references.map((reference, index) => (
                     <article
                       key={reference.id}
                       className="group relative overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]"
@@ -1117,10 +1139,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
           <Card className={panelClass}>
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">Notes</Badge>
-                </div>
-                <CardTitle className="mt-2 [font-family:var(--font-display),serif] text-3xl tracking-tight text-slate-950">
+                <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-slate-950">
                   Sticky notes
                 </CardTitle>
                 <CardDescription className="max-w-2xl text-slate-500">
@@ -1141,7 +1160,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
 
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2">
-                {draft.notes.map((note, index) => (
+                {editorBoard.notes.map((note, index) => (
                   <Card
                     key={note.id}
                     className="overflow-hidden rounded-[1.75rem] border border-(--border) bg-(--surface-elevated) shadow-[0_10px_30px_rgba(15,23,42,0.06)] dark:shadow-[0_14px_40px_rgba(0,0,0,0.22)]"
@@ -1222,7 +1241,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 ))}
               </div>
 
-              {!draft.notes.length ? (
+              {!editorBoard.notes.length ? (
                 <div className="rounded-[1.75rem] border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center text-sm text-slate-500">
                   No notes yet.
                 </div>
@@ -1235,10 +1254,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
           <Card className={panelClass}>
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">Palette</Badge>
-                </div>
-                <CardTitle className="mt-2 [font-family:var(--font-display),serif] text-3xl tracking-tight text-slate-950">
+                <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-slate-950">
                   Color direction
                 </CardTitle>
                 <CardDescription className="max-w-2xl text-slate-500">
@@ -1258,7 +1274,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
             </CardHeader>
 
             <CardContent className="space-y-4">
-              {draft.palette.map((item: PaletteItem, index) => (
+              {editorBoard.palette.map((item: PaletteItem, index) => (
                 <Card
                   key={item.id}
                   className="relative rounded-[1.75rem] border border-slate-200 bg-slate-50"
@@ -1367,10 +1383,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
           <Card className={panelClass}>
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">Typography</Badge>
-                </div>
-                <CardTitle className="mt-2 [font-family:var(--font-display),serif] text-3xl tracking-tight text-slate-950">
+                <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-slate-950">
                   Type system
                 </CardTitle>
                 <CardDescription className="max-w-2xl text-slate-500">
@@ -1390,7 +1403,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
             </CardHeader>
 
             <CardContent className="space-y-4">
-              {draft.typography.map((item: TypographyItem, index) => {
+              {editorBoard.typography.map((item: TypographyItem, index) => {
                 const presetValue = fontOptions.includes(item.fontName)
                   ? item.fontName
                   : '__custom__';
@@ -1595,7 +1608,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
 
       <ShareModal
         open={shareOpen}
-        boardTitle={draft.title}
+        boardTitle={editorBoard.title}
         sharePath={sharePath}
         onCopied={() => {
           setShareOpen(false);
@@ -1606,7 +1619,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
 
       <ExportModal
         open={exportOpen}
-        board={draft}
+        board={editorBoard}
         onExported={() => {
           setExportOpen(false);
           showToast('Board exported as JSON.', 'success');

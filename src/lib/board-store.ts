@@ -1,125 +1,108 @@
-import type {
-  Board,
-  BoardDraftInput,
-  BoardTemplate,
-  BoardVisibility,
-  NoteItem,
-  PaletteItem,
-  ReferenceItem,
-  TypographyItem,
-} from '@/types/board';
-import { createId, safeParse, slugify } from './utils';
-import { mockBoards, boardTemplates } from './mock-data';
+import type { Board, BoardDraftInput, BoardTemplate } from '@/types/board';
+import { apiFetch } from '@/lib/api-client';
+import { createId, slugify } from './utils';
+import { boardTemplates } from './mock-data';
 
-/** Legacy, pre-auth global key. Kept for one-time migration to the demo user. */
-const LEGACY_STORAGE_KEY = 'moodboard-ai:boards';
-const STORAGE_KEY_PREFIX = 'moodboard-ai:boards';
 const BOARD_STORAGE_EVENT = 'moodboard-ai:boards-updated';
-const DEMO_USER_ID = 'user_demo_admin';
 
-let cachedBoards: Board[] = mockBoards.map((board) => ({
-  ...board,
-  palette: board.palette.map((item) => ({ ...item })),
-  typography: board.typography.map((item) => ({ ...item })),
-  references: board.references.map((item) => ({ ...item })),
-  notes: board.notes.map((item) => ({ ...item })),
-}));
-let hydratedFromStorage = false;
+let cachedBoards: Board[] = [];
+let boardsLoading = false;
+let hydratedForUser = false;
 
-/**
- * Boards are scoped to the signed-in user so each account has its own
- * workspace. `null` falls back to the legacy global key (only relevant before
- * a user is active; the app routes that read boards are auth-gated).
- */
 let activeUserId: string | null = null;
+
+const BOARD_FETCH_MAX_ATTEMPTS = 4;
+const BOARD_FETCH_RETRY_MS = 350;
 
 function nowIso(): string {
   return new Date().toISOString();
 }
 
-function canUseStorage(): boolean {
-  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
-}
-
-function storageKeyFor(userId: string | null): string {
-  return userId ? `${STORAGE_KEY_PREFIX}:${userId}` : LEGACY_STORAGE_KEY;
+function canNotify(): boolean {
+  return typeof window !== 'undefined';
 }
 
 function notifyBoardsChanged(): void {
-  if (!canUseStorage()) return;
+  if (!canNotify()) return;
   window.dispatchEvent(new Event(BOARD_STORAGE_EVENT));
+}
+
+async function showPersistError(message: string): Promise<void> {
+  const { showToast } = await import('@/components/shared/toast-store');
+  showToast(message, 'destructive');
 }
 
 function cloneBoard(board: Board): Board {
   return JSON.parse(JSON.stringify(board)) as Board;
 }
 
-function readBoardsFromKey(key: string): Board[] | null {
-  if (!canUseStorage()) return null;
-  const raw = window.localStorage.getItem(key);
-  if (!raw) return null;
-  const parsed = safeParse<Board[]>(raw, []);
-  return parsed.length > 0 ? parsed : null;
-}
-
-function readBoardsFromStorage(): Board[] | null {
-  return readBoardsFromKey(storageKeyFor(activeUserId));
-}
-
 /**
- * Switches the active board workspace to the given user. Loads that user's
- * boards from storage, seeding a fresh copy of the sample boards for brand-new
- * accounts. The demo account additionally adopts any pre-auth (legacy) data.
+ * Switches the active board workspace to the given user. Fetches boards from
+ * the database (seeding sample boards for brand-new accounts on the server).
  */
-export function setActiveBoardUser(userId: string | null): void {
-  if (hydratedFromStorage && userId === activeUserId) return;
+function isUnauthorizedError(error: unknown): boolean {
+  return error instanceof Error && error.message.toLowerCase().includes('unauthorized');
+}
 
-  activeUserId = userId;
-  hydratedFromStorage = true;
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-  if (!canUseStorage()) {
-    cachedBoards = getSeedBoards();
-    notifyBoardsChanged();
+export async function setActiveBoardUser(userId: string | null): Promise<void> {
+  if (!userId) {
+    resetBoardStore();
     return;
   }
 
-  const key = storageKeyFor(userId);
-  let boards = readBoardsFromKey(key);
+  if (hydratedForUser && userId === activeUserId) return;
+  if (boardsLoading && userId === activeUserId) return;
 
-  // One-time migration: the demo account inherits any boards created before
-  // auth existed (which lived under the legacy global key).
-  if (!boards && userId === DEMO_USER_ID) {
-    const legacyBoards = readBoardsFromKey(LEGACY_STORAGE_KEY);
-    if (legacyBoards) {
-      boards = legacyBoards;
+  activeUserId = userId;
+  boardsLoading = true;
+  notifyBoardsChanged();
+
+  let lastError: unknown = null;
+
+  for (let attempt = 0; attempt < BOARD_FETCH_MAX_ATTEMPTS; attempt += 1) {
+    if (attempt > 0) {
+      await wait(BOARD_FETCH_RETRY_MS * attempt);
+    }
+
+    try {
+      const data = await apiFetch<{ boards: Board[] }>('/api/boards');
+      cachedBoards = data.boards;
+      hydratedForUser = true;
+      boardsLoading = false;
+      notifyBoardsChanged();
+      return;
+    } catch (error) {
+      lastError = error;
+      const canRetry = isUnauthorizedError(error) && attempt < BOARD_FETCH_MAX_ATTEMPTS - 1;
+      if (!canRetry) break;
     }
   }
 
-  if (!boards) {
-    boards = getSeedBoards();
-  }
+  cachedBoards = [];
+  boardsLoading = false;
+  hydratedForUser = true;
+  notifyBoardsChanged();
 
-  cachedBoards = boards;
-  window.localStorage.setItem(key, JSON.stringify(boards));
+  if (lastError) {
+    void showPersistError('Failed to load boards.');
+  }
+}
+
+export function resetBoardStore(): void {
+  activeUserId = null;
+  cachedBoards = [];
+  boardsLoading = false;
+  hydratedForUser = false;
+  cachedBoardStoreSnapshot = SERVER_BOARD_STORE_SNAPSHOT;
   notifyBoardsChanged();
 }
 
-/**
- * Back-compat shim. Board loading is now driven by `setActiveBoardUser` (called
- * from `BoardStoreBootstrap` once the auth user resolves).
- */
-export function hydrateBoardStore(): void {
-  if (!canUseStorage() || hydratedFromStorage) return;
-
-  const storedBoards = readBoardsFromStorage();
-  if (storedBoards) {
-    cachedBoards = storedBoards;
-    notifyBoardsChanged();
-  }
-}
-
 export function subscribeBoards(callback: () => void): () => void {
-  if (!canUseStorage()) return () => undefined;
+  if (!canNotify()) return () => undefined;
 
   const handler = () => callback();
   window.addEventListener(BOARD_STORAGE_EVENT, handler);
@@ -127,16 +110,6 @@ export function subscribeBoards(callback: () => void): () => void {
   return () => {
     window.removeEventListener(BOARD_STORAGE_EVENT, handler);
   };
-}
-
-export function getSeedBoards(): Board[] {
-  return mockBoards.map((board) => ({
-    ...board,
-    palette: board.palette.map((item) => ({ ...item })),
-    typography: board.typography.map((item) => ({ ...item })),
-    references: board.references.map((item) => ({ ...item })),
-    notes: board.notes.map((item) => ({ ...item })),
-  }));
 }
 
 export function getTemplates(): BoardTemplate[] {
@@ -147,20 +120,94 @@ export function loadBoards(): Board[] {
   return cachedBoards;
 }
 
+export function isBoardsLoading(): boolean {
+  return boardsLoading;
+}
+
+export function areBoardsHydrated(): boolean {
+  return hydratedForUser;
+}
+
+export type BoardStoreSnapshot = {
+  boards: Board[];
+  loading: boolean;
+  hydrated: boolean;
+};
+
+const SERVER_BOARD_STORE_SNAPSHOT: BoardStoreSnapshot = {
+  boards: [],
+  loading: true,
+  hydrated: false,
+};
+
+let cachedBoardStoreSnapshot: BoardStoreSnapshot = SERVER_BOARD_STORE_SNAPSHOT;
+
+export function getBoardStoreSnapshot(): BoardStoreSnapshot {
+  if (
+    cachedBoardStoreSnapshot.boards === cachedBoards &&
+    cachedBoardStoreSnapshot.loading === boardsLoading &&
+    cachedBoardStoreSnapshot.hydrated === hydratedForUser
+  ) {
+    return cachedBoardStoreSnapshot;
+  }
+
+  cachedBoardStoreSnapshot = {
+    boards: cachedBoards,
+    loading: boardsLoading,
+    hydrated: hydratedForUser,
+  };
+  return cachedBoardStoreSnapshot;
+}
+
+export function getServerBoardStoreSnapshot(): BoardStoreSnapshot {
+  return SERVER_BOARD_STORE_SNAPSHOT;
+}
+
+export function isBoardStoreResolving(authStatus: 'loading' | 'authenticated' | 'unauthenticated'): boolean {
+  return (
+    authStatus === 'loading' ||
+    boardsLoading ||
+    (authStatus === 'authenticated' && !hydratedForUser)
+  );
+}
+
 export function getBoardById(boardId: string): Board | undefined {
   return cachedBoards.find((board) => board.id === boardId);
 }
 
 export function saveBoards(boards: Board[]): void {
+  const previous = cachedBoards;
   cachedBoards = boards;
-  if (canUseStorage()) {
-    window.localStorage.setItem(storageKeyFor(activeUserId), JSON.stringify(boards));
-  }
   notifyBoardsChanged();
+
+  if (!activeUserId) return;
+
+  void apiFetch<{ boards: Board[] }>('/api/boards', {
+    method: 'PUT',
+    body: JSON.stringify({ boards }),
+  }).catch(() => {
+    cachedBoards = previous;
+    notifyBoardsChanged();
+    void showPersistError('Failed to save boards.');
+  });
 }
 
 export function appendBoard(board: Board): Board {
-  saveBoards([board, ...loadBoards()]);
+  const previous = cachedBoards;
+  cachedBoards = [board, ...loadBoards()];
+  notifyBoardsChanged();
+
+  if (!activeUserId) return board;
+
+  void apiFetch('/api/boards', {
+    method: 'POST',
+    body: JSON.stringify({ board }),
+  }).catch(() => {
+    cachedBoards = previous;
+    notifyBoardsChanged();
+    void showPersistError('Failed to save board.');
+  });
+
   return board;
 }
 
@@ -169,11 +216,25 @@ export function updateBoard(boardId: string, updater: (board: Board) => Board): 
   const index = boards.findIndex((board) => board.id === boardId);
   if (index === -1) return null;
 
+  const previous = boards;
   const nextBoards = boards.slice();
   const updated = updater(cloneBoard(boards[index]));
   updated.updatedAt = nowIso();
   nextBoards[index] = updated;
-  saveBoards(nextBoards);
+  cachedBoards = nextBoards;
+  notifyBoardsChanged();
+
+  if (!activeUserId) return updated;
+
+  void apiFetch(`/api/boards/${boardId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ board: updated }),
+  }).catch(() => {
+    cachedBoards = previous;
+    notifyBoardsChanged();
+    void showPersistError('Failed to update board.');
+  });
+
   return updated;
 }
 
@@ -181,7 +242,19 @@ export function deleteBoardById(boardId: string): boolean {
   const boards = loadBoards();
   const nextBoards = boards.filter((board) => board.id !== boardId);
   if (nextBoards.length === boards.length) return false;
-  saveBoards(nextBoards);
+
+  const previous = boards;
+  cachedBoards = nextBoards;
+  notifyBoardsChanged();
+
+  if (!activeUserId) return true;
+
+  void apiFetch(`/api/boards/${boardId}`, { method: 'DELETE' }).catch(() => {
+    cachedBoards = previous;
+    notifyBoardsChanged();
+    void showPersistError('Failed to delete board.');
+  });
+
   return true;
 }
 
@@ -196,125 +269,11 @@ export function duplicateBoardById(boardId: string): Board | null {
   copy.updatedAt = nowIso();
   copy.isFavorite = false;
 
-  saveBoards([copy, ...loadBoards()]);
-  return copy;
+  return appendBoard(copy);
 }
 
 export function toggleFavoriteById(boardId: string): Board | null {
   return updateBoard(boardId, (board) => ({ ...board, isFavorite: !board.isFavorite }));
-}
-
-export function setBoardVisibility(boardId: string, visibility: BoardVisibility): Board | null {
-  return updateBoard(boardId, (board) => ({ ...board, visibility }));
-}
-
-export function toggleVisibilityById(boardId: string): Board | null {
-  return updateBoard(boardId, (board) => ({
-    ...board,
-    visibility: board.visibility === 'shared' ? 'private' : 'shared',
-  }));
-}
-
-export function updatePaletteItem(boardId: string, index: number, patch: Partial<PaletteItem>): Board | null {
-  return updateBoard(boardId, (board) => ({
-    ...board,
-    palette: board.palette.map((item, currentIndex) => (currentIndex === index ? { ...item, ...patch } : item)),
-  }));
-}
-
-export function addPaletteItem(boardId: string): Board | null {
-  return updateBoard(boardId, (board) => ({
-    ...board,
-    palette: [
-      { id: createId('palette'), label: 'New color', hex: '#CBD5E1', usage: 'Usage note' },
-      ...board.palette,
-    ],
-  }));
-}
-
-export function removePaletteItem(boardId: string, index: number): Board | null {
-  return updateBoard(boardId, (board) => ({
-    ...board,
-    palette: board.palette.filter((_, currentIndex) => currentIndex !== index),
-  }));
-}
-
-export function updateTypographyItem(boardId: string, index: number, patch: Partial<TypographyItem>): Board | null {
-  return updateBoard(boardId, (board) => ({
-    ...board,
-    typography: board.typography.map((item, currentIndex) => (currentIndex === index ? { ...item, ...patch } : item)),
-  }));
-}
-
-export function addTypographyItem(boardId: string): Board | null {
-  return updateBoard(boardId, (board) => ({
-    ...board,
-    typography: [
-      { id: createId('typography'), role: 'accent', fontName: 'Inter', note: 'Usage note' },
-      ...board.typography,
-    ],
-  }));
-}
-
-export function removeTypographyItem(boardId: string, index: number): Board | null {
-  return updateBoard(boardId, (board) => ({
-    ...board,
-    typography: board.typography.filter((_, currentIndex) => currentIndex !== index),
-  }));
-}
-
-export function updateReferenceItem(boardId: string, index: number, patch: Partial<ReferenceItem>): Board | null {
-  return updateBoard(boardId, (board) => ({
-    ...board,
-    references: board.references.map((item, currentIndex) => (currentIndex === index ? { ...item, ...patch } : item)),
-  }));
-}
-
-export function addReferenceItem(boardId: string): Board | null {
-  return updateBoard(boardId, (board) => ({
-    ...board,
-    references: [
-      {
-        id: createId('ref'),
-        title: 'New reference',
-        imageUrl: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
-        category: 'Interior',
-        source: 'Unsplash',
-      },
-      ...board.references,
-    ],
-  }));
-}
-
-export function removeReferenceItem(boardId: string, index: number): Board | null {
-  return updateBoard(boardId, (board) => ({
-    ...board,
-    references: board.references.filter((_, currentIndex) => currentIndex !== index),
-  }));
-}
-
-export function updateNoteItem(boardId: string, index: number, patch: Partial<NoteItem>): Board | null {
-  return updateBoard(boardId, (board) => ({
-    ...board,
-    notes: board.notes.map((item, currentIndex) => (currentIndex === index ? { ...item, ...patch } : item)),
-  }));
-}
-
-export function addNoteItem(boardId: string): Board | null {
-  return updateBoard(boardId, (board) => ({
-    ...board,
-    notes: [
-      { id: createId('note'), text: 'New note', type: 'idea', position: { x: 0, y: 0 } },
-      ...board.notes,
-    ],
-  }));
-}
-
-export function removeNoteItem(boardId: string, index: number): Board | null {
-  return updateBoard(boardId, (board) => ({
-    ...board,
-    notes: board.notes.filter((_, currentIndex) => currentIndex !== index),
-  }));
 }
 
 export function createBoardFromPrompt(input: BoardDraftInput): Board {
@@ -351,23 +310,6 @@ export function upsertBoard(boards: Board[], board: Board): Board[] {
   const next = boards.slice();
   next[existingIndex] = nextBoard;
   return next;
-}
-
-export function filterBoards(boards: Board[], query: string): Board[] {
-  const normalized = query.trim().toLowerCase();
-  if (!normalized) return boards;
-  return boards.filter((board) => {
-    const haystack = [board.title, board.prompt, board.summary, board.mood, ...board.tags].join(' ').toLowerCase();
-    return haystack.includes(normalized);
-  });
-}
-
-export function sortBoards(boards: Board[], sort: 'recent' | 'favorite'): Board[] {
-  const next = [...boards];
-  if (sort === 'favorite') {
-    return next.sort((a, b) => Number(b.isFavorite) - Number(a.isFavorite) || b.updatedAt.localeCompare(a.updatedAt));
-  }
-  return next.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
 function inferTitle(prompt: string): string {

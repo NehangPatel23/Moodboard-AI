@@ -1,0 +1,68 @@
+# Deploy MoodBoard AI to Vercel
+
+## Prerequisites
+
+- Local smoke test passed (`npm run setup:supabase`, `npm run verify:generate`)
+- GitHub repo connected to Vercel (or use Vercel CLI)
+- Supabase project running
+
+## Step 1 — Push to GitHub
+
+```bash
+git push origin main
+```
+
+## Step 2 — Create Vercel project
+
+1. Go to [vercel.com/new](https://vercel.com/new) and import the repository.
+2. Framework preset: **Next.js** (auto-detected).
+3. Build command: `npm run build` (default).
+4. Output directory: `.next` (default).
+
+## Step 3 — Environment variables
+
+In Vercel → **Settings** → **Environment Variables**, add:
+
+| Variable | Value |
+|----------|-------|
+| `NEXT_PUBLIC_SUPABASE_URL` | From Supabase → Project Settings → API |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase `anon` public key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase `service_role` secret key |
+| `GEMINI_API_KEY` | Optional — enables free-tier Gemini AI (see [`docs/GEMINI_SETUP.md`](GEMINI_SETUP.md)) |
+
+Apply to **Production**, **Preview**, and **Development**.
+
+## Step 4 — Configure Supabase for production
+
+In Supabase → **Authentication** → **URL Configuration**:
+
+1. Set **Site URL** to your Vercel domain (e.g. `https://moodboard-ai.vercel.app`).
+2. Add redirect URLs:
+   - `https://your-domain.vercel.app/**`
+   - `https://your-domain.vercel.app/sign-in`
+
+## Step 5 — Deploy
+
+Trigger a deploy from the Vercel dashboard or:
+
+```bash
+npx vercel --prod
+```
+
+## Step 6 — Smoke test production
+
+| Test | Expected |
+|------|----------|
+| Visit `/` | Landing page loads |
+| Visit `/app` logged out | Redirect to `/sign-in` |
+| Sign in | Dashboard loads |
+| Create board from prompt | Board persists after refresh |
+| Settings change | Persists after sign-out/in |
+
+## Troubleshooting
+
+**401 on API routes** — Env vars missing or not redeployed after adding them.
+
+**Auth redirect loop** — Supabase Site URL / Redirect URLs don't match your Vercel domain.
+
+**Demo generation only** — `GEMINI_API_KEY` not set in Vercel (mock fallback is intentional).

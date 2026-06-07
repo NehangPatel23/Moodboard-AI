@@ -30,18 +30,19 @@ const INFO_CARDS: InfoCard[] = [
     points: [
       'Dashboard, board editor, presentation view, templates, and settings',
       'Theme system, command palette, toasts, and accessible modals',
-      'Local/mock authentication with route gating and gated landing CTAs',
+      'Supabase Auth with gated routes and per-user board persistence',
+      'AI board generation via Google Gemini free tier (optional) with demo fallback',
     ],
   },
   {
     title: 'Engineering notes',
     icon: Wrench,
-    body: 'State is handled with hand-rolled stores on React\u2019s useSyncExternalStore and localStorage, theming is token-driven with full light/dark support, and accessibility (keyboard, focus, reduced motion) is treated as a baseline requirement.',
+    body: 'State uses hand-rolled useSyncExternalStore stores backed by Supabase API routes. Theming is token-driven with full light/dark support, and accessibility (keyboard, focus, reduced motion) is a baseline requirement.',
   },
   {
     title: 'Project status',
     icon: Rocket,
-    body: 'This is an actively evolving demo. Authentication and persistence are intentionally client-side/mock for now; the next milestone is database-backed, user-scoped persistence and real, server-backed auth.',
+    body: 'This is an actively evolving portfolio build. Auth and persistence run on Supabase; AI generation uses Gemini free tier when configured. Next milestones: collaboration and public discovery.',
   },
 ];
 

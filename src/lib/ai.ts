@@ -1,10 +1,34 @@
 import type { Board, BoardTemplate } from '@/types/board';
+import { apiFetch } from '@/lib/api-client';
 import { createBoardFromPrompt, getTemplates } from './board-store';
 
 export type GeneratedBoardDraft = {
   board: Board;
   followUpPrompt: string;
+  source?: 'gemini' | 'mock';
+  notice?: string;
 };
+
+export async function fetchGenerationProvider(): Promise<'gemini' | 'mock'> {
+  const data = await apiFetch<{ provider: 'gemini' | 'mock' }>('/api/generate');
+  return data.provider;
+}
+
+export async function fetchGeneratedBoardDraft(prompt: string): Promise<GeneratedBoardDraft> {
+  return apiFetch<GeneratedBoardDraft>('/api/generate', {
+    method: 'POST',
+    body: JSON.stringify({ prompt }),
+  });
+}
+
+export async function fetchGeneratedBoardDraftFromTemplate(
+  templateId: string,
+): Promise<GeneratedBoardDraft> {
+  return apiFetch<GeneratedBoardDraft>('/api/generate', {
+    method: 'POST',
+    body: JSON.stringify({ templateId }),
+  });
+}
 
 const FALLBACK_REFERENCE_IMAGES = [
   'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',

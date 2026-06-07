@@ -1,0 +1,8 @@
+# Minimal Supabase CLI config for `npx supabase db push`.
+# Link your project: npx supabase link --project-ref YOUR_PROJECT_REF
+
+[db]
+major_version = 15
+
+[api]
+enabled = true

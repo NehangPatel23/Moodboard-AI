@@ -3,8 +3,6 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-
 type CreativeDirectionPanelProps = {
   summary: string;
   mood: string;
@@ -29,9 +27,6 @@ export function CreativeDirectionPanel({
   return (
     <Card className="border-slate-200 bg-white/85">
       <CardHeader>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline">Creative direction</Badge>
-        </div>
         <CardTitle>Direction, tone, and summary</CardTitle>
         <CardDescription>Adjust the core idea before refining palette, type, and references.</CardDescription>
       </CardHeader>

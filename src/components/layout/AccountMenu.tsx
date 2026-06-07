@@ -55,9 +55,9 @@ export function AccountMenu() {
 
   const user = auth.user;
 
-  function handleSignOut() {
+  async function handleSignOut() {
     setOpen(false);
-    signOut();
+    await signOut();
     showToast('Signed out.', 'success');
     router.push('/');
   }

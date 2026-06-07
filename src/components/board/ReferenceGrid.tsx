@@ -1,7 +1,6 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { ReferenceItem } from '@/types/board';
 import { Plus } from 'lucide-react';
@@ -26,10 +25,7 @@ export function ReferenceGrid({
     <Card className="border-slate-200 bg-white/85">
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline">References</Badge>
-          </div>
-          <CardTitle className="mt-2">Inspiration grid</CardTitle>
+          <CardTitle>Inspiration grid</CardTitle>
           <CardDescription>Visual references that support the mood and composition.</CardDescription>
         </div>
 

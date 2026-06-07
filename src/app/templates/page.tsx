@@ -11,7 +11,8 @@ import { Input } from '@/components/ui/input';
 import { PageLabel } from '@/components/shared/PageLabel';
 import { cn } from '@/lib/utils';
 import { loadBoards, saveBoards, subscribeBoards, upsertBoard } from '@/lib/board-store';
-import { generateBoardDraftFromTemplate, getBoardTemplates } from '@/lib/ai';
+import { readAppSettings } from '@/lib/settings-store';
+import { fetchGeneratedBoardDraftFromTemplate, getBoardTemplates } from '@/lib/ai';
 import {
   hydrateTemplateMetadataStore,
   loadTemplateMetadata,
@@ -551,17 +552,14 @@ export default function TemplatesPage() {
 
     try {
       recordTemplateUse(template.id);
-      const generated = generateBoardDraftFromTemplate(template.id);
-
-      if (!generated) {
-        throw new Error('Unable to create board from template.');
-      }
+      const generated = await fetchGeneratedBoardDraftFromTemplate(template.id);
+      const board = { ...generated.board, visibility: readAppSettings().defaultVisibility };
 
       const existingBoards = loadBoards();
-      const nextBoards = upsertBoard(existingBoards, generated.board);
+      const nextBoards = upsertBoard(existingBoards, board);
       saveBoards(nextBoards);
 
-      router.push(`/app/boards/${generated.board.id}`);
+      router.push(`/app/boards/${board.id}`);
     } finally {
       setIsCreating(false);
     }
@@ -689,9 +687,6 @@ export default function TemplatesPage() {
       ) : (
         <Card className="rounded-4xl">
           <CardContent className="space-y-4 p-6">
-            <Badge variant="outline" className="w-fit rounded-full px-3 py-1">
-              No results
-            </Badge>
             <h3 className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)">
               Nothing matches your search.
             </h3>

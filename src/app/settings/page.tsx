@@ -87,24 +87,6 @@ function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-function formatStorageUsage(): string {
-  if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
-    return '--';
-  }
-
-  let bytes = 0;
-  for (let i = 0; i < window.localStorage.length; i += 1) {
-    const key = window.localStorage.key(i);
-    if (!key || !key.startsWith('moodboard')) continue;
-    const value = window.localStorage.getItem(key) ?? '';
-    bytes += (key.length + value.length) * 2;
-  }
-
-  if (bytes === 0) return 'Empty';
-  if (bytes < 1024) return `${bytes} B used`;
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB used`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB used`;
-}
 
 function SettingsSection({
   id,
@@ -550,7 +532,6 @@ export default function SettingsPage() {
 
   const updateSetting = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     updateAppSettings({ [key]: value } as Partial<AppSettings>);
-    writeLastSavedAt(nowIso());
   };
 
   const toastToggle = (label: string, enabled: boolean) => {
@@ -669,7 +650,7 @@ export default function SettingsPage() {
       saveAppSettings(DEFAULT_APP_SETTINGS);
       clearLastSavedAt();
       setResetOpen(false);
-      showToast('Workspace reset. All local boards were deleted.', 'success');
+      showToast('Workspace reset. All boards were deleted.', 'success');
     } catch {
       showToast('Workspace reset failed.', 'destructive');
     }
@@ -686,11 +667,6 @@ export default function SettingsPage() {
   };
 
   const favoriteCount = useMemo(() => boards.filter((board) => board.isFavorite).length, [boards]);
-  const storageUsage = useMemo(
-    () => formatStorageUsage(),
-    // Recompute whenever stored boards or settings change.
-    [boards, settings, lastSavedAt],
-  );
   const resolvedTheme = resolveThemeMode(settings.themeMode);
 
   const sections: SettingsNavItem[] = [
@@ -734,10 +710,10 @@ export default function SettingsPage() {
           <StatusPill label="Last updated" value={formatRelativeTime(lastSavedAt)} />
           <StatusPill label="Boards" value={`${boards.length} stored`} />
           <StatusPill label="Favorites" value={`${favoriteCount} starred`} />
-          <StatusPill label="Local storage" value={storageUsage} />
+          <StatusPill label="Persistence" value="Cloud synced" />
         </div>
             <p className="mt-4 text-sm leading-6 text-(--text-muted)">
-              Changes are applied immediately and stored locally so the workspace stays in sync across the app.
+              Changes are applied immediately and saved to your account so the workspace stays in sync across devices.
             </p>
           </div>
         </div>

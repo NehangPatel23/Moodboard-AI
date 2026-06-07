@@ -6,7 +6,18 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Image as ImageIcon, Layers3, Palette, Sparkles, Type } from 'lucide-react';
 import type { NoteType, TypographyRole } from '@/types/board';
-import { loadBoards, subscribeBoards } from '@/lib/board-store';
+import {
+  getBoardStoreSnapshot,
+  getServerBoardStoreSnapshot,
+  isBoardStoreResolving,
+  subscribeBoards,
+} from '@/lib/board-store';
+import {
+  getServerAuthSnapshot,
+  readAuthState,
+  subscribeAuth,
+} from '@/lib/auth-store';
+import { BoardEditorSkeleton } from '@/components/board/BoardEditorSkeleton';
 import {
   DEFAULT_APP_SETTINGS,
   readAppSettings,
@@ -254,8 +265,14 @@ function ReadOnlyNoteCard({
 
 export function BoardReadOnlyClient({ boardId }: BoardReadOnlyClientProps) {
   const router = useRouter();
-  const boards = useSyncExternalStore(subscribeBoards, loadBoards, loadBoards);
-  const board = boards.find((item) => item.id === boardId);
+  const auth = useSyncExternalStore(subscribeAuth, readAuthState, getServerAuthSnapshot);
+  const boardStore = useSyncExternalStore(
+    subscribeBoards,
+    getBoardStoreSnapshot,
+    getServerBoardStoreSnapshot,
+  );
+  const board = boardStore.boards.find((item) => item.id === boardId);
+  const isResolvingBoard = isBoardStoreResolving(auth.status);
 
   const presentationModeEnabled = useSyncExternalStore(
     subscribeAppSettings,
@@ -306,6 +323,10 @@ export function BoardReadOnlyClient({ boardId }: BoardReadOnlyClientProps) {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [board, router, presentationModeEnabled]);
+
+  if (isResolvingBoard) {
+    return <BoardEditorSkeleton />;
+  }
 
   if (!board) {
     return (
@@ -428,9 +449,6 @@ export function BoardReadOnlyClient({ boardId }: BoardReadOnlyClientProps) {
             <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
               <Card className={innerPanelClass}>
                 <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">Creative direction</Badge>
-                  </div>
                   <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)">
                     Direction, tone, and summary
                   </CardTitle>
@@ -478,9 +496,6 @@ export function BoardReadOnlyClient({ boardId }: BoardReadOnlyClientProps) {
 
               <Card className={innerPanelClass}>
                 <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">Snapshot</Badge>
-                  </div>
                   <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)">
                     Presentation overview
                   </CardTitle>
@@ -520,9 +535,6 @@ export function BoardReadOnlyClient({ boardId }: BoardReadOnlyClientProps) {
           {activeSection === 'palette' ? (
             <Card className={innerPanelClass}>
               <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">Palette</Badge>
-                </div>
                 <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)">
                   Color direction
                 </CardTitle>
@@ -563,9 +575,6 @@ export function BoardReadOnlyClient({ boardId }: BoardReadOnlyClientProps) {
           {activeSection === 'typography' ? (
             <Card className={innerPanelClass}>
               <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">Typography</Badge>
-                </div>
                 <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)">
                   Type system
                 </CardTitle>
@@ -616,9 +625,6 @@ export function BoardReadOnlyClient({ boardId }: BoardReadOnlyClientProps) {
           {activeSection === 'references' ? (
             <Card className={innerPanelClass}>
               <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">References</Badge>
-                </div>
                 <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)">
                   Inspiration grid
                 </CardTitle>
@@ -653,9 +659,6 @@ export function BoardReadOnlyClient({ boardId }: BoardReadOnlyClientProps) {
           {activeSection === 'notes' ? (
             <Card className={innerPanelClass}>
               <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">Notes</Badge>
-                </div>
                 <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)">
                   Captured ideas
                 </CardTitle>

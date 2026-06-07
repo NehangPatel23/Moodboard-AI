@@ -18,9 +18,8 @@ function getServerSnapshot(): ThemeSnapshot {
 
 /**
  * Standalone light/dark toggle that writes directly to the shared settings
- * store. Because the store persists `themeMode` to localStorage and is applied
- * app-wide by `ThemeSync`, toggling here (e.g. on the landing or auth pages,
- * pre-login) carries straight into the app after sign in.
+ * store. Theme is written to a cookie + local cache and applied app-wide by
+ * `ThemeSync`, so toggling on the landing page stays in sync with the app.
  */
 export function ThemeToggle({ className }: { className?: string }) {
   const { resolvedTheme } = useSyncExternalStore(

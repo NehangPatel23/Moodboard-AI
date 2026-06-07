@@ -44,7 +44,6 @@ export function BoardHeader({
     <section className="space-y-5 rounded-4xl border border-slate-200 bg-white/85 p-6 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline">Board editor</Badge>
           <Badge variant="secondary">{visibility}</Badge>
           <span className="text-xs uppercase tracking-[0.3em] text-slate-400">{boardId}</span>
         </div>

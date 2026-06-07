@@ -1,0 +1,147 @@
+# Supabase Backend Setup
+
+The app code is ready. You only need to create a Supabase project once and connect it with environment variables.
+
+## Quick checklist
+
+- [ ] **Step 1** — Create Supabase project at [supabase.com](https://supabase.com)
+- [ ] **Step 2** — Run the SQL migration (dashboard or CLI)
+- [ ] **Step 3** — Copy API keys into `.env.local`
+- [ ] **Step 4** — Disable email confirmation for local dev
+- [ ] **Step 5** — Run `npm run setup:supabase` (seeds demo user + verifies)
+- [ ] **Step 6** — Run `npm run dev` and sign in with the demo account
+
+---
+
+## Step 1 — Create a Supabase project
+
+1. Go to [https://supabase.com](https://supabase.com) and sign up or log in.
+2. Click **New project**.
+3. Fill in:
+   - **Organization** — create one if prompted
+   - **Project name** — e.g. `moodboard-ai`
+   - **Database password** — choose a strong password and save it somewhere safe
+   - **Region** — closest to you
+4. Click **Create new project** and wait 1–2 minutes.
+
+---
+
+## Step 2 — Run the database migration
+
+Creates `profiles`, `boards`, and `user_settings` tables with Row Level Security.
+
+### Option A — SQL Editor (recommended if new to Supabase)
+
+1. In the dashboard, open **SQL Editor** → **New query**.
+2. Copy the entire contents of [`supabase/migrations/001_initial.sql`](../supabase/migrations/001_initial.sql).
+3. Paste into the editor and click **Run**.
+4. Confirm success (no errors).
+5. Open **Table Editor** — you should see `profiles`, `boards`, `user_settings`.
+
+### Option B — Supabase CLI
+
+```bash
+npx supabase login
+npx supabase link --project-ref YOUR_PROJECT_REF
+npx supabase db push
+```
+
+`YOUR_PROJECT_REF` is the subdomain in your project URL: `https://YOUR_PROJECT_REF.supabase.co`.
+
+---
+
+## Step 3 — Add environment variables
+
+1. In Supabase: **Project Settings** (gear) → **API**.
+2. Copy:
+
+| Dashboard label | `.env.local` variable |
+|-----------------|------------------------|
+| Project URL | `NEXT_PUBLIC_SUPABASE_URL` |
+| `anon` `public` key | `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
+| `service_role` `secret` key | `SUPABASE_SERVICE_ROLE_KEY` |
+
+3. In the project root:
+
+```bash
+cp .env.local.example .env.local
+```
+
+4. Paste your three values into `.env.local`. Example:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://abcdefgh.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOi...
+```
+
+Never commit `.env.local` or expose the `service_role` key in client code.
+
+---
+
+## Step 4 — Configure auth for local development
+
+1. **Authentication** → **Providers** → **Email**.
+2. Turn **off** “Confirm email” / “Enable email confirmations”.
+3. Save.
+
+Optional:
+
+1. **Authentication** → **URL Configuration**.
+2. Set **Site URL** to `http://localhost:3000`.
+3. Add `http://localhost:3000/**` under **Redirect URLs** if available.
+
+---
+
+## Step 5 — Verify and seed
+
+```bash
+npm run setup:supabase
+```
+
+This checks your env vars, confirms tables exist, and creates the demo user:
+
+- Email: `admin@moodboard.ai`
+- Password: `moodboard123`
+
+---
+
+## Step 6 — Run the app
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000):
+
+| Test | Expected |
+|------|----------|
+| Visit `/app` logged out | Redirect to sign-in |
+| Demo sign-in | Dashboard loads (demo account may have existing boards) |
+| Sign up (new account) | Empty workspace with "Create a board" prompt |
+| Refresh | Boards persist |
+| Settings change | Persists after sign-out/in |
+
+---
+
+## Troubleshooting
+
+**Protected routes not redirecting** — Session refresh runs in `src/proxy.ts` (Next.js 16 proxy convention). Restart `npm run dev` after env changes.
+
+**Failed to load boards / 401** — Wrong or missing `.env.local`; restart `npm run dev` after editing env.
+
+**Demo sign-in fails** — Run `npm run db:seed-demo` or `npm run setup:supabase`.
+
+**Sign-up asks for email confirmation** — Disable confirm email (Step 4).
+
+**SQL “relation already exists”** — Migration already ran; skip unless resetting the database.
+
+---
+
+## Deploying to Vercel
+
+See the full guide in [`docs/DEPLOY.md`](DEPLOY.md). Short version:
+
+1. Add env vars in Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and optionally `GEMINI_API_KEY` (see [`docs/GEMINI_SETUP.md`](GEMINI_SETUP.md)).
+2. Update Supabase **Authentication → URL Configuration** with your production domain.
+3. Deploy and smoke-test sign-in + board persistence.

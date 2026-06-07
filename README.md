@@ -1,8 +1,11 @@
 # MoodBoard AI
 
-> **Status:** Active Development (MVP Foundation Complete)
+> **Status:** Active Development (MVP + Production Deployed)
 > **Purpose:** GitHub README + internal handoff document for future development, AI agents, and new contributors
-> **Next feature:** Database-backed, user-scoped persistence (replace local storage). Authentication and gated landing CTAs are now implemented (see [Authentication & Gated Landing CTAs (Implemented)](#authentication--gated-landing-ctas-implemented)).
+> **Live:** Deployed on Vercel with Supabase + Gemini free tier
+> **Next feature:** Collaboration and public discovery (shared boards, invites)
+
+**Setup guides:** [`docs/MANUAL_SETUP.md`](docs/MANUAL_SETUP.md) · [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md) · [`docs/GEMINI_SETUP.md`](docs/GEMINI_SETUP.md) · [`docs/DEPLOY.md`](docs/DEPLOY.md)
 
 MoodBoard AI is an AI-assisted creative direction and moodboarding platform built to help users turn vague ideas into structured visual direction.
 
@@ -19,30 +22,97 @@ It is currently a working product foundation with:
 - Command palette
 - Toasts, modals, loading states, and empty states
 - Accessibility foundations (app-wide reduce motion + strong focus rings)
-- Local persistence and custom stores
-- Authentication (local/mock) with gated app routes and landing CTAs
+- Supabase-backed persistence (boards + per-user settings) with custom `useSyncExternalStore` stores
+- Supabase Auth with gated app routes, proxy protection, and landing CTAs
+- AI board generation via `/api/generate` (Google Gemini free tier with model fallback; demo generation when all models fail)
+- Unified theme sync across landing, auth, and app (cookie + `SettingsBootstrap`)
 - Vercel Analytics
 
-The app is not finished. The core UX and page structure exist, but several major product areas still need to be built or redesigned.
+The app is not finished. Core UX, persistence, auth, AI generation, and production deploy are in place; collaboration and public discovery are next.
+
+---
+
+## Quick Start (Local)
+
+```bash
+cp .env.local.example .env.local   # add Supabase + optional GEMINI_API_KEY
+npm install
+npm run setup:supabase
+npm run verify:generate
+npm run dev
+```
+
+Sign in: `admin@moodboard.ai` / `moodboard123`
 
 ---
 
 ## Authentication & Gated Landing CTAs (Implemented)
 
-User login / authentication and gated CTAs are now built as a **local/mock** auth layer that mirrors the app's existing `localStorage` + `useSyncExternalStore` store pattern. There is no backend yet, so all gating happens on the client.
-
-> **Security note:** This is demo-grade auth. User records (including a lightly obfuscated password) live in `localStorage` and are **not secure**. It exists to model the auth UX until real, server-backed auth and a database are introduced.
+User login / authentication and gated CTAs use **Supabase Auth** with cookie-based sessions. The auth store (`src/lib/auth-store.ts`) still exposes `subscribeAuth`, `readAuthState`, `hydrateAuthStore`, and `signUp` / `signIn` / `signOut` for UI components.
 
 **What was built:**
 
-- **Auth store** — `src/lib/auth-store.ts`. Stores registered users under `moodboard-auth-users-v1` and the current session under `moodboard-auth-session-v1`. Exposes `subscribeAuth`, `readAuthState`, `getServerAuthSnapshot`, `hydrateAuthStore`, and the `signUp` / `signIn` / `signOut` actions. Initial state is `loading` until hydrated to avoid hydration mismatches. Seeds a built-in demo account (`admin@moodboard.ai` / `moodboard123`). Sessions carry a **7-day expiry** (`SESSION_TTL_MS`); expired sessions are cleared on read and the user is redirected to sign in.
+- **Auth store** — `src/lib/auth-store.ts`. Subscribes to `supabase.auth.onAuthStateChange`, maps sessions to `AuthUser`, and wraps Supabase sign-up/sign-in/sign-out. Demo account: `admin@moodboard.ai` / `moodboard123` (seed via `npm run db:seed-demo`).
 - **Auth page** — a single consolidated page in the route group `src/app/(auth)/` at `/sign-in`, with an in-page **Sign in / Create account** toggle (the header's "Get started" deep-links via `/sign-in?mode=sign-up`). It reads a `?redirect=` target (sanitized to internal paths) via `useSearchParams` inside a `<Suspense>` boundary, has a password show/hide toggle, a one-click demo-account button, inline validation/errors, loading states, and toast feedback. A premium split-screen layout and a pre-login theme toggle live in `src/app/(auth)/layout.tsx`.
 - **Route gating** — `src/components/auth/AuthGuard.tsx` wraps the `/app` and `/settings` layouts. It shows a loading state while the session resolves, and redirects unauthenticated users to `/sign-in?redirect=<intended path>`.
 - **Gated landing CTAs** — `useGatedHref` (`src/components/auth/use-gated-href.ts`) makes the CTAs in `src/components/landing/Hero.tsx` ("Start a board" → `/app/new`, "View my boards" → `/app`) and `src/components/landing/CTASection.tsx` ("Begin your first board" → `/app/new`) route through `/sign-in` when unauthenticated, then bounce to the intended destination after signing in.
-- **Per-user boards** — `src/lib/board-store.ts` scopes boards by the signed-in user's id (`moodboard-ai:boards:<userId>`), driven by `src/components/layout/BoardStoreBootstrap.tsx`. Each account gets its own seeded workspace; the demo account adopts any pre-auth (legacy) boards once.
+- **Per-user boards** — `src/lib/board-store.ts` loads boards from `/api/boards` for the signed-in user, driven by `src/components/layout/BoardStoreBootstrap.tsx`. New accounts start with an empty workspace; legacy localStorage data is imported once via `/api/migrate`.
 - **Account menu** — `src/components/layout/AccountMenu.tsx` in the top bar shows a "Signed in as" identity plus a **Sign out** action. The landing header gains a **Sign in** / **Get started** / **Open app** entry point.
 
-**Next:** replace local storage with database-backed persistence (see [Database](#database)), then move auth to a real provider.
+Auth is now backed by **Supabase Auth** (see [Database & Persistence (Implemented)](#database--persistence-implemented)). The auth store API (`signUp`, `signIn`, `signOut`, `subscribeAuth`) is unchanged for UI components.
+
+---
+
+## Database & Persistence (Implemented)
+
+User-scoped data is stored in **Supabase (Postgres + Auth)** with Row Level Security. Client stores keep the same `useSyncExternalStore` API; persistence is handled via API routes.
+
+**Setup:** Follow the full guide in [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md). Short version:
+
+1. Create a Supabase project at [supabase.com](https://supabase.com).
+2. Run [`supabase/migrations/001_initial.sql`](supabase/migrations/001_initial.sql) in the SQL Editor.
+3. Copy API keys into `.env.local` (see [`.env.local.example`](.env.local.example)).
+4. Disable **Confirm email** under Authentication → Providers → Email.
+5. Run `npm run setup:supabase` (verifies tables + seeds demo user).
+6. Run `npm run dev` and sign in with `admin@moodboard.ai` / `moodboard123`.
+
+**What was built:**
+
+- **Schema** — `profiles`, `boards`, `user_settings` tables with RLS (`supabase/migrations/001_initial.sql`). Profile + default settings are created automatically on sign-up via trigger.
+- **API routes** — `src/app/api/boards/`, `src/app/api/settings/`, `src/app/api/migrate/` (one-time localStorage import).
+- **Board store** — `src/lib/board-store.ts` fetches and mutates via API with optimistic updates. New users start with an empty workspace.
+- **Settings store** — `src/lib/settings-store.ts` is per-user; theme is mirrored to a cookie + local cache. `SettingsBootstrap` (root layout) keeps theme consistent across landing and app.
+- **Proxy** — `src/proxy.ts` protects `/app` and `/settings`, refreshing the Supabase session on each request.
+- **Migration** — `src/lib/local-migration.ts` imports legacy `localStorage` boards/settings on first authenticated load, then clears old keys.
+- **Sidebar collapse** remains in `localStorage` (device UI preference, not account data).
+
+---
+
+## AI Generation (Implemented)
+
+Prompt and template board creation use **`POST /api/generate`** with authenticated sessions.
+
+**Setup:**
+
+1. Optionally add `GEMINI_API_KEY` to `.env.local` (see [`.env.local.example`](.env.local.example) and [`docs/GEMINI_SETUP.md`](docs/GEMINI_SETUP.md)).
+2. Run `npm run verify:generate` to confirm Gemini connectivity or mock fallback.
+3. Create a board at `/app/new` or from `/templates`.
+
+**Model fallback chain** (free tier):
+
+1. `gemini-2.5-flash` (primary)
+2. `gemini-2.5-flash-lite` (if primary is busy / over quota)
+3. Demo generation (if both fail — board still created)
+
+> `gemini-2.0-flash` has **0 free-tier quota** — not used.
+
+**What was built:**
+
+- **Server** — [`src/lib/ai-generate.ts`](src/lib/ai-generate.ts) calls Gemini with structured JSON output; retries across models on 503/429; demo fallback when no key or all models fail.
+- **API** — [`src/app/api/generate/route.ts`](src/app/api/generate/route.ts) accepts `{ prompt }` or `{ templateId }`, with per-user rate limiting. `GET` returns configured provider (`gemini` vs `mock`).
+- **Client** — [`PromptComposer`](src/components/creation/PromptComposer.tsx) and [`templates/page.tsx`](src/app/templates/page.tsx) call the API; **Powered by Gemini** badge when configured; user-friendly errors (no raw JSON).
+
+**Production:** Add `GEMINI_API_KEY` to Vercel (Sensitive). See [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
 ---
 
@@ -102,12 +172,9 @@ The product is meant to feel polished, premium, and app-like, while remaining pr
 
 Current:
 
-- Local storage
+- Supabase (boards + per-user settings via API routes)
 - Custom stores (hand-rolled with React's `useSyncExternalStore` — see `src/lib/board-store.ts`, `src/lib/settings-store.ts`, `src/components/shared/toast-store.ts`, `src/components/shared/command-palette-store.ts`)
-
-Planned:
-
-- Database-backed persistence
+- Device-only UI prefs in localStorage (sidebar collapse)
 
 > Note: `zustand` and `radix-ui` are listed in `package.json` but are currently **unused** (no imports). The app relies on the custom `useSyncExternalStore` stores above rather than a state-management library.
 
@@ -128,30 +195,27 @@ Implemented:
 ```txt
 src/
 ├── app/
-│   ├── page.tsx
-│   ├── layout.tsx
-│   ├── globals.css
-│   ├── app/
-│   │   ├── page.tsx
-│   │   ├── new/
-│   │   ├── boards/
-│   │   │   └── [id]/
-│   │   │       ├── page.tsx       # editor
-│   │   │       └── view/          # read-only / presentation
-│   │   └── layout.tsx
+│   ├── api/           # boards, settings, generate, migrate
+│   ├── page.tsx       # landing
+│   ├── layout.tsx     # ThemeSync + SettingsBootstrap
+│   ├── (auth)/sign-in/
+│   ├── app/           # dashboard, editor, new board
 │   ├── settings/
 │   └── templates/
 ├── components/
 │   ├── landing/
-│   ├── layout/        # Sidebar, TopBar, AppShell, WorkspaceAvatar
-│   ├── page-shells/   # DashboardShell, BoardEditorShell, BoardReadOnlyShell
+│   ├── layout/        # AppShell, Sidebar, BoardStoreBootstrap
 │   ├── board/
-│   ├── dashboard/
-│   ├── creation/
-│   ├── shared/
-│   └── ui/
+│   ├── creation/      # PromptComposer, GenerationSourceBadge
+│   └── shared/        # ThemeToggle, SettingsBootstrap, Toast
 ├── lib/
-└── types/
+│   ├── ai-generate.ts
+│   ├── board-store.ts
+│   ├── settings-store.ts
+│   └── supabase/
+docs/                  # setup, deploy, Gemini guides
+scripts/               # setup:supabase, verify:generate, seed-demo
+supabase/migrations/   # 001_initial.sql
 ```
 
 ---
@@ -250,14 +314,10 @@ Implemented:
 
 Users can:
 
-- Enter a prompt
-- Generate a board
-
-Current generation is mock/demo content.
-
-Planned:
-
-- Real AI generation integration
+- Enter a prompt (or pick a suggestion)
+- Generate a board via `POST /api/generate` (Gemini or demo fallback)
+- See **Powered by Gemini** when `GEMINI_API_KEY` is configured
+- Land directly in the board editor after generation
 
 ---
 
@@ -337,7 +397,9 @@ Current functionality:
 - **Live tags** — tags added while creating/editing boards automatically appear as filter options
 - Real reference imagery wired up via Unsplash URLs
 
-Current template definitions are mock/demo data.
+**Use template** creates a board via `/api/generate` (same Gemini pipeline as prompt creation).
+
+Template metadata is still curated in-app (not a marketplace yet).
 
 Planned:
 
@@ -391,7 +453,7 @@ User-configurable toggle that gates the keyboard-driven slideshow on the share/v
 - Export boards (JSON backup)
 - **Reset preferences** (restores settings to defaults, keeps boards)
 - **Danger zone** reset (deletes all boards and restores defaults)
-- Local storage usage indicator
+- Cloud sync status indicator
 
 ---
 
@@ -461,36 +523,18 @@ Future work should continue to preserve and expand accessibility support across 
 
 ## 7. Theme System Status
 
-### Current Situation
+### Implemented
 
-A theme system exists and supports:
+- Light / dark / system modes via settings and header toggle
+- Class-based `dark:` utilities on `<html>`
+- Flash-free first paint (`theme-init` script reads cookie before hydration)
+- **Cross-route sync** — `SettingsBootstrap` + cookie/local cache keep landing and app on the same theme (no random flips on navigation)
 
-- Light mode
-- Dark mode
-- System mode
+### Remaining polish
 
-### Important Note
-
-The theme system is **not considered complete**.
-
-The landing page in particular has gone through multiple iterations and still needs a proper visual refinement pass.
-
-Current known issues:
-
-- Light mode feels inconsistent
-- Dark mode feels inconsistent
-- The design language is not fully unified
-- Premium visual identity has not yet been finalized
-
-### Landing Page Status
-
-The landing page is currently considered:
-
-```txt
-UNFINISHED
-```
-
-It needs a future redesign pass before it can be treated as final.
+- Visual refinement on landing (full redesign deferred — current design preferred)
+- Incremental token standardization (`--shadow-card`, `--shadow-elevated` added; more audit work possible)
+- Some board editor panels still use hardcoded slate colors
 
 ---
 
@@ -549,82 +593,28 @@ Goal:
 
 ### AI Generation Engine
 
-Currently mocked.
+Implemented — see [AI Generation (Implemented)](#ai-generation-implemented). Optional `GEMINI_API_KEY` enables free-tier Gemini generation; otherwise demo/mock fallback.
 
-Need:
-
-- OpenAI integration
-- Prompt → creative direction
-- Mood generation
-- Palette generation
-- Typography generation
-- Reference generation
-
-### Board Generation Pipeline
-
-Desired flow:
-
-```txt
-Prompt
-   ↓
-Creative Direction
-   ↓
-Moodboard
-   ↓
-Editable Workspace
-```
+Remaining enhancements: image generation, reference search APIs, streaming responses.
 
 ### Database
 
-Current:
+Implemented (Supabase Postgres):
 
-```txt
-Local Storage
-```
+- `profiles` — user identity
+- `boards` — per-user boards (JSONB for nested content)
+- `user_settings` — per-user workspace preferences
 
-Target:
-
-```txt
-Database persistence
-```
-
-Possible options:
-
-- Supabase
-- PostgreSQL
-- Neon
-
-Store:
-
-- Users
-- Boards
-- Templates
-- Favorites
-- Settings
+Deferred: template metadata, public/shared board reads.
 
 ### Authentication
 
-> **Implemented as a local/mock layer.** See [Authentication & Gated Landing CTAs (Implemented)](#authentication--gated-landing-ctas-implemented).
+Implemented (Supabase Auth):
 
-Done (client-side, localStorage-backed):
-
-- Sign up
-- Sign in
-- Sessions
-- Sign out
-- **Gated landing CTAs** — "Start a board" (`/app/new`) and "View my boards" (`/app`) require authentication; unauthenticated users are sent to sign in first and then redirected to their intended destination.
-- **Gated app routes** — all `/app` and `/settings` routes require login.
-
-Still needed (move off local/mock):
-
-- Real, server-backed sessions and password hashing
-- User-scoped data once the database lands
-
-Potential solutions:
-
-- Clerk
-- Auth.js
-- Supabase Auth
+- Sign up / sign in / sign out with server-backed sessions
+- Middleware + `AuthGuard` route protection
+- Gated landing CTAs and redirect-back after sign-in
+- Demo account via `npm run db:seed-demo`
 
 ---
 
@@ -790,50 +780,35 @@ Clarify before implementing.
 
 ## 12. Immediate Next Development Order
 
-### 0. Authentication & Gated Landing CTAs — DONE (local/mock)
+### 0. Authentication & Gated Landing CTAs — DONE
 
-User accounts, sessions, gated `/app` + `/settings` routes, and gated landing CTAs with redirect-back are implemented as a client-side, localStorage-backed layer. See [Authentication & Gated Landing CTAs (Implemented)](#authentication--gated-landing-ctas-implemented).
+Supabase Auth, proxy protection, gated `/app` + `/settings` routes, and gated landing CTAs with redirect-back. See [Authentication & Gated Landing CTAs (Implemented)](#authentication--gated-landing-ctas-implemented).
 
-### 1. Database Integration (next feature)
+### 1. Database Integration — DONE
 
-Replace local storage with database-backed, user-scoped persistence (and migrate auth off the local/mock layer onto a real provider).
+Supabase-backed boards, settings, and auth. See [Database & Persistence (Implemented)](#database--persistence-implemented).
 
-### 3. Landing Page Redesign
+### 2. Landing Page Redesign — DEFERRED
 
-Goals:
+Incremental polish only; full redesign was attempted and reverted. Current landing design is preferred.
 
-- Premium visual identity
-- Consistent light mode
-- Consistent dark mode
-- Unified design language
+### 3. AI Generation Pipeline — DONE
 
-### 4. Design System Audit
+Google Gemini free-tier integration via `/api/generate`. See [AI Generation (Implemented)](#ai-generation-implemented).
 
-Create:
+### 4. Design System Audit — IN PROGRESS
 
-- Color tokens
-- Typography tokens
-- Shadow tokens
-- Spacing tokens
+Shadow tokens (`--shadow-card`, `--shadow-elevated`) added. Remaining: broader color/spacing token audit.
 
-### 5. AI Generation Pipeline
+### 5. Deploy to Production — DONE
 
-Integrate OpenAI.
+Vercel + Supabase + `GEMINI_API_KEY`. See [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
-Implement:
-
-- Prompt → creative direction
-- Prompt → moodboard
-
-### 6. Real Data Layer
-
-Replace mock content.
-
-### 7. Discover Page
+### 6. Discover Page
 
 Public inspiration and boards.
 
-### 8. Collaboration Features
+### 7. Collaboration Features
 
 Teams, comments, and sharing.
 
@@ -861,15 +836,12 @@ Implemented:
 - Loading states
 - Empty states
 
-Authentication + gated landing CTAs are now implemented (local/mock). The largest remaining milestones are:
+Database persistence, Supabase Auth, AI generation (Gemini + fallback), theme sync, and production deploy are implemented. The largest remaining milestones are:
 
-1. Database persistence (user-scoped) — next feature
-2. Real, server-backed authentication (replace the local/mock layer)
-3. Landing page refinement
-4. Design system standardization
-5. AI generation engine
-6. Team collaboration
-7. Public discovery features
+1. Team collaboration (shared boards, invites)
+2. Public discovery features
+3. Design system standardization (incremental)
+4. Landing page — deferred unless targeted polish is requested
 
 ---
 
@@ -879,16 +851,17 @@ If you are an AI agent continuing development in Cursor, Claude, ChatGPT, Copilo
 
 Important context:
 
-- The current landing page design is **not final**
-- Theme implementation is partially complete and still needs refinement
-- AI generation is currently mocked
-- Persistence currently relies heavily on local storage
-- Accessibility, loading states, and keyboard support are mandatory requirements for future work
-- **Authentication is implemented as a local/mock layer** (client-side, localStorage-backed) — it gates `/app` + `/settings` and the landing CTAs, and redirects to the intended page after sign-in. It is **not secure** and must be replaced with real, server-backed auth. See [Authentication & Gated Landing CTAs (Implemented)](#authentication--gated-landing-ctas-implemented)
-- The **next feature to implement is database-backed, user-scoped persistence** (replacing local storage)
-- Settings controls are all wired to real behavior (theme, app-wide reduce motion / focus rings, default visibility on new boards, presentation-mode gating, workspace identity & avatars)
+- Landing page full redesign was **deferred** (current design preferred)
+- Theme **sync** across landing ↔ app is fixed; incremental visual polish remains
+- AI generation uses **Gemini free tier** (`gemini-2.5-flash` → `gemini-2.5-flash-lite` → demo fallback). Set `GEMINI_API_KEY` locally and on Vercel.
+- Boards and settings persist in **Supabase** (per-user, RLS-protected). Sidebar collapse stays in localStorage.
+- **Production is deployed** on Vercel — push to `main` triggers redeploy. See [`docs/DEPLOY.md`](docs/DEPLOY.md).
+- **Authentication uses Supabase Auth** with proxy protection. See [Database & Persistence (Implemented)](#database--persistence-implemented)
+- **Next features:** collaboration and public discovery
+- Board editor handles refresh correctly (loads from Supabase after hydration; no false "not found")
+- Settings controls are all wired to real behavior (theme, reduce motion / focus rings, default visibility, presentation mode, workspace identity)
 
-When resuming work, start by implementing database-backed, user-scoped persistence, then migrate auth off the local/mock layer onto a real provider.
+When resuming work, focus on collaboration features and public discovery.
 
 ---
 

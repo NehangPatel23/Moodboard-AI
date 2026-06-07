@@ -100,7 +100,7 @@ export function AuthForm() {
     setError(null);
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submitting) return;
 
@@ -109,11 +109,12 @@ export function AuthForm() {
 
     const result =
       mode === 'sign-up'
-        ? signUp({ name, email, password })
-        : signIn({ email, password });
+        ? await signUp({ name, email, password })
+        : await signIn({ email, password });
 
     if (result.ok) {
       showToast(mode === 'sign-up' ? 'Account created.' : 'Signed in.', 'success');
+      router.refresh();
       router.replace(redirectTarget);
       return;
     }
@@ -122,16 +123,17 @@ export function AuthForm() {
     setSubmitting(false);
   }
 
-  function handleDemoSignIn() {
+  async function handleDemoSignIn() {
     if (submitting) return;
 
     setSubmitting(true);
     setError(null);
 
-    const result = signInWithDemo();
+    const result = await signInWithDemo();
 
     if (result.ok) {
       showToast('Signed in with the demo account.', 'success');
+      router.refresh();
       router.replace(redirectTarget);
       return;
     }

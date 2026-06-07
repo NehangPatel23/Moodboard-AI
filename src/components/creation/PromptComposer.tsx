@@ -10,11 +10,13 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  generateBoardDraft,
-  generateBoardDraftFromTemplate,
+  fetchGeneratedBoardDraft,
+  fetchGeneratedBoardDraftFromTemplate,
+  fetchGenerationProvider,
   getBoardTemplates,
   getQuickPromptSuggestions,
 } from '@/lib/ai';
+import { GenerationSourceBadge } from '@/components/creation/GenerationSourceBadge';
 import { loadBoards, saveBoards, upsertBoard } from '@/lib/board-store';
 import { readAppSettings } from '@/lib/settings-store';
 import { cn } from '@/lib/utils';
@@ -174,9 +176,27 @@ export function PromptComposer() {
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [configuredProvider, setConfiguredProvider] = useState<'gemini' | 'mock' | null>(null);
+  const [generationSource, setGenerationSource] = useState<'gemini' | 'mock' | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
+    void fetchGenerationProvider()
+      .then((provider) => {
+        if (!cancelled) {
+          setConfiguredProvider(provider);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setConfiguredProvider('mock');
+        }
+      });
+
     return () => {
+      cancelled = true;
       if (redirectTimerRef.current !== null) {
         window.clearTimeout(redirectTimerRef.current);
       }
@@ -192,7 +212,37 @@ export function PromptComposer() {
     if (status && !isGenerating) {
       setStatus(null);
     }
+    if (errorMessage && !isGenerating) {
+      setErrorMessage(null);
+    }
+    if (generationSource && !isGenerating) {
+      setGenerationSource(null);
+    }
   };
+
+  function formatGenerationError(error: unknown): string {
+    if (error instanceof Error && error.message) {
+      try {
+        const parsed = JSON.parse(error.message) as { error?: { message?: string } };
+        if (parsed.error?.message) return parsed.error.message;
+      } catch {
+        // Plain text error message.
+      }
+      return error.message;
+    }
+    return 'Something went wrong while generating the board.';
+  }
+
+  function formatSuccessStatus(
+    boardTitle: string,
+    followUpPrompt: string,
+    source: 'gemini' | 'mock' | undefined,
+    notice?: string,
+  ): string {
+    const prefix = source === 'gemini' ? 'AI-generated' : 'Demo-generated';
+    const base = `${prefix} “${boardTitle}”. ${followUpPrompt}`;
+    return notice ? `${base} ${notice}` : base;
+  }
 
   const handleComposerKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
@@ -217,26 +267,31 @@ export function PromptComposer() {
     }
 
     setIsGenerating(true);
-    setStatus('Generating mood, palette, type, and references...');
+    setErrorMessage(null);
+    setGenerationSource(null);
+    setStatus('Generating mood, palette, typography, and references...');
 
     try {
-      await new Promise((resolve) => window.setTimeout(resolve, 850));
+      const { board: generatedBoard, followUpPrompt, source, notice } =
+        await fetchGeneratedBoardDraft(trimmedPrompt);
+      setGenerationSource(source ?? 'mock');
+      setStatus('Saving your board...');
 
-      const { board: generatedBoard, followUpPrompt } = generateBoardDraft(trimmedPrompt);
       const board = { ...generatedBoard, visibility: readAppSettings().defaultVisibility };
       const existingBoards = loadBoards();
       const nextBoards = upsertBoard(existingBoards, board);
       saveBoards(nextBoards);
 
-      setStatus(`Created ${board.title}. ${followUpPrompt}`);
+      setStatus(formatSuccessStatus(board.title, followUpPrompt, source, notice));
 
       redirectTimerRef.current = window.setTimeout(() => {
         setIsGenerating(false);
-        router.push(`/app/boards/${board.id}`);
+        router.push(`/app/boards/${board.id}?source=${source ?? 'mock'}`);
       }, 650);
-    } catch {
+    } catch (error) {
       setIsGenerating(false);
-      setStatus('Something went wrong while generating the board.');
+      setErrorMessage(formatGenerationError(error));
+      setStatus(null);
     }
   }
 
@@ -251,30 +306,33 @@ export function PromptComposer() {
 
     setActiveTemplateId(templateId);
     setIsGenerating(true);
-    setStatus(`Creating ${template.name} board...`);
+    setErrorMessage(null);
+    setGenerationSource(null);
+    setStatus(`Creating ${template.name} from template...`);
 
     try {
-      await new Promise((resolve) => window.setTimeout(resolve, 250));
-
-      const generated = generateBoardDraftFromTemplate(templateId);
-      if (!generated) {
-        throw new Error('Template generation failed');
-      }
+      const generated = await fetchGeneratedBoardDraftFromTemplate(templateId);
+      setGenerationSource(generated.source ?? 'mock');
+      const { notice } = generated;
+      setStatus('Saving your board...');
 
       const board = { ...generated.board, visibility: readAppSettings().defaultVisibility };
       const existingBoards = loadBoards();
       const nextBoards = upsertBoard(existingBoards, board);
       saveBoards(nextBoards);
 
-      setStatus(`Created ${board.title}. ${generated.followUpPrompt}`);
+      setStatus(
+        formatSuccessStatus(board.title, generated.followUpPrompt, generated.source, notice),
+      );
 
       redirectTimerRef.current = window.setTimeout(() => {
         setIsGenerating(false);
-        router.push(`/app/boards/${board.id}`);
+        router.push(`/app/boards/${board.id}?source=${generated.source ?? 'mock'}`);
       }, 500);
-    } catch {
+    } catch (error) {
       setIsGenerating(false);
-      setStatus('Something went wrong while creating the board.');
+      setErrorMessage(formatGenerationError(error));
+      setStatus(null);
     }
   }
 
@@ -284,12 +342,7 @@ export function PromptComposer() {
         <div className="grid gap-8 xl:grid-cols-[1.15fr_0.85fr]">
           <div className="space-y-6">
             <div className="space-y-4">
-              <Badge
-                variant="outline"
-                className="w-fit rounded-full border-(--border) bg-(--surface) px-3 py-1 text-[11px] uppercase tracking-[0.28em] text-(--text-muted) dark:bg-[rgba(255,255,255,0.05)]"
-              >
-                Prompt your board
-              </Badge>
+              {configuredProvider ? <GenerationSourceBadge source={configuredProvider} /> : null}
 
               <div className="space-y-2">
                 <h2 className="[font-family:var(--font-display),serif] text-[clamp(2.6rem,6vw,5rem)] leading-[0.94] tracking-[-0.04em] text-(--text-strong)">
@@ -333,9 +386,23 @@ export function PromptComposer() {
 
               <p className="text-xs text-(--text-muted)">Press Ctrl/Cmd + Enter to generate faster.</p>
 
+              {generationSource && isGenerating ? (
+                <GenerationSourceBadge source={generationSource} />
+              ) : null}
+
               {status ? (
                 <p className="text-sm leading-6 text-(--text-muted)" role="status" aria-live="polite">
                   {status}
+                </p>
+              ) : null}
+
+              {errorMessage ? (
+                <p
+                  className="text-sm leading-6 text-red-600 dark:text-red-400"
+                  role="alert"
+                  aria-live="assertive"
+                >
+                  {errorMessage}
                 </p>
               ) : null}
             </div>
