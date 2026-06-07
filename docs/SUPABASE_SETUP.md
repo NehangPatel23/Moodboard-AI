@@ -38,6 +38,14 @@ Creates `profiles`, `boards`, and `user_settings` tables with Row Level Security
 4. Confirm success (no errors).
 5. Open **Table Editor** — you should see `profiles`, `boards`, `user_settings`.
 
+6. Run the sharing migration: copy [`supabase/migrations/002_shared_board_public_read.sql`](../supabase/migrations/002_shared_board_public_read.sql) into a new SQL Editor query and click **Run**. This enables public view-only links for boards set to **Shared**.
+
+7. Run the collaboration migration: copy [`supabase/migrations/003_board_collaboration.sql`](../supabase/migrations/003_board_collaboration.sql) into the SQL Editor and click **Run**. This adds `board_members`, `board_invites`, and team access policies.
+
+8. If boards fail to load after step 7 with an "infinite recursion" error, run [`supabase/migrations/004_fix_collaboration_rls.sql`](../supabase/migrations/004_fix_collaboration_rls.sql) (or re-run the updated `003` on a fresh project — it includes the fix).
+
+9. Run [`supabase/migrations/005_backfill_profiles.sql`](../supabase/migrations/005_backfill_profiles.sql) to backfill missing `profiles` rows for existing auth users and enable email-based invite lookups. If invites show **Unauthorized** or stay **Pending** for users who already have accounts, run this migration.
+
 ### Option B — Supabase CLI
 
 ```bash

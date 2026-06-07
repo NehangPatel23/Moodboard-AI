@@ -35,7 +35,7 @@ import {
 } from '@/lib/reference-images';
 import { formatDateTime } from '@/lib/utils';
 import { ConfirmationModal } from '@/components/shared/ConfirmationModal';
-import { ShareModal } from '@/components/shared/ShareModal';
+import { CollaborateModal } from '@/components/shared/CollaborateModal';
 import { ExportModal } from '@/components/shared/ExportModal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -513,6 +513,12 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
 
   useEffect(() => {
+    if (savedBoard?.role === 'viewer') {
+      router.replace(`/app/boards/${boardId}/view`);
+    }
+  }, [boardId, router, savedBoard?.role]);
+
+  useEffect(() => {
     if (generationSource === 'gemini') {
       showToast('Board generated with Gemini.', 'success');
     }
@@ -573,7 +579,13 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     );
   }
 
-  const sharePath = `/app/boards/${editorBoard.id}/view`;
+  const sharePath = `/share/${editorBoard.id}`;
+  const viewPath = `/app/boards/${editorBoard.id}/view`;
+  const boardRole = savedBoard?.role ?? 'owner';
+  const isOwner = boardRole === 'owner';
+  const isEditor = boardRole === 'editor';
+  const canManageMembers = isOwner;
+  const canEditBoard = isOwner || isEditor;
   const toneText = editorBoard.tone.join(', ');
   const tagsText = editorBoard.tags.join(', ');
   const dirtyStatus = isDirty ? 'Unsaved changes' : saveStatus;
@@ -589,6 +601,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   };
 
   const updateDraft = (updater: (current: Board) => Board) => {
+    if (!canEditBoard) return;
     setDraft((current) => {
       const base = current ?? (savedBoard ? cloneBoard(savedBoard) : null);
       if (!base) return null;
@@ -617,8 +630,11 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
       }
 
       case 'share':
+        if (!isOwner) {
+          showToast('Only the board owner can manage sharing.', 'destructive');
+          return;
+        }
         setShareOpen(true);
-        showToast('Share modal opened.', 'default');
         return;
 
       case 'export':
@@ -627,7 +643,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         return;
 
       case 'view':
-        router.push(sharePath);
+        router.push(viewPath);
         return;
     }
   };
@@ -821,6 +837,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
               {generationSource ? <GenerationSourceBadge source={generationSource} /> : null}
+              {isEditor ? <Badge variant="outline">Editor access</Badge> : null}
               <Badge variant="secondary">{editorBoard.visibility}</Badge>
               <Badge variant="secondary">{dirtyStatus}</Badge>
             </div>
@@ -829,56 +846,64 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
               <Button
                 type="button"
                 onClick={handleSave}
-                disabled={!isDirty}
+                disabled={!isDirty || !canEditBoard}
                 className="rounded-full border border-transparent bg-(--text-strong) px-4 text-(--background) shadow-sm transition-colors hover:bg-slate-800 dark:border-white/10 dark:bg-[rgba(255,255,255,0.08)] dark:text-white dark:hover:bg-[rgba(255,255,255,0.14)]"
               >
                 Save
               </Button>
 
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleToggleFavorite}
-                className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
-              >
-                {editorBoard.isFavorite ? <StarOff className="h-4 w-4" /> : <Star className="h-4 w-4" />}
-                {editorBoard.isFavorite ? 'Unfavorite' : 'Favorite'}
-              </Button>
+              {isOwner ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleToggleFavorite}
+                  className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
+                >
+                  {editorBoard.isFavorite ? <StarOff className="h-4 w-4" /> : <Star className="h-4 w-4" />}
+                  {editorBoard.isFavorite ? 'Unfavorite' : 'Favorite'}
+                </Button>
+              ) : null}
 
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleToggleVisibility}
-                aria-pressed={editorBoard.visibility === 'shared'}
-                className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
-              >
-                {editorBoard.visibility === 'shared' ? (
-                  <Globe className="h-4 w-4" />
-                ) : (
-                  <Lock className="h-4 w-4" />
-                )}
-                {editorBoard.visibility === 'shared' ? 'Shared' : 'Private'}
-              </Button>
+              {isOwner ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleToggleVisibility}
+                  aria-pressed={editorBoard.visibility === 'shared'}
+                  className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
+                >
+                  {editorBoard.visibility === 'shared' ? (
+                    <Globe className="h-4 w-4" />
+                  ) : (
+                    <Lock className="h-4 w-4" />
+                  )}
+                  {editorBoard.visibility === 'shared' ? 'Shared' : 'Private'}
+                </Button>
+              ) : null}
 
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => requireSavedChanges('duplicate')}
-                className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
-              >
-                <Copy className="h-4 w-4" />
-                Duplicate
-              </Button>
+              {isOwner ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => requireSavedChanges('duplicate')}
+                  className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
+                >
+                  <Copy className="h-4 w-4" />
+                  Duplicate
+                </Button>
+              ) : null}
 
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => requireSavedChanges('share')}
-                className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
-              >
-                <Share2 className="h-4 w-4" />
-                Share
-              </Button>
+              {isOwner ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => requireSavedChanges('share')}
+                  className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
+                >
+                  <Share2 className="h-4 w-4" />
+                  Share
+                </Button>
+              ) : null}
 
               <Button
                 type="button"
@@ -900,18 +925,20 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 View
               </Button>
 
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={() => {
-                  showToast('You are about to permanently delete this board.', 'destructive');
-                  setDeleteOpen(true);
-                }}
-                className="rounded-full px-4"
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete
-              </Button>
+              {isOwner ? (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => {
+                    showToast('You are about to permanently delete this board.', 'destructive');
+                    setDeleteOpen(true);
+                  }}
+                  className="rounded-full px-4"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete
+                </Button>
+              ) : null}
             </div>
           </div>
 
@@ -1615,13 +1642,14 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         />
       ) : null}
 
-      <ShareModal
+      <CollaborateModal
         open={shareOpen}
+        boardId={editorBoard.id}
         boardTitle={editorBoard.title}
         sharePath={sharePath}
+        canManageMembers={canManageMembers}
         onCopied={() => {
-          setShareOpen(false);
-          showToast('Share link copied.', 'success');
+          showToast('Link copied.', 'success');
         }}
         onClose={() => setShareOpen(false)}
       />

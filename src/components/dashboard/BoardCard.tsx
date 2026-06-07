@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react';
 import type { Board } from '@/types/board';
 import { formatDateTime } from '@/lib/utils';
-import { Globe, Lock, Star } from 'lucide-react';
+import { Eye, Globe, Lock, PencilLine, Star } from 'lucide-react';
 import { toggleFavoriteById } from '@/lib/board-store';
 import { showToast } from '@/components/shared/toast-store';
 import { resolveReferenceImageUrl } from '@/lib/reference-images';
@@ -42,6 +42,10 @@ export function BoardCard({ board }: BoardCardProps) {
   const router = useRouter();
 
   const openBoard = () => {
+    if (board.role === 'viewer') {
+      router.push(`/app/boards/${board.id}/view`);
+      return;
+    }
     router.push(`/app/boards/${board.id}`);
   };
 
@@ -63,6 +67,7 @@ export function BoardCard({ board }: BoardCardProps) {
   };
 
   const previewTiles = getPreviewTiles(board);
+  const isCollaborator = board.role === 'editor' || board.role === 'viewer';
 
   return (
     <article
@@ -73,25 +78,45 @@ export function BoardCard({ board }: BoardCardProps) {
       aria-label={`Open ${board.title}`}
       className="group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-4xl border border-[var(--border)] bg-[var(--surface)] shadow-[0_22px_50px_rgba(15,23,42,0.10)] transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_32px_70px_rgba(15,23,42,0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
     >
-      <button
-        type="button"
-        onClick={handleFavorite}
-        aria-label={
-          board.isFavorite
-            ? `Remove ${board.title} from favorites`
-            : `Add ${board.title} to favorites`
-        }
-        aria-pressed={board.isFavorite}
-        className="absolute right-4 top-4 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] shadow-sm transition hover:bg-[var(--surface-elevated)] hover:shadow-md"
-      >
-        {board.isFavorite ? (
-          <Star className="h-4.5 w-4.5 fill-amber-400 text-amber-400" />
-        ) : (
-          <Star className="h-4.5 w-4.5 text-[var(--text-muted)]" />
-        )}
-      </button>
+      {(!board.role || board.role === 'owner') ? (
+        <button
+          type="button"
+          onClick={handleFavorite}
+          aria-label={
+            board.isFavorite
+              ? `Remove ${board.title} from favorites`
+              : `Add ${board.title} to favorites`
+          }
+          aria-pressed={board.isFavorite}
+          className="absolute right-4 top-4 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] shadow-sm transition hover:bg-[var(--surface-elevated)] hover:shadow-md"
+        >
+          {board.isFavorite ? (
+            <Star className="h-4.5 w-4.5 fill-amber-400 text-amber-400" />
+          ) : (
+            <Star className="h-4.5 w-4.5 text-[var(--text-muted)]" />
+          )}
+        </button>
+      ) : null}
 
-      <div className="p-4 pb-0">
+      <div className="relative p-4 pb-0">
+        {isCollaborator ? (
+          <div className="pointer-events-none absolute left-7 top-7 z-10">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-black/18 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.24em] text-white/92 backdrop-blur-md">
+              {board.role === 'viewer' ? (
+                <>
+                  <Eye className="h-3 w-3" strokeWidth={1.75} />
+                  View
+                </>
+              ) : (
+                <>
+                  <PencilLine className="h-3 w-3" strokeWidth={1.75} />
+                  Edit
+                </>
+              )}
+            </span>
+          </div>
+        ) : null}
+
         <div className="grid grid-cols-2 gap-2">
           {previewTiles.map((tile, index) => (
             <div
@@ -127,14 +152,25 @@ export function BoardCard({ board }: BoardCardProps) {
           <span className="rounded-full bg-[var(--surface-subtle)] px-3 py-1 text-[11px] font-medium tracking-wide text-[var(--text-muted)]">
             {board.references.length} Assets
           </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-subtle)] px-3 py-1 text-[11px] font-medium tracking-wide text-[var(--text-muted)]">
-            {board.visibility === 'shared' ? (
-              <Globe className="h-3 w-3" />
-            ) : (
-              <Lock className="h-3 w-3" />
-            )}
-            {board.visibility === 'shared' ? 'Shared' : 'Private'}
-          </span>
+          {!board.role || board.role === 'owner' ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-subtle)] px-3 py-1 text-[11px] font-medium tracking-wide text-[var(--text-muted)]">
+              {board.visibility === 'shared' ? (
+                <>
+                  <Globe className="h-3 w-3" />
+                  Shared
+                </>
+              ) : (
+                <>
+                  <Lock className="h-3 w-3" />
+                  Private
+                </>
+              )}
+            </span>
+          ) : (
+            <span className="sr-only">
+              {board.role === 'editor' ? 'Edit access' : 'View only access'}
+            </span>
+          )}
         </div>
 
         <h3 className="mt-4 [font-family:var(--font-display),serif] text-2xl leading-tight text-[var(--text-strong)]">

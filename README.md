@@ -3,7 +3,7 @@
 > **Status:** Active Development (MVP + Production Deployed)
 > **Purpose:** GitHub README + internal handoff document for future development, AI agents, and new contributors
 > **Live:** Deployed on Vercel with Supabase + Gemini free tier
-> **Next feature:** Collaboration and public discovery (shared boards, invites)
+> **Next feature:** Real-time co-editing and comments
 
 **Setup guides:** [`docs/MANUAL_SETUP.md`](docs/MANUAL_SETUP.md) · [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md) · [`docs/GEMINI_SETUP.md`](docs/GEMINI_SETUP.md) · [`docs/DEPLOY.md`](docs/DEPLOY.md)
 
@@ -26,9 +26,10 @@ It is currently a working product foundation with:
 - Supabase Auth with gated app routes, proxy protection, and landing CTAs
 - AI board generation via `/api/generate` (Google Gemini free tier with model fallback; demo generation when all models fail)
 - Unified theme sync across landing, auth, and app (cookie + `SettingsBootstrap`)
+- View-only public sharing at `/share/[id]` and discovery at `/discover`
 - Vercel Analytics
 
-The app is not finished. Core UX, persistence, auth, AI generation, and production deploy are in place; collaboration and public discovery are next.
+The app is not finished. Core UX, persistence, auth, AI generation, public sharing, discovery, and team collaboration are in place; real-time co-editing is next.
 
 ---
 
@@ -359,10 +360,11 @@ Implemented:
 
 ### Board View Mode
 
-Route:
+Routes:
 
 ```txt
-/app/boards/[id]/view
+/app/boards/[id]/view   # Owner preview (authenticated)
+/share/[id]             # Public view-only link (no sign-in required)
 ```
 
 Implemented:
@@ -372,8 +374,31 @@ Implemented:
 Supports:
 
 - Presentation mode
-- Shareable viewing
+- Public view-only sharing at `/share/[id]` when board visibility is **Shared** (migration `002_shared_board_public_read.sql`)
+- Owner preview at `/app/boards/[id]/view`
 - Non-editable consumption
+
+---
+
+### Discover Page
+
+Route:
+
+```txt
+/discover
+```
+
+Implemented:
+
+- Browse all **shared** boards without sign-in
+- Search by title, mood, tags, tone, and summary
+- Cards link to `/share/[id]` view-only presentation
+- `GET /api/discover` — public list of shared boards (newest first)
+
+Planned:
+
+- Featured boards and curated collections
+- Creator attribution
 
 ---
 
@@ -604,8 +629,9 @@ Implemented (Supabase Postgres):
 - `profiles` — user identity
 - `boards` — per-user boards (JSONB for nested content)
 - `user_settings` — per-user workspace preferences
+- Public read of **shared** boards via RLS policy (`002_shared_board_public_read.sql`)
 
-Deferred: template metadata, public/shared board reads.
+Deferred: template metadata, invite/collaboration tables.
 
 ### Authentication
 
@@ -629,14 +655,32 @@ Potential routes:
 /profile/settings
 ```
 
-### Team Collaboration
+### Team Collaboration (Implemented)
 
-Need:
+Routes & APIs:
 
-- Shared boards
-- Roles
-- Permissions
-- Invites
+```txt
+/invite/[token]                    # Accept email invite (sign-in required)
+POST /api/boards/[id]/members      # Invite by email (owner)
+GET  /api/boards/[id]/members      # List collaborators
+DELETE /api/boards/[id]/members/[userId]
+GET  /api/boards/[id]/invites      # Pending invites
+POST /api/invites/[token]/accept   # Accept invite
+```
+
+Supports:
+
+- **Roles** — owner (board creator), editor (can edit content), viewer (read-only)
+- **Email invites** — existing users get access immediately; new users receive `/invite/[token]` link
+- **Collaborate modal** — public link + people management in board editor (owner only)
+- **Dashboard filter** — "With me" shows boards shared with you
+
+Requires migration `003_board_collaboration.sql`.
+
+Planned:
+
+- Real-time co-editing (presence, live cursors)
+- Comments on boards
 
 ### Comments
 
@@ -705,7 +749,7 @@ Generate:
 /discover
 ```
 
-Browse public boards.
+Browse public shared boards — **implemented**.
 
 ### Explore
 
@@ -804,13 +848,13 @@ Shadow tokens (`--shadow-card`, `--shadow-elevated`) added. Remaining: broader c
 
 Vercel + Supabase + `GEMINI_API_KEY`. See [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
-### 6. Discover Page
+### 6. Discover Page — DONE
 
-Public inspiration and boards.
+Public browse at `/discover` with search; cards link to `/share/[id]`.
 
-### 7. Collaboration Features
+### 7. Collaboration Features — DONE (MVP)
 
-Teams, comments, and sharing.
+Invites, roles (owner/editor/viewer), and permission-gated editing. Real-time co-editing deferred.
 
 ---
 
@@ -835,13 +879,13 @@ Implemented:
 - Modal system
 - Loading states
 - Empty states
+- Public sharing (`/share/[id]`) and discovery (`/discover`)
 
-Database persistence, Supabase Auth, AI generation (Gemini + fallback), theme sync, and production deploy are implemented. The largest remaining milestones are:
+Database persistence, Supabase Auth, AI generation, theme sync, production deploy, view-only public sharing, discover, and **team collaboration (MVP)** are implemented. Next up: **real-time co-editing** and comments.
 
-1. Team collaboration (shared boards, invites)
-2. Public discovery features
-3. Design system standardization (incremental)
-4. Landing page — deferred unless targeted polish is requested
+1. Real-time co-editing and comments
+2. Design system standardization (incremental)
+3. Landing page — deferred unless targeted polish is requested
 
 ---
 
@@ -857,11 +901,14 @@ Important context:
 - Boards and settings persist in **Supabase** (per-user, RLS-protected). Sidebar collapse stays in localStorage.
 - **Production is deployed** on Vercel — push to `main` triggers redeploy. See [`docs/DEPLOY.md`](docs/DEPLOY.md).
 - **Authentication uses Supabase Auth** with proxy protection. See [Database & Persistence (Implemented)](#database--persistence-implemented)
-- **Next features:** collaboration and public discovery
+- **View-only sharing** at `/share/[id]` for boards saved with visibility **Shared** (migration `002_shared_board_public_read.sql` applied)
+- **Discover** at `/discover` — browse and search public shared boards
+- **Collaboration** — invite by email with editor/viewer roles; accept at `/invite/[token]`; dashboard **With me** filter (migration `003_board_collaboration.sql`)
+- **Next features:** real-time co-editing and comments
 - Board editor handles refresh correctly (loads from Supabase after hydration; no false "not found")
 - Settings controls are all wired to real behavior (theme, reduce motion / focus rings, default visibility, presentation mode, workspace identity)
 
-When resuming work, focus on collaboration features and public discovery.
+When resuming work, focus on real-time co-editing and board comments.
 
 ---
 

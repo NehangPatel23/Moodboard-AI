@@ -111,9 +111,10 @@ export async function setActiveBoardUser(userId: string | null): Promise<void> {
         );
       });
       if (migrationNeeded && activeUserId) {
+        const ownedOnly = migratedBoards.filter((board) => !board.role || board.role === 'owner');
         void apiFetch<{ boards: Board[] }>('/api/boards', {
           method: 'PUT',
-          body: JSON.stringify({ boards: migratedBoards }),
+          body: JSON.stringify({ boards: ownedOnly }),
         }).catch(() => {
           // Display migration still applies locally even if persist fails.
         });
@@ -223,6 +224,7 @@ export function getBoardById(boardId: string): Board | undefined {
 export function saveBoards(boards: Board[]): void {
   const previous = cachedBoards;
   const sanitizedBoards = boards.map(sanitizeBoardReferences);
+  const ownedBoards = sanitizedBoards.filter((board) => !board.role || board.role === 'owner');
   cachedBoards = sanitizedBoards;
   notifyBoardsChanged();
 
@@ -230,7 +232,7 @@ export function saveBoards(boards: Board[]): void {
 
   void apiFetch<{ boards: Board[] }>('/api/boards', {
     method: 'PUT',
-    body: JSON.stringify({ boards: sanitizedBoards }),
+    body: JSON.stringify({ boards: ownedBoards }),
   }).catch(() => {
     cachedBoards = previous;
     notifyBoardsChanged();
@@ -285,11 +287,18 @@ export function updateBoard(boardId: string, updater: (board: Board) => Board): 
   return updated;
 }
 
+export async function reloadBoards(): Promise<void> {
+  if (!activeUserId) return;
+  hydratedForUser = false;
+  await setActiveBoardUser(activeUserId);
+}
+
 export function deleteBoardById(boardId: string): boolean {
   const boards = loadBoards();
-  const nextBoards = boards.filter((board) => board.id !== boardId);
-  if (nextBoards.length === boards.length) return false;
+  const target = boards.find((board) => board.id === boardId);
+  if (!target || (target.role && target.role !== 'owner')) return false;
 
+  const nextBoards = boards.filter((board) => board.id !== boardId);
   const previous = boards;
   cachedBoards = nextBoards;
   notifyBoardsChanged();

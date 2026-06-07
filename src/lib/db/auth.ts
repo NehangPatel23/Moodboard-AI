@@ -1,4 +1,13 @@
 import { createClient } from '@/lib/supabase/server';
+import { ensureProfileForUser, profileFromAuthUser } from '@/lib/db/ensure-profile';
+import type { User } from '@supabase/supabase-js';
+
+function fallbackProfile(user: User) {
+  if (!user.email) {
+    return null;
+  }
+  return profileFromAuthUser(user);
+}
 
 export async function getAuthenticatedUser() {
   const supabase = await createClient();
@@ -11,11 +20,10 @@ export async function getAuthenticatedUser() {
     return { supabase, user: null as null, profile: null as null };
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('name, email')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  return { supabase, user, profile };
+  try {
+    const profile = await ensureProfileForUser(user);
+    return { supabase, user, profile: profile ?? fallbackProfile(user) };
+  } catch {
+    return { supabase, user, profile: fallbackProfile(user) };
+  }
 }

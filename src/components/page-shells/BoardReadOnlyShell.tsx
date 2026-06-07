@@ -12,8 +12,9 @@ const BoardReadOnlyClient = dynamic(
 
 type BoardReadOnlyShellProps = {
   boardId: string;
+  publicView?: boolean;
 };
 
-export function BoardReadOnlyShell({ boardId }: BoardReadOnlyShellProps) {
-  return <BoardReadOnlyClient boardId={boardId} />;
+export function BoardReadOnlyShell({ boardId, publicView }: BoardReadOnlyShellProps) {
+  return <BoardReadOnlyClient boardId={boardId} publicView={publicView} />;
 }

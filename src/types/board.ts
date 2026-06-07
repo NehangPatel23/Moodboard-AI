@@ -1,5 +1,27 @@
 export type BoardVisibility = 'private' | 'shared';
 
+export type BoardMemberRole = 'editor' | 'viewer';
+
+export type BoardRole = 'owner' | BoardMemberRole;
+
+export type BoardMember = {
+  userId: string;
+  name: string;
+  email: string;
+  role: BoardMemberRole;
+  createdAt: string;
+};
+
+export type BoardInvite = {
+  id: string;
+  email: string;
+  role: BoardMemberRole;
+  status: 'pending' | 'accepted' | 'revoked';
+  token: string;
+  createdAt: string;
+  acceptedAt?: string;
+};
+
 export type PaletteItem = {
   id: string;
   label: string;
@@ -50,6 +72,7 @@ export type Board = {
   updatedAt: string;
   isFavorite: boolean;
   visibility: BoardVisibility;
+  role?: BoardRole;
 };
 
 export type BoardTemplatePaletteItem = {

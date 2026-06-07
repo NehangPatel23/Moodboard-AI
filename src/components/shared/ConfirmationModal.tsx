@@ -50,7 +50,7 @@ export function ConfirmationModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[10050] flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[10060] flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirmation-title"

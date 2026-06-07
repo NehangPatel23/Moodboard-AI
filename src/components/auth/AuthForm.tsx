@@ -3,11 +3,21 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useSyncExternalStore } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Eye, EyeOff, Loader2, Sparkles } from 'lucide-react';
+import { Eye, EyeOff, Frown, Loader2, Smile, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { showToast } from '@/components/shared/toast-store';
+import { setWelcomeSession, welcomeFirstName } from '@/lib/welcome-session';
+import {
+  authInputErrorClassName,
+  getPasswordRequirements,
+  hasAuthFieldErrors,
+  isAuthFormValid,
+  validateAuthField,
+  validateAuthFields,
+  type AuthFieldErrors,
+} from '@/lib/auth-validation';
 import {
   DEMO_CREDENTIALS,
   getServerAuthSnapshot,
@@ -53,6 +63,68 @@ const MODE_TABS: { mode: AuthMode; label: string }[] = [
   { mode: 'sign-up', label: 'Create account' },
 ];
 
+function FieldError({ id, message }: { id: string; message: string }) {
+  return (
+    <p id={id} className="px-1 text-sm text-red-600">
+      {message}
+    </p>
+  );
+}
+
+function FieldLabel({
+  htmlFor,
+  children,
+}: {
+  htmlFor: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label htmlFor={htmlFor} className="block text-sm font-medium text-[var(--text-strong)]">
+      {children}
+      <span className="ml-0.5 text-red-500" aria-hidden="true">
+        *
+      </span>
+      <span className="sr-only"> (required)</span>
+    </label>
+  );
+}
+
+function PasswordRequirements({
+  id,
+  password,
+}: {
+  id: string;
+  password: string;
+}) {
+  const requirements = getPasswordRequirements(password);
+
+  return (
+    <ul
+      id={id}
+      className="grid grid-cols-1 gap-x-5 gap-y-2 px-1 sm:grid-cols-2"
+      aria-live="polite"
+    >
+      {requirements.map((requirement) => (
+        <li
+          key={requirement.id}
+          className={cn(
+            'flex items-start gap-2 text-xs leading-5 transition-colors',
+            requirement.fullWidth && 'sm:col-span-2',
+            requirement.met ? 'text-emerald-600 dark:text-emerald-400' : 'text-[var(--text-muted)]',
+          )}
+        >
+          {requirement.met ? (
+            <Smile className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+          ) : (
+            <Frown className="mt-0.5 h-4 w-4 shrink-0 opacity-70" strokeWidth={1.75} aria-hidden="true" />
+          )}
+          <span>{requirement.label}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function AuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -66,6 +138,7 @@ export function AuthForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -74,9 +147,24 @@ export function AuthForm() {
   const nameId = `${fieldIds}-name`;
   const emailId = `${fieldIds}-email`;
   const passwordId = `${fieldIds}-password`;
+  const nameErrorId = `${fieldIds}-name-error`;
+  const emailErrorId = `${fieldIds}-email-error`;
+  const passwordErrorId = `${fieldIds}-password-error`;
+  const passwordRequirementsId = `${fieldIds}-password-requirements`;
   const errorId = `${fieldIds}-error`;
 
   const text = copy[mode];
+  const formValues = { name, email, password };
+  const canSubmit = isAuthFormValid(mode, formValues);
+  const passwordDescribedBy = [
+    mode === 'sign-up' ? passwordRequirementsId : null,
+    fieldErrors.password ? passwordErrorId : null,
+    !fieldErrors.password && error ? errorId : null,
+  ]
+    .filter(Boolean)
+    .join(' ') || undefined;
+  const nameDescribedBy = fieldErrors.name ? nameErrorId : error ? errorId : undefined;
+  const emailDescribedBy = fieldErrors.email ? emailErrorId : error ? errorId : undefined;
 
   useEffect(() => {
     hydrateAuthStore();
@@ -94,16 +182,34 @@ export function AuthForm() {
     }
   }, [error]);
 
+  function clearFieldError(field: keyof AuthFieldErrors) {
+    setFieldErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+  }
+
   function handleModeChange(nextMode: AuthMode) {
     if (nextMode === mode) return;
     setMode(nextMode);
     setError(null);
+    setFieldErrors({});
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submitting) return;
 
+    const nextFieldErrors = validateAuthFields(mode, formValues);
+    if (hasAuthFieldErrors(nextFieldErrors)) {
+      setFieldErrors(nextFieldErrors);
+      setError(null);
+      return;
+    }
+
+    setFieldErrors({});
     setSubmitting(true);
     setError(null);
 
@@ -113,7 +219,13 @@ export function AuthForm() {
         : await signIn({ email, password });
 
     if (result.ok) {
-      showToast(mode === 'sign-up' ? 'Account created.' : 'Signed in.', 'success');
+      const kind = mode === 'sign-up' ? 'sign-up' : 'sign-in';
+      setWelcomeSession(kind, result.user.name);
+      const firstName = welcomeFirstName(result.user.name);
+      showToast(
+        kind === 'sign-up' ? `Welcome, ${firstName}!` : `Welcome back, ${firstName}!`,
+        'success',
+      );
       router.refresh();
       router.replace(redirectTarget);
       return;
@@ -128,11 +240,14 @@ export function AuthForm() {
 
     setSubmitting(true);
     setError(null);
+    setFieldErrors({});
 
     const result = await signInWithDemo();
 
     if (result.ok) {
-      showToast('Signed in with the demo account.', 'success');
+      setWelcomeSession('sign-in', result.user.name);
+      const firstName = welcomeFirstName(result.user.name);
+      showToast(`Welcome back, ${firstName}!`, 'success');
       router.refresh();
       router.replace(redirectTarget);
       return;
@@ -197,46 +312,70 @@ export function AuthForm() {
         <div className="space-y-4">
           {mode === 'sign-up' ? (
             <div className="space-y-1.5">
-              <label htmlFor={nameId} className="block text-sm font-medium text-[var(--text-strong)]">
-                Name
-              </label>
+              <FieldLabel htmlFor={nameId}>Name</FieldLabel>
               <Input
                 id={nameId}
                 name="name"
                 type="text"
                 autoComplete="name"
                 value={name}
-                onChange={(event) => setName(event.target.value)}
+                onChange={(event) => {
+                  setName(event.target.value);
+                  clearFieldError('name');
+                }}
+                onBlur={() => {
+                  if (name.trim()) {
+                    setFieldErrors((current) => ({
+                      ...current,
+                      name: validateAuthField('name', mode, formValues) ?? undefined,
+                    }));
+                  }
+                }}
                 placeholder="Ada Lovelace"
-                required
                 disabled={submitting}
-                aria-describedby={error ? errorId : undefined}
+                aria-invalid={fieldErrors.name ? true : undefined}
+                aria-describedby={nameDescribedBy}
+                className={cn(fieldErrors.name && authInputErrorClassName)}
               />
+              {fieldErrors.name ? <FieldError id={nameErrorId} message={fieldErrors.name} /> : null}
             </div>
           ) : null}
 
           <div className="space-y-1.5">
-            <label htmlFor={emailId} className="block text-sm font-medium text-[var(--text-strong)]">
-              Email
-            </label>
+            <FieldLabel htmlFor={emailId}>Email</FieldLabel>
             <Input
               id={emailId}
               name="email"
-              type="email"
+              type="text"
+              inputMode="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               autoComplete="email"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) => {
+                setEmail(event.target.value);
+                clearFieldError('email');
+              }}
+              onBlur={() => {
+                if (email.trim()) {
+                  setFieldErrors((current) => ({
+                    ...current,
+                    email: validateAuthField('email', mode, formValues) ?? undefined,
+                  }));
+                }
+              }}
               placeholder="you@studio.com"
-              required
               disabled={submitting}
-              aria-describedby={error ? errorId : undefined}
+              aria-invalid={fieldErrors.email ? true : undefined}
+              aria-describedby={emailDescribedBy}
+              className={cn(fieldErrors.email && authInputErrorClassName)}
             />
+            {fieldErrors.email ? <FieldError id={emailErrorId} message={fieldErrors.email} /> : null}
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor={passwordId} className="block text-sm font-medium text-[var(--text-strong)]">
-              Password
-            </label>
+            <FieldLabel htmlFor={passwordId}>Password</FieldLabel>
             <div className="relative">
               <Input
                 id={passwordId}
@@ -244,13 +383,23 @@ export function AuthForm() {
                 type={showPassword ? 'text' : 'password'}
                 autoComplete={mode === 'sign-up' ? 'new-password' : 'current-password'}
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder={mode === 'sign-up' ? 'At least 6 characters' : 'Your password'}
-                required
-                minLength={mode === 'sign-up' ? 6 : undefined}
+                onChange={(event) => {
+                  setPassword(event.target.value);
+                  clearFieldError('password');
+                }}
+                onBlur={() => {
+                  if (password) {
+                    setFieldErrors((current) => ({
+                      ...current,
+                      password: validateAuthField('password', mode, formValues) ?? undefined,
+                    }));
+                  }
+                }}
+                placeholder={mode === 'sign-up' ? 'Create a password' : 'Your password'}
                 disabled={submitting}
-                aria-describedby={error ? errorId : undefined}
-                className="pr-11"
+                aria-invalid={fieldErrors.password ? true : undefined}
+                aria-describedby={passwordDescribedBy}
+                className={cn('pr-11', fieldErrors.password && authInputErrorClassName)}
               />
               <button
                 type="button"
@@ -267,10 +416,16 @@ export function AuthForm() {
                 )}
               </button>
             </div>
+            {mode === 'sign-up' ? (
+              <PasswordRequirements id={passwordRequirementsId} password={password} />
+            ) : null}
+            {fieldErrors.password ? (
+              <FieldError id={passwordErrorId} message={fieldErrors.password} />
+            ) : null}
           </div>
         </div>
 
-        <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+        <Button type="submit" size="lg" className="w-full" disabled={submitting || !canSubmit}>
           {submitting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />

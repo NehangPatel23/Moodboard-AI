@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Image as ImageIcon, Layers3, Palette, Sparkles, Type } from 'lucide-react';
-import type { NoteType, TypographyRole } from '@/types/board';
+import type { Board, NoteType, TypographyRole } from '@/types/board';
+import { useGatedHref } from '@/components/auth/use-gated-href';
 import {
   getBoardStoreSnapshot,
   getServerBoardStoreSnapshot,
@@ -35,6 +36,13 @@ import {
 
 type BoardReadOnlyClientProps = {
   boardId: string;
+  publicView?: boolean;
+};
+
+type PublicFetchState = {
+  board: Board | null;
+  loading: boolean;
+  error: 'not_found' | 'network' | null;
 };
 
 const PRESENTATION_SECTIONS = ['overview', 'palette', 'typography', 'references', 'notes'] as const;
@@ -253,24 +261,81 @@ function ReadOnlyNoteCard({
   );
 }
 
-export function BoardReadOnlyClient({ boardId }: BoardReadOnlyClientProps) {
+export function BoardReadOnlyClient({ boardId, publicView = false }: BoardReadOnlyClientProps) {
   const router = useRouter();
+  const startBoardHref = useGatedHref('/app/new');
   const auth = useSyncExternalStore(subscribeAuth, readAuthState, getServerAuthSnapshot);
   const boardStore = useSyncExternalStore(
     subscribeBoards,
     getBoardStoreSnapshot,
     getServerBoardStoreSnapshot,
   );
-  const board = boardStore.boards.find((item) => item.id === boardId);
-  const isResolvingBoard = isBoardStoreResolving(auth.status);
+  const storeBoard = boardStore.boards.find((item) => item.id === boardId);
+  const isResolvingBoard = publicView ? false : isBoardStoreResolving(auth.status);
+
+  const [publicFetch, setPublicFetch] = useState<PublicFetchState>({
+    board: null,
+    loading: publicView,
+    error: null,
+  });
 
   const presentationModeEnabled = useSyncExternalStore(
     subscribeAppSettings,
-    () => readAppSettings().presentationModeEnabled,
+    () => (publicView ? true : readAppSettings().presentationModeEnabled),
     () => DEFAULT_APP_SETTINGS.presentationModeEnabled,
   );
 
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
+
+  useEffect(() => {
+    if (!publicView) return;
+
+    let cancelled = false;
+
+    async function loadPublicBoard() {
+      setPublicFetch({ board: null, loading: true, error: null });
+
+      try {
+        const response = await fetch(`/api/boards/${boardId}/public`);
+
+        if (response.status === 404) {
+          if (!cancelled) {
+            setPublicFetch({ board: null, loading: false, error: 'not_found' });
+          }
+          return;
+        }
+
+        if (!response.ok) {
+          if (!cancelled) {
+            setPublicFetch({ board: null, loading: false, error: 'network' });
+          }
+          return;
+        }
+
+        const data = (await response.json()) as { board?: Board };
+        if (!cancelled) {
+          setPublicFetch({
+            board: data.board ?? null,
+            loading: false,
+            error: data.board ? null : 'not_found',
+          });
+        }
+      } catch {
+        if (!cancelled) {
+          setPublicFetch({ board: null, loading: false, error: 'network' });
+        }
+      }
+    }
+
+    void loadPublicBoard();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [boardId, publicView]);
+
+  const board = publicView ? publicFetch.board : storeBoard;
+  const isLoading = publicView ? publicFetch.loading : isResolvingBoard;
 
   const activeSection = PRESENTATION_SECTIONS[activeSectionIndex];
   const activeSectionMeta = SECTION_META[activeSection];
@@ -306,38 +371,60 @@ export function BoardReadOnlyClient({ boardId }: BoardReadOnlyClientProps) {
 
       if (event.key === 'Escape') {
         event.preventDefault();
-        router.push(`/app/boards/${board.id}`);
+        router.push(publicView ? '/' : `/app/boards/${board.id}`);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [board, router, presentationModeEnabled]);
+  }, [board, publicView, router, presentationModeEnabled]);
 
-  if (isResolvingBoard) {
+  if (isLoading) {
     return <BoardEditorSkeleton />;
   }
 
   if (!board) {
+    const isPrivateOrMissing = publicView && publicFetch.error === 'not_found';
+    const isNetworkError = publicView && publicFetch.error === 'network';
+
     return (
       <section className="rounded-[2.5rem] border border-(--border) bg-(--surface-elevated) p-8 text-(--text-strong) shadow-[0_24px_60px_rgba(15,23,42,0.08)] dark:shadow-[0_24px_60px_rgba(0,0,0,0.22)]">
         <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
-          Board not found
+          {isNetworkError ? 'Connection issue' : 'Board not found'}
         </p>
         <h1 className="[font-family:var(--font-display),serif] mt-3 text-4xl tracking-tight text-(--text-strong)">
-          This share link is outdated.
+          {isPrivateOrMissing
+            ? 'This board is private or no longer available.'
+            : isNetworkError
+              ? 'Could not load this board.'
+              : 'This share link is outdated.'}
         </h1>
         <p className="mt-3 max-w-xl text-sm leading-6 text-(--text-muted)">
-          The board may have been deleted or the link may no longer be valid.
+          {isPrivateOrMissing
+            ? 'The owner may have set it back to private, or the link may be invalid.'
+            : isNetworkError
+              ? 'Check your connection and try refreshing the page.'
+              : 'The board may have been deleted or the link may no longer be valid.'}
         </p>
-        <div className="mt-6">
-          <Button
-            type="button"
-            onClick={() => router.push('/app')}
-            className="rounded-full bg-(--text-strong) text-(--background) hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
-          >
-            Back to boards
-          </Button>
+        <div className="mt-6 flex flex-wrap gap-3">
+          {publicView ? (
+            <>
+              <Link href="/sign-in" className={actionLinkClass}>
+                Sign in
+              </Link>
+              <Link href={startBoardHref} className={actionLinkClass}>
+                Start a board
+              </Link>
+            </>
+          ) : (
+            <Button
+              type="button"
+              onClick={() => router.push('/app')}
+              className="rounded-full bg-(--text-strong) text-(--background) hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
+            >
+              Back to boards
+            </Button>
+          )}
         </div>
       </section>
     );
@@ -350,9 +437,13 @@ export function BoardReadOnlyClient({ boardId }: BoardReadOnlyClientProps) {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-4xl space-y-4">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline">{presentationModeEnabled ? 'Presentation mode' : 'Read-only'}</Badge>
-                <Badge variant="secondary">{board.visibility}</Badge>
-                {board.isFavorite ? <Badge variant="secondary">Favorite</Badge> : null}
+                <Badge variant="outline">
+                  {publicView ? 'View-only' : presentationModeEnabled ? 'Presentation mode' : 'Read-only'}
+                </Badge>
+                {!publicView ? <Badge variant="secondary">{board.visibility}</Badge> : null}
+                {!publicView && board.isFavorite ? (
+                  <Badge variant="secondary">Favorite</Badge>
+                ) : null}
               </div>
 
               <h1 className="[font-family:var(--font-display),serif] text-[clamp(3rem,7vw,5.6rem)] leading-[0.94] tracking-[-0.04em] text-(--text-strong)">
@@ -382,13 +473,25 @@ export function BoardReadOnlyClient({ boardId }: BoardReadOnlyClientProps) {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <Link href={`/app/boards/${board.id}`} className={actionLinkClass}>
-                Open editor
-              </Link>
-
-              <Link href="/app" className={actionLinkClass}>
-                Back to boards
-              </Link>
+              {publicView ? (
+                <>
+                  <Link href="/sign-in" className={actionLinkClass}>
+                    Sign in
+                  </Link>
+                  <Link href={startBoardHref} className={actionLinkClass}>
+                    Start a board
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link href={`/app/boards/${board.id}`} className={actionLinkClass}>
+                    Open editor
+                  </Link>
+                  <Link href="/app" className={actionLinkClass}>
+                    Back to boards
+                  </Link>
+                </>
+              )}
             </div>
           </div>
 
@@ -502,21 +605,27 @@ export function BoardReadOnlyClient({ boardId }: BoardReadOnlyClientProps) {
                     <p className="mt-2 text-sm text-(--text-muted)">{formatDateTime(board.updatedAt)}</p>
                   </div>
 
-                  <div className={softPanelClass}>
-                    <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
-                      Status
-                    </p>
-                    <p className="mt-2 text-sm text-(--text-muted)">
-                      {board.isFavorite ? 'This board is favorited.' : 'This board is not favorited.'}
-                    </p>
-                  </div>
+                  {!publicView ? (
+                    <div className={softPanelClass}>
+                      <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
+                        Status
+                      </p>
+                      <p className="mt-2 text-sm text-(--text-muted)">
+                        {board.isFavorite ? 'This board is favorited.' : 'This board is not favorited.'}
+                      </p>
+                    </div>
+                  ) : null}
 
-                  <div className={softPanelClass}>
-                    <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
-                      Visibility
-                    </p>
-                    <p className="mt-2 text-sm text-(--text-muted)">{board.visibility?.charAt(0)?.toUpperCase() + board.visibility?.slice(1)}</p>
-                  </div>
+                  {!publicView ? (
+                    <div className={softPanelClass}>
+                      <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
+                        Visibility
+                      </p>
+                      <p className="mt-2 text-sm text-(--text-muted)">
+                        {board.visibility?.charAt(0)?.toUpperCase() + board.visibility?.slice(1)}
+                      </p>
+                    </div>
+                  ) : null}
                 </CardContent>
               </Card>
             </div>

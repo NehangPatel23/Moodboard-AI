@@ -2,7 +2,12 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { DashboardHeader } from './DashboardHeader';
-import { BoardFilterBar, type BoardSort, type VisibilityFilter } from './BoardFilterBar';
+import {
+  BoardFilterBar,
+  type AccessFilter,
+  type BoardSort,
+  type VisibilityFilter,
+} from './BoardFilterBar';
 import { BoardGrid } from './BoardGrid';
 
 export function DashboardClient() {
@@ -14,7 +19,18 @@ export function DashboardClient() {
 
   const visibilityParam = searchParams.get('visibility');
   const visibility: VisibilityFilter =
-    visibilityParam === 'shared' || visibilityParam === 'private' ? visibilityParam : 'all';
+    visibilityParam === 'shared' ||
+    visibilityParam === 'private' ||
+    visibilityParam === 'collaborating'
+      ? visibilityParam
+      : 'all';
+
+  const accessParam = searchParams.get('access');
+  const access: AccessFilter =
+    accessParam === 'edit' || accessParam === 'view' ? accessParam : 'all';
+
+  const accessApplies = visibility === 'collaborating';
+  const effectiveAccess = accessApplies ? access : 'all';
 
   const replaceParams = (mutate: (params: URLSearchParams) => void) => {
     const nextParams = new URLSearchParams(searchParams.toString());
@@ -39,8 +55,25 @@ export function DashboardClient() {
     replaceParams((params) => {
       if (value === 'all') {
         params.delete('visibility');
+        params.delete('access');
       } else {
         params.set('visibility', value);
+      }
+
+      if (value !== 'collaborating') {
+        params.delete('access');
+      }
+    });
+  };
+
+  const handleAccessChange = (value: AccessFilter) => {
+    replaceParams((params) => {
+      params.set('visibility', 'collaborating');
+
+      if (value === 'all') {
+        params.delete('access');
+      } else {
+        params.set('access', value);
       }
     });
   };
@@ -53,8 +86,10 @@ export function DashboardClient() {
         onSortChange={handleSortChange}
         visibility={visibility}
         onVisibilityChange={handleVisibilityChange}
+        access={access}
+        onAccessChange={handleAccessChange}
       />
-      <BoardGrid sort={sort} visibility={visibility} />
+      <BoardGrid sort={sort} visibility={visibility} access={effectiveAccess} />
     </div>
   );
 }

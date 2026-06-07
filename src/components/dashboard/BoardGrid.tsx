@@ -4,12 +4,21 @@ import { useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { loadBoards, subscribeBoards } from '@/lib/board-store';
 import { BoardCard } from './BoardCard';
-import type { BoardSort, VisibilityFilter } from './BoardFilterBar';
+import type { BoardSort, VisibilityFilter, AccessFilter } from './BoardFilterBar';
 
 type BoardGridProps = {
   sort: BoardSort;
   visibility: VisibilityFilter;
+  access: AccessFilter;
 };
+
+function boardHasEditAccess(board: { role?: string }): boolean {
+  return !board.role || board.role === 'owner' || board.role === 'editor';
+}
+
+function boardHasViewAccess(board: { role?: string }): boolean {
+  return board.role === 'viewer';
+}
 
 function EmptyGallery({
   title,
@@ -57,7 +66,7 @@ function EmptyGallery({
   );
 }
 
-export function BoardGrid({ sort, visibility }: BoardGridProps) {
+export function BoardGrid({ sort, visibility, access }: BoardGridProps) {
   const boards = useSyncExternalStore(subscribeBoards, loadBoards, loadBoards);
 
   if (!boards.length) {
@@ -72,7 +81,22 @@ export function BoardGrid({ sort, visibility }: BoardGridProps) {
   }
 
   const visibleBoards = boards
-    .filter((board) => (visibility === 'all' ? true : board.visibility === visibility))
+    .filter((board) => {
+      if (visibility === 'all') return true;
+      if (visibility === 'collaborating') {
+        return board.role === 'editor' || board.role === 'viewer';
+      }
+      if (visibility === 'shared' || visibility === 'private') {
+        return (!board.role || board.role === 'owner') && board.visibility === visibility;
+      }
+      return true;
+    })
+    .filter((board) => {
+      if (access === 'all') return true;
+      if (access === 'edit') return boardHasEditAccess(board);
+      if (access === 'view') return boardHasViewAccess(board);
+      return true;
+    })
     .filter((board) => (sort === 'favorite' ? board.isFavorite : true))
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
@@ -84,6 +108,39 @@ export function BoardGrid({ sort, visibility }: BoardGridProps) {
         <EmptyGallery
           title={`No favorite ${visibilityLabel} boards yet.`}
           description={`You have no favorite ${visibilityLabel} boards. Adjust the filters or favorite a board to see it here.`}
+          actionHref="/app"
+          actionLabel="Clear filters"
+        />
+      );
+    }
+
+    if (visibility === 'collaborating') {
+      return (
+        <EmptyGallery
+          title="No shared boards yet."
+          description="When someone invites you to a board, it will appear here."
+          actionHref="/discover"
+          actionLabel="Browse public boards"
+        />
+      );
+    }
+
+    if (access === 'edit') {
+      return (
+        <EmptyGallery
+          title="No editable boards here."
+          description="Boards you own or can edit will appear when this filter is active."
+          actionHref="/app"
+          actionLabel="Clear filters"
+        />
+      );
+    }
+
+    if (access === 'view') {
+      return (
+        <EmptyGallery
+          title="No view-only boards here."
+          description="Boards shared with you as a viewer will appear when this filter is active."
           actionHref="/app"
           actionLabel="Clear filters"
         />

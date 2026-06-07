@@ -1,6 +1,9 @@
 'use client';
 
 import { createClient } from '@/lib/supabase/client';
+import { isValidEmail, passwordRequirementsMet } from '@/lib/auth-validation';
+
+export { isValidEmail } from '@/lib/auth-validation';
 
 export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
 
@@ -30,8 +33,6 @@ export type AuthResult =
 
 type Listener = () => void;
 
-const PASSWORD_MIN_LENGTH = 6;
-
 export const DEMO_CREDENTIALS = {
   email: 'admin@moodboard.ai',
   password: 'moodboard123',
@@ -51,10 +52,6 @@ function emit(): void {
 
 function normalizeEmail(value: string): string {
   return value.trim().toLowerCase();
-}
-
-export function isValidEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
 async function mapSupabaseUser(
@@ -169,11 +166,8 @@ export async function signUp({ name, email, password }: SignUpInput): Promise<Au
     return { ok: false, error: 'Please enter a valid email address.' };
   }
 
-  if (password.length < PASSWORD_MIN_LENGTH) {
-    return {
-      ok: false,
-      error: `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`,
-    };
+  if (!passwordRequirementsMet(password)) {
+    return { ok: false, error: 'Password does not meet all requirements.' };
   }
 
   const supabase = createClient();

@@ -63,6 +63,13 @@ export function LandingHeader() {
           transition={{ duration: 0.7, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
         >
           <Link
+            href="/discover"
+            className="hidden h-11 items-center rounded-full px-4 text-sm font-medium text-(--text-muted) transition hover:text-(--text-strong) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background) sm:inline-flex"
+          >
+            Discover
+          </Link>
+
+          <Link
             href="/about"
             className="hidden h-11 items-center rounded-full px-4 text-sm font-medium text-(--text-muted) transition hover:text-(--text-strong) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background) sm:inline-flex"
           >

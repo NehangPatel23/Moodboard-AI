@@ -69,7 +69,8 @@ export function ShareModal({
             Copy a view-only link for{' '}
             <span className="font-medium text-(--text-strong)">
               {boardTitle}
-            </span>.
+            </span>
+            . Anyone with this link can view this board (read-only).
           </p>
         </div>
 
@@ -77,7 +78,7 @@ export function ShareModal({
           <Input readOnly value={fullUrl} />
 
           <p className="text-xs leading-5 text-(--text-muted)">
-            Anyone with this link can view the board.
+            Recipients do not need an account to view the board.
           </p>
         </div>
 
