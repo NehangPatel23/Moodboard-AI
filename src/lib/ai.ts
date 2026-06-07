@@ -1,5 +1,9 @@
 import type { Board, BoardTemplate } from '@/types/board';
 import { apiFetch } from '@/lib/api-client';
+import {
+  REFERENCE_IMAGE_SOURCE,
+  buildReferenceImageUrl,
+} from '@/lib/reference-images';
 import { createBoardFromPrompt, getTemplates } from './board-store';
 
 export type GeneratedBoardDraft = {
@@ -29,14 +33,6 @@ export async function fetchGeneratedBoardDraftFromTemplate(
     body: JSON.stringify({ templateId }),
   });
 }
-
-const FALLBACK_REFERENCE_IMAGES = [
-  'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=1200&q=80',
-];
 
 const DEFAULT_TEMPLATES: BoardTemplate[] = [
   {
@@ -514,13 +510,6 @@ function buildFollowUpPromptFromTemplate(template: BoardTemplate, board: Board):
   return `Refine the ${template.name.toLowerCase()} direction with a ${board.mood} mood, ${tone} tone, and a palette centered on ${palette}.`;
 }
 
-function buildReferenceImageUrl(templateId: string, index: number): string {
-  const seed = `${templateId}-${index}`.toLowerCase();
-  const fallback = FALLBACK_REFERENCE_IMAGES[index % FALLBACK_REFERENCE_IMAGES.length];
-
-  return `${fallback}&sig=${encodeURIComponent(seed)}`;
-}
-
 export function getBoardTemplates(): BoardTemplate[] {
   const storedTemplates = getTemplates();
 
@@ -601,9 +590,16 @@ export function generateBoardDraftFromTemplate(templateId: string): GeneratedBoa
       ? template.references.map((item, index) => ({
           id: `${base.id}-template-reference-${index}`,
           title: item.title,
-          imageUrl: item.imageUrl ?? buildReferenceImageUrl(template.id, index),
+          imageUrl: buildReferenceImageUrl({
+            title: item.title,
+            category: item.category,
+            mood: template.mood ?? base.mood,
+            prompt: template.prompt,
+            palette: template.palette ?? base.palette,
+            seed: `${template.id}-${index}`,
+          }),
           category: item.category,
-          source: item.source,
+          source: item.source ?? REFERENCE_IMAGE_SOURCE,
         }))
       : base.references,
   };

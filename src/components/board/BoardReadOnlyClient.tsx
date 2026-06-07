@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Image as ImageIcon, Layers3, Palette, Sparkles, Type } from 'lucide-react';
 import type { NoteType, TypographyRole } from '@/types/board';
@@ -18,6 +17,7 @@ import {
   subscribeAuth,
 } from '@/lib/auth-store';
 import { BoardEditorSkeleton } from '@/components/board/BoardEditorSkeleton';
+import { ReferenceImageDisplay } from '@/components/board/ReferenceImageDisplay';
 import {
   DEFAULT_APP_SETTINGS,
   readAppSettings,
@@ -75,14 +75,6 @@ const SECTION_META: Record<
   },
 };
 
-const FALLBACK_REFERENCE_IMAGES = [
-  'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=80',
-];
-
 const TYPOGRAPHY_FALLBACK_FAMILIES: Record<string, string> = {
   sora: '"Sora", var(--font-sans), sans-serif',
   inter: '"Inter", var(--font-sans), sans-serif',
@@ -103,10 +95,6 @@ const softPanelClass =
 
 const actionLinkClass =
   'inline-flex h-11 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] px-5 text-sm font-medium text-[var(--text-strong)] transition hover:bg-[var(--surface-subtle)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] dark:bg-[rgba(255,255,255,0.04)] dark:text-[var(--text-strong)] dark:hover:bg-[rgba(255,255,255,0.08)]';
-
-function getFallbackReferenceImage(index: number): string {
-  return FALLBACK_REFERENCE_IMAGES[index % FALLBACK_REFERENCE_IMAGES.length];
-}
 
 function NoteTypeIcon({ type }: { type: NoteType }) {
   switch (type) {
@@ -193,23 +181,25 @@ function ReadOnlyReferenceCard({
   category,
   source,
   index,
+  board,
 }: {
   title: string;
   imageUrl?: string;
   category: string;
   source?: string;
   index: number;
+  board: { prompt: string; mood: string; palette: Array<{ hex: string; label?: string }> };
 }) {
-  const src = imageUrl || getFallbackReferenceImage(index);
-
   return (
     <article className="group overflow-hidden rounded-[1.75rem] border border-(--border) bg-(--surface) shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] dark:shadow-[0_18px_40px_rgba(0,0,0,0.22)]">
       <div className="relative aspect-4/3 w-full overflow-hidden">
-        <Image
-          src={src}
-          alt={title}
-          fill
-          sizes="(max-width: 768px) 100vw, 33vw"
+        <ReferenceImageDisplay
+          title={title}
+          category={category}
+          imageUrl={imageUrl}
+          source={source}
+          board={board}
+          index={index}
           className="object-cover transition duration-500 group-hover:scale-[1.02]"
         />
         <div className="absolute inset-0 bg-linear-to-t from-black/20 via-transparent to-transparent" />
@@ -644,6 +634,7 @@ export function BoardReadOnlyClient({ boardId }: BoardReadOnlyClientProps) {
                         category={reference.category}
                         source={reference.source}
                         index={index}
+                        board={board}
                       />
                     ))}
                   </div>

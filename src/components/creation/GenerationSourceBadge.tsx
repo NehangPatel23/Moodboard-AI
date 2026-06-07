@@ -16,10 +16,10 @@ export function GenerationSourceBadge({ source, className }: GenerationSourceBad
     return (
       <span
         className={cn(
-          'inline-flex w-fit items-center rounded-full border border-slate-900/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-900 shadow-[0_2px_10px_rgba(147,197,253,0.3)] dark:border-slate-900/15',
+          'gemini-source-badge inline-flex w-fit items-center rounded-full border border-slate-900/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] shadow-[0_2px_10px_rgba(147,197,253,0.3)] dark:border-slate-900/15',
           className,
         )}
-        style={{ backgroundImage: GEMINI_GRADIENT }}
+        style={{ backgroundImage: GEMINI_GRADIENT, color: '#0f172a' }}
       >
         Powered by Gemini
       </span>

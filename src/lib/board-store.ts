@@ -1,5 +1,13 @@
 import type { Board, BoardDraftInput, BoardTemplate } from '@/types/board';
 import { apiFetch } from '@/lib/api-client';
+import {
+  BOARD_REFERENCE_COUNT,
+  REFERENCE_IMAGE_SOURCE,
+  buildReferenceImageUrl,
+  needsReferenceImageUpgrade,
+  padReferencesToCount,
+  sanitizeBoardReferences,
+} from '@/lib/reference-images';
 import { createId, slugify } from './utils';
 import { boardTemplates } from './mock-data';
 
@@ -70,10 +78,47 @@ export async function setActiveBoardUser(userId: string | null): Promise<void> {
 
     try {
       const data = await apiFetch<{ boards: Board[] }>('/api/boards');
-      cachedBoards = data.boards;
+      const migratedBoards = await Promise.all(
+        data.boards.map(async (board) => {
+          const needsEnrichment = board.references.some((reference) =>
+            needsReferenceImageUpgrade(reference),
+          );
+          if (!needsEnrichment) return board;
+
+          try {
+            const enriched = await apiFetch<{ board: Board }>('/api/reference-images/enrich', {
+              method: 'POST',
+              body: JSON.stringify({ board }),
+            });
+            return enriched.board;
+          } catch {
+            return sanitizeBoardReferences(board);
+          }
+        }),
+      );
+
+      cachedBoards = migratedBoards;
       hydratedForUser = true;
       boardsLoading = false;
       notifyBoardsChanged();
+
+      const migrationNeeded = migratedBoards.some((board, index) => {
+        const original = data.boards[index];
+        return board.references.some(
+          (reference, refIndex) =>
+            reference.imageUrl !== original.references[refIndex]?.imageUrl ||
+            reference.source !== original.references[refIndex]?.source,
+        );
+      });
+      if (migrationNeeded && activeUserId) {
+        void apiFetch<{ boards: Board[] }>('/api/boards', {
+          method: 'PUT',
+          body: JSON.stringify({ boards: migratedBoards }),
+        }).catch(() => {
+          // Display migration still applies locally even if persist fails.
+        });
+      }
+
       return;
     } catch (error) {
       lastError = error;
@@ -177,14 +222,15 @@ export function getBoardById(boardId: string): Board | undefined {
 
 export function saveBoards(boards: Board[]): void {
   const previous = cachedBoards;
-  cachedBoards = boards;
+  const sanitizedBoards = boards.map(sanitizeBoardReferences);
+  cachedBoards = sanitizedBoards;
   notifyBoardsChanged();
 
   if (!activeUserId) return;
 
   void apiFetch<{ boards: Board[] }>('/api/boards', {
     method: 'PUT',
-    body: JSON.stringify({ boards }),
+    body: JSON.stringify({ boards: sanitizedBoards }),
   }).catch(() => {
     cachedBoards = previous;
     notifyBoardsChanged();
@@ -194,21 +240,22 @@ export function saveBoards(boards: Board[]): void {
 
 export function appendBoard(board: Board): Board {
   const previous = cachedBoards;
-  cachedBoards = [board, ...loadBoards()];
+  const sanitizedBoard = sanitizeBoardReferences(board);
+  cachedBoards = [sanitizedBoard, ...loadBoards()];
   notifyBoardsChanged();
 
-  if (!activeUserId) return board;
+  if (!activeUserId) return sanitizedBoard;
 
   void apiFetch('/api/boards', {
     method: 'POST',
-    body: JSON.stringify({ board }),
+    body: JSON.stringify({ board: sanitizedBoard }),
   }).catch(() => {
     cachedBoards = previous;
     notifyBoardsChanged();
     void showPersistError('Failed to save board.');
   });
 
-  return board;
+  return sanitizedBoard;
 }
 
 export function updateBoard(boardId: string, updater: (board: Board) => Board): Board | null {
@@ -218,7 +265,7 @@ export function updateBoard(boardId: string, updater: (board: Board) => Board): 
 
   const previous = boards;
   const nextBoards = boards.slice();
-  const updated = updater(cloneBoard(boards[index]));
+  const updated = sanitizeBoardReferences(updater(cloneBoard(boards[index])));
   updated.updatedAt = nowIso();
   nextBoards[index] = updated;
   cachedBoards = nextBoards;
@@ -294,7 +341,11 @@ export function createBoardFromPrompt(input: BoardDraftInput): Board {
     tags,
     palette: inferPalette(prompt),
     typography: inferTypography(prompt),
-    references: inferReferences(prompt),
+    references: padReferencesToCount(inferReferences(prompt), {
+      prompt,
+      mood: inferMood(prompt),
+      palette: inferPalette(prompt),
+    }),
     notes: inferNotes(prompt),
     createdAt: nowIso(),
     updatedAt: nowIso(),
@@ -408,66 +459,72 @@ function inferTypography(prompt: string) {
   ];
 }
 
+function createInferredReference(
+  prompt: string,
+  title: string,
+  category: string,
+  index: number,
+) {
+  const mood = inferMood(prompt);
+  const palette = inferPalette(prompt);
+
+  return {
+    id: createId('ref'),
+    title,
+    imageUrl: buildReferenceImageUrl({
+      title,
+      category,
+      mood,
+      prompt,
+      palette,
+      seed: `${prompt}-${index}`,
+    }),
+    category,
+    source: REFERENCE_IMAGE_SOURCE,
+  };
+}
+
 function inferReferences(prompt: string) {
   const normalized = prompt.toLowerCase();
   if (normalized.includes('wellness')) {
     return [
-      {
-        id: createId('ref'),
-        title: 'Minimal spa interior',
-        imageUrl:
-          'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80',
-        category: 'Interior',
-        source: 'Unsplash',
-      },
-      {
-        id: createId('ref'),
-        title: 'Textural packaging detail',
-        imageUrl:
-          'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=1200&q=80',
-        category: 'Packaging',
-        source: 'Unsplash',
-      },
-      {
-        id: createId('ref'),
-        title: 'Editorial product frame',
-        imageUrl:
-          'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1200&q=80',
-        category: 'Campaign',
-        source: 'Unsplash',
-      },
+      createInferredReference(prompt, 'Minimal spa interior', 'Interior', 0),
+      createInferredReference(prompt, 'Textural packaging detail', 'Product', 1),
+      createInferredReference(prompt, 'Editorial product frame', 'Campaign', 2),
+      createInferredReference(prompt, 'Soft linen texture', 'Detail', 3),
+      createInferredReference(prompt, 'Warm lifestyle portrait', 'Portrait', 4),
+      createInferredReference(prompt, 'Calm botanical still life', 'Editorial', 5),
     ];
   }
   if (normalized.includes('fintech')) {
     return [
-      {
-        id: createId('ref'),
-        title: 'App dashboard blur',
-        imageUrl:
-          'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80',
-        category: 'Dashboard',
-        source: 'Unsplash',
-      },
-      {
-        id: createId('ref'),
-        title: 'Metric cards',
-        imageUrl:
-          'https://images.unsplash.com/photo-1556742205-9f8b1a0f0ef9?auto=format&fit=crop&w=1200&q=80',
-        category: 'UI',
-        source: 'Unsplash',
-      },
+      createInferredReference(prompt, 'App dashboard blur', 'Dashboard', 0),
+      createInferredReference(prompt, 'Metric cards', 'UI', 1),
+      createInferredReference(prompt, 'Mobile banking interface', 'Product', 2),
+      createInferredReference(prompt, 'Modern office environment', 'Interior', 3),
+      createInferredReference(prompt, 'Data visualization detail', 'Detail', 4),
+      createInferredReference(prompt, 'Professional team portrait', 'Portrait', 5),
     ];
   }
+  if (normalized.includes('fashion')) {
+    return [
+      createInferredReference(prompt, 'Runway silhouette', 'Editorial', 0),
+      createInferredReference(prompt, 'Studio lighting setup', 'Campaign', 1),
+      createInferredReference(prompt, 'Fabric texture close-up', 'Detail', 2),
+      createInferredReference(prompt, 'Street style moment', 'Portrait', 3),
+      createInferredReference(prompt, 'Lookbook composition', 'Product', 4),
+      createInferredReference(prompt, 'Gallery interior backdrop', 'Interior', 5),
+    ];
+  }
+  const title = inferTitle(prompt);
   return [
-    {
-      id: createId('ref'),
-      title: 'Neutral composition',
-      imageUrl:
-        'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
-      category: 'Composition',
-      source: 'Unsplash',
-    },
-  ];
+    createInferredReference(prompt, `${title} hero frame`, 'Campaign', 0),
+    createInferredReference(prompt, 'Material texture study', 'Detail', 1),
+    createInferredReference(prompt, 'Environmental context', 'Interior', 2),
+    createInferredReference(prompt, 'Product or subject focus', 'Product', 3),
+    createInferredReference(prompt, 'Editorial lighting reference', 'Editorial', 4),
+    createInferredReference(prompt, 'Lifestyle atmosphere', 'Portrait', 5),
+  ].slice(0, BOARD_REFERENCE_COUNT);
 }
 
 function inferNotes(prompt: string) {

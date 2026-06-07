@@ -29,6 +29,7 @@ In Vercel → **Settings** → **Environment Variables**, add:
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase `anon` public key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase `service_role` secret key |
 | `GEMINI_API_KEY` | Optional — enables free-tier Gemini AI (see [`docs/GEMINI_SETUP.md`](GEMINI_SETUP.md)) |
+| `PEXELS_API_KEY` | Optional — search-relevant reference photos (see [`docs/PEXELS_SETUP.md`](PEXELS_SETUP.md)) |
 
 Apply to **Production**, **Preview**, and **Development**.
 

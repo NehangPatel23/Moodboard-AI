@@ -7,6 +7,7 @@ import { formatDateTime } from '@/lib/utils';
 import { Globe, Lock, Star } from 'lucide-react';
 import { toggleFavoriteById } from '@/lib/board-store';
 import { showToast } from '@/components/shared/toast-store';
+import { resolveReferenceImageUrl } from '@/lib/reference-images';
 
 type BoardCardProps = {
   board: Board;
@@ -23,9 +24,10 @@ function getTileStyle(
 ): CSSProperties {
   const paletteFallback = board.palette[index % Math.max(board.palette.length, 1)]?.hex ?? '#e5e2e1';
 
-  if (tile?.imageUrl) {
+  if (tile) {
+    const imageUrl = resolveReferenceImageUrl(tile, board, index);
     return {
-      backgroundImage: `linear-gradient(180deg, rgba(17, 24, 39, 0.08), rgba(17, 24, 39, 0.18)), url(${tile.imageUrl})`,
+      backgroundImage: `linear-gradient(180deg, rgba(17, 24, 39, 0.08), rgba(17, 24, 39, 0.18)), url(${imageUrl})`,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
     };

@@ -64,6 +64,11 @@ html.dark body {
   background: linear-gradient(180deg, var(--background) 0%, var(--background-2) 100%);
 }
 
+/* Pastel Gemini badge keeps a light background in every theme. */
+.gemini-source-badge {
+  color: #0f172a !important;
+}
+
 h1,
 h2,
 h3,

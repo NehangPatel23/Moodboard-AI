@@ -1,79 +1,46 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import Image from 'next/image';
 import type { ReferenceItem } from '@/types/board';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { ImageOff, Pencil, Trash2, X } from 'lucide-react';
+import { Pencil, Trash2, X } from 'lucide-react';
 import { showToast } from '@/components/shared/toast-store';
+import { ReferenceImageDisplay } from '@/components/board/ReferenceImageDisplay';
+import { sanitizeReferenceItem } from '@/lib/reference-images';
+import type { Board } from '@/types/board';
 
 type ReferenceCardProps = {
   reference: ReferenceItem;
+  board?: Pick<Board, 'prompt' | 'mood' | 'palette'>;
   readOnly?: boolean;
   onChange?: (next: ReferenceItem) => void;
   onRemove?: () => void;
   className?: string;
 };
 
-const FALLBACK_IMAGE =
-  'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80';
-
 const referenceTypeOptions = ['Interior', 'Packaging', 'Campaign', 'Dashboard', 'UI', 'Other'];
-
-function ReferenceImage({
-  title,
-  imageUrl,
-}: {
-  title: string;
-  imageUrl?: string;
-}) {
-  const [hasError, setHasError] = useState(false);
-
-  const src = useMemo(() => {
-    return imageUrl && imageUrl.trim().length > 0 ? imageUrl : FALLBACK_IMAGE;
-  }, [imageUrl]);
-
-  if (hasError) {
-    return (
-      <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-linear-to-br from-slate-200 to-slate-100 text-slate-500">
-        <ImageOff className="h-8 w-8" />
-        <p className="px-4 text-center text-xs uppercase tracking-[0.24em]">
-          Image unavailable
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <Image
-      key={src}
-      src={src}
-      alt={title || 'Reference image'}
-      fill
-      sizes="(max-width: 768px) 100vw, 33vw"
-      className="object-cover"
-      onError={() => setHasError(true)}
-    />
-  );
-}
 
 function ReferenceEditorModal({
   open,
   initialValue,
+  board,
   onSave,
   onClose,
 }: {
   open: boolean;
   initialValue: ReferenceItem;
+  board?: Pick<Board, 'prompt' | 'mood' | 'palette'>;
   onSave: (next: ReferenceItem) => void;
   onClose: () => void;
 }) {
-  const [draft, setDraft] = useState<ReferenceItem>(initialValue);
+  const [draft, setDraft] = useState(() =>
+    board ? sanitizeReferenceItem(initialValue, board, 0) : initialValue,
+  );
 
   if (!open || typeof document === 'undefined') return null;
 
@@ -134,7 +101,13 @@ function ReferenceEditorModal({
         >
           <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50">
             <div className="relative aspect-16/10 w-full">
-              <ReferenceImage title={draft.title} imageUrl={draft.imageUrl} />
+              <ReferenceImageDisplay
+                title={draft.title}
+                category={draft.category}
+                imageUrl={draft.imageUrl}
+                source={draft.source}
+                board={board}
+              />
             </div>
           </div>
 
@@ -175,7 +148,7 @@ function ReferenceEditorModal({
               <Input
                 value={draft.source ?? ''}
                 onChange={(e) => updateDraft({ source: e.target.value })}
-                placeholder="Unsplash"
+                placeholder="Generated"
               />
             </div>
 
@@ -232,6 +205,7 @@ function ReferenceEditorModal({
 
 export function ReferenceCard({
   reference,
+  board,
   readOnly = false,
   onChange,
   onRemove,
@@ -268,7 +242,13 @@ export function ReferenceCard({
           aria-label={readOnly ? reference.title : `Edit ${reference.title}`}
         >
           <div className="relative aspect-4/3 w-full overflow-hidden">
-            <ReferenceImage title={reference.title} imageUrl={reference.imageUrl} />
+            <ReferenceImageDisplay
+              title={reference.title}
+              category={reference.category}
+              imageUrl={reference.imageUrl}
+              source={reference.source}
+              board={board}
+            />
           </div>
 
           {!readOnly ? (
@@ -315,8 +295,10 @@ export function ReferenceCard({
 
       {editorOpen ? (
         <ReferenceEditorModal
+          key={reference.id}
           open={editorOpen}
           initialValue={reference}
+          board={board}
           onSave={saveReference}
           onClose={() => setEditorOpen(false)}
         />

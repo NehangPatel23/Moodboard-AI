@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
-import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { GenerationSourceBadge } from '@/components/creation/GenerationSourceBadge';
 import type {
@@ -28,6 +27,12 @@ import {
   subscribeAuth,
 } from '@/lib/auth-store';
 import { BoardEditorSkeleton } from '@/components/board/BoardEditorSkeleton';
+import { ReferenceImageDisplay } from '@/components/board/ReferenceImageDisplay';
+import {
+  REFERENCE_IMAGE_SOURCE,
+  buildReferenceImageUrl,
+  sanitizeReferenceItem,
+} from '@/lib/reference-images';
 import { formatDateTime } from '@/lib/utils';
 import { ConfirmationModal } from '@/components/shared/ConfirmationModal';
 import { ShareModal } from '@/components/shared/ShareModal';
@@ -289,22 +294,20 @@ function getFontFamily(fontName: string): string {
 }
 
 function ReferenceEditorModal({
-  open,
   reference,
+  board,
   onSave,
   onClose,
 }: {
-  open: boolean;
-  reference: ReferenceItem | null;
+  reference: ReferenceItem;
+  board: Board;
   onSave: (next: ReferenceItem) => void;
   onClose: () => void;
 }) {
-  const [draft, setDraft] = useState<ReferenceItem | null>(() =>
-    reference ? { ...reference } : null,
-  );
+  const [draft, setDraft] = useState(() => sanitizeReferenceItem(reference, board, 0));
 
   useEffect(() => {
-    if (!open || typeof document === 'undefined') return;
+    if (typeof document === 'undefined') return;
 
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -322,12 +325,12 @@ function ReferenceEditorModal({
       document.body.style.overflow = originalOverflow;
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [open, onClose]);
+  }, [onClose]);
 
-  if (!open || typeof document === 'undefined' || !reference || !draft) return null;
+  if (typeof document === 'undefined') return null;
 
   const updateDraft = (patch: Partial<ReferenceItem>) => {
-    setDraft((current) => (current ? { ...current, ...patch } : current));
+    setDraft((current) => ({ ...current, ...patch }));
   };
 
   return createPortal(
@@ -376,15 +379,13 @@ function ReferenceEditorModal({
             <div className="space-y-4">
               <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-slate-50 shadow-sm">
                 <div className="relative aspect-16/10 w-full">
-                  <Image
-                    src={
-                      draft.imageUrl ||
-                      'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80'
-                    }
-                    alt={draft.title || 'Reference image'}
-                    fill
+                  <ReferenceImageDisplay
+                    title={draft.title}
+                    category={draft.category}
+                    imageUrl={draft.imageUrl}
+                    source={draft.source}
+                    board={board}
                     sizes="(max-width: 768px) 100vw, 50vw"
-                    className="object-cover"
                   />
                   <div className="absolute inset-0 bg-linear-to-t from-black/20 via-transparent to-transparent" />
                 </div>
@@ -433,7 +434,7 @@ function ReferenceEditorModal({
                 <Input
                   value={draft.source ?? ''}
                   onChange={(e) => updateDraft({ source: e.target.value })}
-                  placeholder="Unsplash"
+                  placeholder="Generated"
                   className="border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus-visible:ring-slate-900"
                 />
               </div>
@@ -779,10 +780,16 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         {
           id: `ref_${Date.now()}`,
           title: 'New reference',
-          imageUrl:
-            'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
+          imageUrl: buildReferenceImageUrl({
+            title: 'New reference',
+            category: 'Editorial',
+            mood: current.mood,
+            prompt: current.prompt,
+            palette: current.palette,
+            seed: `new-ref-${Date.now()}`,
+          }),
           category: 'Editorial',
-          source: 'Unsplash',
+          source: REFERENCE_IMAGE_SOURCE,
         },
         ...current.references,
       ],
@@ -794,10 +801,12 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const handleSaveReference = (next: ReferenceItem) => {
     if (editingReferenceIndex === null) return;
 
+    const sanitized = sanitizeReferenceItem(next, editorBoard, editingReferenceIndex);
+
     updateDraft((current) => ({
       ...current,
       references: current.references.map((item, index) =>
-        index === editingReferenceIndex ? next : item,
+        index === editingReferenceIndex ? sanitized : item,
       ),
     }));
 
@@ -1086,15 +1095,13 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                         className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
                       >
                         <div className="relative aspect-4/3 w-full overflow-hidden">
-                          <Image
-                            src={
-                              reference.imageUrl ||
-                              'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80'
-                            }
-                            alt={reference.title}
-                            fill
-                            sizes="(max-width: 768px) 100vw, 33vw"
-                            className="object-cover"
+                          <ReferenceImageDisplay
+                            title={reference.title}
+                            category={reference.category}
+                            imageUrl={reference.imageUrl}
+                            source={reference.source}
+                            board={draft ?? editorBoard}
+                            index={index}
                           />
                           <div className="absolute inset-0 bg-linear-to-t from-black/20 via-transparent to-transparent" />
                         </div>
@@ -1598,13 +1605,15 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         }}
       />
 
-      <ReferenceEditorModal
-        key={editingReferenceIndex ?? currentReference?.id ?? 'reference-editor'}
-        open={editingReferenceIndex !== null}
-        reference={currentReference}
-        onSave={handleSaveReference}
-        onClose={() => setEditingReferenceIndex(null)}
-      />
+      {editingReferenceIndex !== null && currentReference ? (
+        <ReferenceEditorModal
+          key={currentReference.id}
+          reference={currentReference}
+          board={editorBoard}
+          onSave={handleSaveReference}
+          onClose={() => setEditingReferenceIndex(null)}
+        />
+      ) : null}
 
       <ShareModal
         open={shareOpen}

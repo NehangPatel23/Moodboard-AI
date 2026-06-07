@@ -1,5 +1,12 @@
 import { getTemplateById } from '@/lib/ai';
 import { createBoardFromPrompt } from '@/lib/board-store';
+import { enrichBoardReferences } from '@/lib/enrich-board-references';
+import {
+  BOARD_REFERENCE_COUNT,
+  REFERENCE_IMAGE_SOURCE,
+  buildReferenceImageUrl,
+  padReferencesToCount,
+} from '@/lib/reference-images';
 import { createId } from '@/lib/utils';
 import type { Board, BoardTemplate, NoteType, TypographyRole } from '@/types/board';
 
@@ -52,7 +59,7 @@ Return valid JSON only with this exact shape:
     { "text": "creative note", "type": "idea" | "instruction" | "keyword" }
   ],
   "references": [
-    { "title": "reference title", "category": "Interior|Product|Portrait|Editorial|Detail", "source": "Unsplash" }
+    { "title": "reference title", "category": "Interior|Product|Portrait|Editorial|Detail", "source": "Pexels" }
   ],
   "followUpPrompt": "one sentence refinement prompt for the user"
 }
@@ -61,7 +68,7 @@ Rules:
 - palette must have exactly 4 colors with valid hex codes
 - typography must have heading, body, and accent roles
 - notes must have 3 items with mixed types
-- references must have 3 items
+- references must have exactly ${BOARD_REFERENCE_COUNT} items with varied categories (Interior, Product, Portrait, Editorial, Detail, Campaign)
 - keep output premium, specific, and actionable`;
 
 function nowIso(): string {
@@ -97,30 +104,32 @@ function buildBoardFromPayload(prompt: string, payload: AIGeneratedDraftPayload)
       type: item.type,
       position: { x: 0, y: 0 },
     })),
-    references: payload.references.slice(0, 6).map((item, index) => ({
-      id: `${boardId}-reference-${index}`,
-      title: item.title,
-      imageUrl: buildReferenceImageUrl(index),
-      category: item.category,
-      source: item.source ?? 'Unsplash',
-    })),
+    references: padReferencesToCount(
+      payload.references.slice(0, BOARD_REFERENCE_COUNT).map((item, index) => ({
+        id: `${boardId}-reference-${index}`,
+        title: item.title,
+        imageUrl: buildReferenceImageUrl({
+          title: item.title,
+          category: item.category,
+          mood: payload.mood,
+          prompt: prompt.trim(),
+          palette: payload.palette,
+          seed: `${boardId}-${index}`,
+        }),
+        category: item.category,
+        source: item.source ?? REFERENCE_IMAGE_SOURCE,
+      })),
+      {
+        prompt: prompt.trim(),
+        mood: payload.mood,
+        palette: payload.palette,
+      },
+    ),
     createdAt: nowIso(),
     updatedAt: nowIso(),
     isFavorite: false,
     visibility: 'private',
   };
-}
-
-function buildReferenceImageUrl(index: number): string {
-  const seeds = [
-    'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=1200&q=80',
-  ];
-
-  return seeds[index % seeds.length];
 }
 
 function extractJsonText(raw: string): string {
@@ -137,15 +146,6 @@ function parseModelContent(content: string): AIGeneratedDraftPayload {
   }
 
   return parsed;
-}
-
-function buildReferenceImageUrlForTemplate(templateId: string, index: number): string {
-  const seeds = [
-    'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1200&q=80',
-  ];
-  return `${seeds[index % seeds.length]}&sig=${encodeURIComponent(`${templateId}-${index}`)}`;
 }
 
 function buildFollowUpPromptFromTemplate(template: BoardTemplate, board: Board): string {
@@ -195,20 +195,34 @@ function applyTemplateToBoard(board: Board, template: BoardTemplate): Board {
           position: { x: 0, y: 0 },
         }))
       : board.notes,
-    references: template.references?.length
-      ? template.references.map((item, index) => ({
-          id: `${board.id}-template-reference-${index}`,
-          title: item.title,
-          imageUrl: item.imageUrl ?? buildReferenceImageUrlForTemplate(template.id, index),
-          category: item.category,
-          source: item.source,
-        }))
-      : board.references,
+    references: padReferencesToCount(
+      template.references?.length
+        ? template.references.map((item, index) => ({
+            id: `${board.id}-template-reference-${index}`,
+            title: item.title,
+            imageUrl: buildReferenceImageUrl({
+              title: item.title,
+              category: item.category,
+              mood: template.mood ?? board.mood,
+              prompt: template.prompt,
+              palette: template.palette ?? board.palette,
+              seed: `${template.id}-${index}`,
+            }),
+            category: item.category,
+            source: item.source ?? REFERENCE_IMAGE_SOURCE,
+          }))
+        : board.references,
+      {
+        prompt: template.prompt,
+        mood: template.mood ?? board.mood,
+        palette: template.palette ?? board.palette,
+      },
+    ),
   };
 }
 
-function buildMockResult(prompt: string): GeneratedBoardResult {
-  const board = createBoardFromPrompt({ prompt });
+async function buildMockResult(prompt: string): Promise<GeneratedBoardResult> {
+  const board = await enrichBoardReferences(createBoardFromPrompt({ prompt }));
   const followUpPrompt = `Refine the direction for ${board.title.toLowerCase()} with a ${board.mood} mood and palette centered on ${board.palette
     .map((item) => item.label.toLowerCase())
     .slice(0, 3)
@@ -332,7 +346,7 @@ export async function generateBoardFromTemplate(templateId: string): Promise<Gen
   }
 
   const result = await generateBoardFromPrompt(template.prompt);
-  const board = applyTemplateToBoard(result.board, template);
+  const board = await enrichBoardReferences(applyTemplateToBoard(result.board, template));
 
   return {
     board,
@@ -355,7 +369,7 @@ export async function generateBoardFromPrompt(prompt: string): Promise<Generated
   try {
     const content = await callGeminiWithFallback(trimmed, apiKey);
     const payload = parseModelContent(content);
-    const board = buildBoardFromPayload(trimmed, payload);
+    const board = await enrichBoardReferences(buildBoardFromPayload(trimmed, payload));
 
     return {
       board,
@@ -368,7 +382,7 @@ export async function generateBoardFromPrompt(prompt: string): Promise<Generated
       throw error;
     }
 
-    const mock = buildMockResult(trimmed);
+    const mock = await buildMockResult(trimmed);
     return {
       ...mock,
       notice:
