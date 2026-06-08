@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { RefreshCw, Search } from 'lucide-react';
 import type { Board } from '@/types/board';
-import { Button } from '@/components/ui/button';
 import { fetchReferenceImageSearch } from '@/lib/ai';
-import { REFERENCE_IMAGE_SOURCE_PEXELS } from '@/lib/reference-images';
+import { REFERENCE_IMAGE_SOURCE_PEXELS, REFERENCE_IMAGE_SOURCE_UNSPLASH } from '@/lib/reference-images';
 import { showToast } from '@/components/shared/toast-store';
+import { AiGenerateButton } from '@/components/shared/AiGenerateButton';
+import { editorGhostButtonClass } from '@/components/board/board-editor-styles';
 
 type ReferenceImageSearchButtonProps = {
   title: string;
@@ -62,7 +62,9 @@ export function ReferenceImageSearchButton({
           ? 'Photo refreshed.'
           : result.sourceLabel === REFERENCE_IMAGE_SOURCE_PEXELS
             ? 'Pexels photo applied.'
-            : 'Demo placeholder applied.',
+            : result.sourceLabel === REFERENCE_IMAGE_SOURCE_UNSPLASH
+              ? 'Unsplash photo applied.'
+              : 'Demo placeholder applied.',
         'success',
       );
     } catch (error) {
@@ -75,27 +77,22 @@ export function ReferenceImageSearchButton({
 
   return (
     <div className={`flex flex-wrap gap-2 ${className ?? ''}`}>
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() => void runSearch(0)}
+      <AiGenerateButton
+        loading={loading && !hasResult}
         disabled={loading}
-        className="rounded-full"
-      >
-        <Search className="h-4 w-4" />
-        {loading ? 'Searching…' : 'Find photo'}
-      </Button>
+        onClick={() => void runSearch(0)}
+        idleLabel="Find photo"
+        loadingLabel="Searching…"
+      />
       {hasResult ? (
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => void runSearch(refreshAttempt)}
+        <AiGenerateButton
+          loading={loading}
           disabled={loading}
-          className="rounded-full"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Refresh photo
-        </Button>
+          onClick={() => void runSearch(refreshAttempt)}
+          idleLabel="Refresh photo"
+          loadingLabel="Refreshing…"
+          idleClassName={editorGhostButtonClass}
+        />
       ) : null}
     </div>
   );

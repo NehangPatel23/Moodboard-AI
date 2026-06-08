@@ -5,6 +5,9 @@ import Image from 'next/image';
 import { ImageOff } from 'lucide-react';
 import {
   isInlineReferenceImage,
+  isPexelsImageUrl,
+  isUnsplashImageUrl,
+  REFERENCE_IMAGE_SOURCE_UNSPLASH,
   resolveReferenceImageUrl,
 } from '@/lib/reference-images';
 
@@ -51,6 +54,11 @@ export function ReferenceImageDisplay({
     [title, category, imageUrl, source, board, index],
   );
 
+  const useNextImageOptimization =
+    !isInlineReferenceImage(src) &&
+    (isPexelsImageUrl(src) ||
+      (isUnsplashImageUrl(src) && source === REFERENCE_IMAGE_SOURCE_UNSPLASH));
+
   if (hasError) {
     return (
       <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-linear-to-br from-slate-200 to-slate-100 text-slate-500">
@@ -69,7 +77,7 @@ export function ReferenceImageDisplay({
       alt={title || 'Reference image'}
       fill
       sizes={sizes}
-      unoptimized={isInlineReferenceImage(src)}
+      unoptimized={!useNextImageOptimization}
       className={className}
       onError={() => setHasError(true)}
     />

@@ -37,7 +37,7 @@ function rowToComment(
   isHidden = false,
 ): BoardComment {
   const isRead = commentsLastReadAt
-    ? new Date(row.created_at).getTime() <= new Date(commentsLastReadAt).getTime()
+    ? new Date(row.updated_at).getTime() <= new Date(commentsLastReadAt).getTime()
     : false;
 
   return {
@@ -196,6 +196,37 @@ export function useBoardComments({
       .on(
         'postgres_changes',
         {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'board_comments',
+          filter: `board_id=eq.${boardId}`,
+        },
+        (payload) => {
+          const row = payload.new as CommentRow;
+          setComments((current) => {
+            const index = current.findIndex((comment) => comment.id === row.id);
+            if (index === -1) return current;
+
+            const author = resolveAuthorName(
+              row,
+              currentUserId,
+              authorNameRef,
+              authorNameByUserIdRef.current,
+            );
+
+            authorNameByUserIdRef.current.set(row.user_id, author);
+
+            const updated = rowToComment(row, author, commentsLastReadAtRef.current, current[index]?.isHidden);
+            const next = [...current];
+            next[index] =
+              row.user_id === currentUserId ? { ...updated, isRead: true } : updated;
+            return sortComments(next);
+          });
+        },
+      )
+      .on(
+        'postgres_changes',
+        {
           event: 'DELETE',
           schema: 'public',
           table: 'board_comments',
@@ -283,6 +314,54 @@ export function useBoardComments({
     [boardId, comments, enabled],
   );
 
+  const updateComment = useCallback(
+    async (commentId: string, body: string): Promise<boolean> => {
+      const text = body.trim();
+      if (!text || !enabled) return false;
+
+      const previous = comments;
+      const now = new Date().toISOString();
+      setComments((current) =>
+        sortComments(
+          current.map((comment) =>
+            comment.id === commentId
+              ? { ...comment, body: text, updatedAt: now, isRead: true }
+              : comment,
+          ),
+        ),
+      );
+
+      try {
+        const data = await apiFetch<{ comment: BoardComment }>(
+          `/api/boards/${boardId}/comments/${commentId}`,
+          {
+            method: 'PATCH',
+            body: JSON.stringify({ body: text }),
+          },
+        );
+
+        setComments((current) =>
+          sortComments(
+            current.map((comment) =>
+              comment.id === commentId
+                ? {
+                    ...data.comment,
+                    isRead: true,
+                    isHidden: comment.isHidden,
+                  }
+                : comment,
+            ),
+          ),
+        );
+        return true;
+      } catch {
+        setComments(previous);
+        return false;
+      }
+    },
+    [boardId, comments, enabled],
+  );
+
   const patchCommentState = useCallback(
     (commentId: string, patch: Partial<Pick<BoardComment, 'isRead' | 'isHidden'>>) => {
       setComments((current) =>
@@ -302,6 +381,7 @@ export function useBoardComments({
     posting,
     postComment,
     deleteComment,
+    updateComment,
     patchCommentState,
     refresh,
   };

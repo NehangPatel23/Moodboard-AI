@@ -1,4 +1,4 @@
-import type { Board, BoardTemplate, ReferenceItem } from '@/types/board';
+import type { Board, BoardTemplate, ReferenceItem, TypographyItem } from '@/types/board';
 import { apiFetch } from '@/lib/api-client';
 import {
   REFERENCE_IMAGE_SOURCE,
@@ -37,6 +37,56 @@ export async function fetchReferenceImageSearch(input: {
   return apiFetch<ReferenceImageSearchResult>('/api/reference-images/search', {
     method: 'POST',
     body: JSON.stringify(input),
+  });
+}
+
+export async function fetchReferenceImageUpload(input: {
+  file: File;
+  boardId: string;
+  referenceId: string;
+}): Promise<{ imageUrl: string }> {
+  const formData = new FormData();
+  formData.append('file', input.file);
+  formData.append('boardId', input.boardId);
+  formData.append('referenceId', input.referenceId);
+
+  const response = await fetch('/api/reference-images/upload', {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+  });
+
+  const data = (await response.json()) as { imageUrl?: string; error?: string };
+  if (!response.ok) {
+    throw new Error(data.error ?? 'Upload failed');
+  }
+
+  if (!data.imageUrl) {
+    throw new Error('Upload did not return an image URL');
+  }
+
+  return { imageUrl: data.imageUrl };
+}
+
+export type TypographySuggestionResult = {
+  typography: TypographyItem[];
+  source: 'gemini' | 'mock';
+  notice?: string;
+};
+
+export async function fetchTypographySuggestions(
+  board: Pick<Board, 'id' | 'prompt' | 'mood' | 'summary' | 'tone' | 'typography'>,
+): Promise<TypographySuggestionResult> {
+  return apiFetch<TypographySuggestionResult>('/api/generate/typography', {
+    method: 'POST',
+    body: JSON.stringify({
+      boardId: board.id,
+      prompt: board.prompt,
+      mood: board.mood,
+      summary: board.summary,
+      tone: board.tone,
+      typography: board.typography,
+    }),
   });
 }
 

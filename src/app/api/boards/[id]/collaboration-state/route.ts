@@ -42,7 +42,7 @@ export async function GET(_request: Request, context: RouteContext) {
         .from('board_comments')
         .select('id', { count: 'exact', head: true })
         .eq('board_id', id)
-        .gt('created_at', state.commentsLastReadAt ?? '1970-01-01T00:00:00.000Z'),
+        .gt('updated_at', state.commentsLastReadAt ?? '1970-01-01T00:00:00.000Z'),
       admin
         .from('board_activity')
         .select('id', { count: 'exact', head: true })
@@ -120,7 +120,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         .from('board_comments')
         .select('id', { count: 'exact', head: true })
         .eq('board_id', id)
-        .gt('created_at', state.commentsLastReadAt ?? '1970-01-01T00:00:00.000Z'),
+        .gt('updated_at', state.commentsLastReadAt ?? '1970-01-01T00:00:00.000Z'),
       admin
         .from('board_activity')
         .select('id', { count: 'exact', head: true })

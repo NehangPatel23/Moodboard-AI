@@ -47,7 +47,7 @@ function rowToComment(
     body: row.body,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    isRead: isCollaborationItemRead(row.created_at, commentsLastReadAt, override?.isRead),
+    isRead: isCollaborationItemRead(row.updated_at, commentsLastReadAt, override?.isRead),
     isHidden: override?.isHidden ?? false,
   };
 }

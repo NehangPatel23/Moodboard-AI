@@ -9,6 +9,9 @@ const PEXELS_HOST = 'images.pexels.com';
 
 export const REFERENCE_IMAGE_SOURCE = 'Generated';
 export const REFERENCE_IMAGE_SOURCE_PEXELS = 'Pexels';
+export const REFERENCE_IMAGE_SOURCE_UNSPLASH = 'Unsplash';
+export const REFERENCE_IMAGE_SOURCE_CUSTOM = 'Custom';
+export const REFERENCE_IMAGE_SOURCE_UPLOAD = 'Upload';
 
 export type ReferenceImageInput = {
   title: string;
@@ -46,8 +49,16 @@ export function isPexelsImageUrl(url?: string): boolean {
   return Boolean(url?.includes(PEXELS_HOST));
 }
 
-export function isSupabaseStorageImageUrl(url?: string): boolean {
-  return Boolean(url?.includes('/storage/v1/object/public/reference-images/'));
+export function isUnsplashImageUrl(url?: string): boolean {
+  return Boolean(url?.includes(LEGACY_UNSPLASH_HOST) || url?.includes('unsplash.com'));
+}
+
+export function isUploadedReferenceImageUrl(url?: string): boolean {
+  return Boolean(url?.includes('/storage/v1/object/public/reference-uploads/'));
+}
+
+export function isCustomReferenceImage(source?: string): boolean {
+  return source === REFERENCE_IMAGE_SOURCE_CUSTOM || source === REFERENCE_IMAGE_SOURCE_UPLOAD;
 }
 
 export function needsReferenceImageUpgrade(reference: {
@@ -57,7 +68,9 @@ export function needsReferenceImageUpgrade(reference: {
   const url = reference.imageUrl?.trim();
   if (!url) return true;
   if (isPexelsImageUrl(url)) return false;
-  if (isSupabaseStorageImageUrl(url)) return false;
+  if (isUnsplashImageUrl(url) && reference.source === REFERENCE_IMAGE_SOURCE_UNSPLASH) return false;
+  if (isUploadedReferenceImageUrl(url)) return false;
+  if (isCustomReferenceImage(reference.source) && url.startsWith('http')) return false;
   if (url.includes(LEGACY_UNSPLASH_HOST)) return true;
   if (url.includes(LEGACY_POLLINATIONS_HOST)) return true;
   if (isInlineReferenceImage(url)) return true;

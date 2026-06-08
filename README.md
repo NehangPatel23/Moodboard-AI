@@ -3,9 +3,9 @@
 > **Status:** Active Development (MVP + Production Deployed)
 > **Purpose:** GitHub README + internal handoff document for future development, AI agents, and new contributors
 > **Live:** Deployed on Vercel with Supabase + Gemini free tier
-> **Next feature:** Expanded reference search APIs
+> **Next feature:** Landing polish and advanced reference sources (Behance, Dribbble, etc.)
 
-**Setup guides:** [`docs/MANUAL_SETUP.md`](docs/MANUAL_SETUP.md) · [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md) · [`docs/GEMINI_SETUP.md`](docs/GEMINI_SETUP.md) · [`docs/PEXELS_SETUP.md`](docs/PEXELS_SETUP.md) · [`docs/DEPLOY.md`](docs/DEPLOY.md)
+**Setup guides:** [`docs/MANUAL_SETUP.md`](docs/MANUAL_SETUP.md) · [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md) · [`docs/GEMINI_SETUP.md`](docs/GEMINI_SETUP.md) · [`docs/REFERENCE_PHOTOS.md`](docs/REFERENCE_PHOTOS.md) · [`docs/DEPLOY.md`](docs/DEPLOY.md)
 
 MoodBoard AI is an AI-assisted creative direction and moodboarding platform built to help users turn vague ideas into structured visual direction.
 
@@ -29,7 +29,7 @@ It is currently a working product foundation with:
 - View-only public sharing at `/share/[id]` and discovery at `/discover`
 - Vercel Analytics
 
-The app is not finished. Core UX, persistence, auth, AI text generation, Pexels reference photos, public sharing, discovery, team collaboration, real-time co-editing, board comments, and activity replay are in place; incremental design polish and expanded reference search are next.
+The app is not finished. Core UX, persistence, auth, AI text generation, reference photos (Pexels + Unsplash + manual import), public sharing, discovery, team collaboration, real-time co-editing, board comments (with editing), AI typography suggestions, PNG export, and activity replay are in place; landing polish and advanced reference APIs are next.
 
 ---
 
@@ -102,7 +102,7 @@ The client shows a live preview as the draft arrives, then fills reference slots
 **Setup:**
 
 1. Optionally add `GEMINI_API_KEY` to `.env.local` (see [`.env.local.example`](.env.local.example) and [`docs/GEMINI_SETUP.md`](docs/GEMINI_SETUP.md)).
-2. Optionally add `PEXELS_API_KEY` for real reference photos ([`docs/PEXELS_SETUP.md`](docs/PEXELS_SETUP.md)).
+2. Optionally add `PEXELS_API_KEY` and `UNSPLASH_ACCESS_KEY` for stock reference photos ([`docs/REFERENCE_PHOTOS.md`](docs/REFERENCE_PHOTOS.md)).
 3. Run `npm run verify:generate` to confirm Gemini connectivity or mock fallback.
 4. Create a board at `/app/new` or from `/templates`.
 
@@ -503,7 +503,7 @@ User-configurable toggle that gates the keyboard-driven slideshow on the share/v
 #### Data Tools
 
 - Import boards (JSON)
-- Export boards (JSON backup)
+- Export boards (JSON backup or PNG moodboard)
 - **Reset preferences** (restores settings to defaults, keeps boards)
 - **Danger zone** reset (deletes all boards and restores defaults)
 - Cloud sync status indicator
@@ -716,19 +716,20 @@ Requires migration `003_board_collaboration.sql`.
 ```txt
 GET    /api/boards/[id]/comments
 POST   /api/boards/[id]/comments
+PATCH  /api/boards/[id]/comments/[commentId]
 DELETE /api/boards/[id]/comments/[commentId]
 ```
 
 - Slide-over comments panel in the board editor (owner, editor, viewer)
-- Live comment sync via Realtime on `board_comments`
-- Authors and owners can delete comments
+- Live comment sync via Realtime on `board_comments` (INSERT, UPDATE, DELETE)
+- Authors can edit their own comments; owners can edit any comment
+- Owners can delete comments
 
 Requires migration `006_board_realtime_comments.sql`.
 
 Planned:
 
 - Live cursors and character-level sync
-- Comment editing
 
 ### Version History
 
@@ -742,21 +743,21 @@ Restore previous versions.
 
 ## Future Features
 
-### Reference Search (partial — Pexels done)
+### Reference Search — DONE (Pexels + Unsplash + manual import)
 
-Implemented: Pexels stock photo search during board enrich and **Find photo** in the reference editor.
+Implemented: Pexels → Unsplash → demo placeholder chain during enrich and **Find photo**; **Apply URL** and **Upload file** in the reference editor. See [`docs/REFERENCE_PHOTOS.md`](docs/REFERENCE_PHOTOS.md).
 
 Planned additions:
 
-- Behance, Dribbble, Pinterest-like sources (requires legitimate APIs or manual import UX)
+- Behance, Dribbble, Pinterest-like sources (requires legitimate APIs)
 
-### AI Typography Suggestions
+### AI Typography Suggestions — DONE
 
-Generate:
+**Suggest typography** in the board editor calls `POST /api/generate/typography` (Gemini JSON + demo fallback).
 
-- Font pairings
-- Hierarchies
-- Usage recommendations
+### Visual Board Export — DONE
+
+Export modal offers **JSON** backup and **PNG moodboard** capture (title, palette, typography, references).
 
 ### AI Brand Strategy
 
@@ -900,9 +901,17 @@ Supabase Realtime presence, live board sync on save, conflict banner, and board 
 
 Activity feed with structured change replay, per-item read/hide, owner-only delete, and collaboration retention settings. Migrations `008`–`013`. Verify with `npm run verify:collaboration`.
 
-### 10. Reference Photos (Pexels) — DONE
+### 10. Reference Photos — DONE
 
-Pexels search during board enrich and **Find photo** in the reference editor (`POST /api/reference-images/search`), with SVG demo placeholders when Pexels is unavailable. See [`docs/PEXELS_SETUP.md`](docs/PEXELS_SETUP.md).
+Pexels → Unsplash → demo placeholder during enrich and **Find photo**; manual **Apply URL** / **Upload file** in the reference editor. See [`docs/REFERENCE_PHOTOS.md`](docs/REFERENCE_PHOTOS.md).
+
+### 11. Comment Editing — DONE
+
+`PATCH /api/boards/[id]/comments/[commentId]` with inline edit UI and Realtime UPDATE sync.
+
+### 12. AI Typography + PNG Export — DONE
+
+**Suggest typography** (`POST /api/generate/typography`) and **Download PNG** in the export modal.
 
 ---
 
@@ -929,10 +938,10 @@ Implemented:
 - Empty states
 - Public sharing (`/share/[id]`) and discovery (`/discover`)
 
-Database persistence, Supabase Auth, **progressive AI text generation** (draft → enrich + live preview), **Pexels reference photos**, theme sync (including TopBar toggle), production deploy, view-only public sharing, discover, **team collaboration (MVP)**, **real-time co-editing**, **board comments**, and **activity replay** are implemented.
+Database persistence, Supabase Auth, **progressive AI text generation** (draft → enrich + live preview), **reference photos** (Pexels + Unsplash + manual import), **AI typography suggestions**, **PNG export**, theme sync (including TopBar toggle), production deploy, view-only public sharing, discover, **team collaboration (MVP)**, **real-time co-editing**, **board comments with editing**, and **activity replay** are implemented.
 
-1. Expanded reference search APIs (Behance, Dribbble, etc.)
-2. Landing page — deferred unless targeted polish is requested
+1. Landing page — deferred unless targeted polish is requested
+2. Advanced reference APIs (Behance, Dribbble, etc.)
 
 ---
 
@@ -944,7 +953,7 @@ Important context:
 
 - Landing page full redesign was **deferred** (current design preferred)
 - Theme **sync** across landing ↔ app is fixed; incremental visual polish remains
-- AI generation uses **Gemini free tier** (`gemini-2.5-flash` → `gemini-2.5-flash-lite` → demo fallback) via staged **`POST /api/generate/draft` → `POST /api/generate/enrich`**. Set `GEMINI_API_KEY` and `PEXELS_API_KEY` locally and on Vercel.
+- AI generation uses **Gemini free tier** (`gemini-2.5-flash` → `gemini-2.5-flash-lite` → demo fallback) via staged **`POST /api/generate/draft` → `POST /api/generate/enrich`**. Set `GEMINI_API_KEY`, `PEXELS_API_KEY`, and `UNSPLASH_ACCESS_KEY` locally and on Vercel.
 - **Progressive preview** — [`GenerationPreview`](src/components/creation/GenerationPreview.tsx) on `/app/new` and `/templates`; templates linger ~4s on completed preview before editor redirect
 - **Template-aware Gemini** — `buildTemplateGenerationPrompt()` sends full template context; no post-generation template overlay on the Gemini path
 - **TopBar theme toggle** — sun/moon control next to search; persists across navigation
@@ -955,15 +964,17 @@ Important context:
 - **Discover** at `/discover` — browse and search public shared boards
 - **Collaboration** — invite by email with editor/viewer roles; accept at `/invite/[token]`; dashboard **With me** filter (migration `003_board_collaboration.sql`)
 - **Real-time co-editing** — presence avatars, live board sync on collaborator save, conflict banner for unsaved local edits (migration `006_board_realtime_comments.sql`)
-- **Board comments** — slide-over panel with live sync; `GET/POST/DELETE /api/boards/[id]/comments`
+- **Board comments** — slide-over panel with live sync; `GET/POST/PATCH/DELETE /api/boards/[id]/comments`
 - **Board activity + replay** — Activity panel, structured change replay, read/hide, owner-only delete (migrations `008`–`013`; verify with `npm run verify:collaboration`)
-- **Reference photos** — Pexels during enrich + **Find photo** in reference editor (`POST /api/reference-images/search`); demo SVG placeholders as fallback. See [`docs/PEXELS_SETUP.md`](docs/PEXELS_SETUP.md)
+- **Reference photos** — Pexels → Unsplash → placeholder during enrich + **Find photo**; **Apply URL** / **Upload file** in reference editor. See [`docs/REFERENCE_PHOTOS.md`](docs/REFERENCE_PHOTOS.md)
+- **AI typography** — **Suggest typography** via `POST /api/generate/typography`
+- **Visual export** — JSON backup + PNG moodboard in export modal
 - **Design system Phase 1 + 2:** board editor + collaboration/creation clusters use semantic tokens; `globals.css` board-editor override hacks removed
-- **Next features:** expanded reference search APIs
+- **Next features:** landing polish, advanced reference APIs
 - Board editor handles refresh correctly (loads from Supabase after hydration; no false "not found")
 - Settings controls are all wired to real behavior (theme, reduce motion / focus rings, default visibility, presentation mode, workspace identity)
 
-When resuming work, focus on expanded reference search and optional landing polish.
+When resuming work, focus on landing polish and advanced reference APIs.
 
 ---
 

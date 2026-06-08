@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { Archive, Eye, EyeOff, MessageSquare, Trash2, X } from 'lucide-react';
+import { Archive, Eye, EyeOff, MessageSquare, Pencil, Trash2, X } from 'lucide-react';
 import type { BoardComment } from '@/types/board';
 import { formatDateTime } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -25,8 +25,10 @@ type BoardCommentsPanelProps = {
   loading: boolean;
   posting: boolean;
   isOwner: boolean;
+  currentUserId: string | null;
   onClose: () => void;
   onPost: (body: string) => Promise<boolean>;
+  onUpdate?: (commentId: string, body: string) => Promise<boolean>;
   onDelete: (commentId: string) => Promise<boolean>;
   onMarkAllRead?: () => Promise<boolean>;
   onToggleRead?: (commentId: string, isRead: boolean) => Promise<boolean>;
@@ -42,8 +44,10 @@ export function BoardCommentsPanel({
   loading,
   posting,
   isOwner,
+  currentUserId,
   onClose,
   onPost,
+  onUpdate,
   onDelete,
   onMarkAllRead,
   onToggleRead,
@@ -54,6 +58,9 @@ export function BoardCommentsPanel({
   const [draft, setDraft] = useState('');
   const [filter, setFilter] = useState<PanelFilter>('all');
   const [pendingDelete, setPendingDelete] = useState<BoardComment | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const markedReadRef = useRef(false);
@@ -141,6 +148,44 @@ export function BoardCommentsPanel({
 
     showToast('Failed to delete comment.', 'destructive');
   };
+
+  const canEditComment = (comment: BoardComment) =>
+    Boolean(onUpdate && (isOwner || comment.userId === currentUserId));
+
+  const startEditing = (comment: BoardComment) => {
+    setEditingCommentId(comment.id);
+    setEditDraft(comment.body);
+  };
+
+  const cancelEditing = () => {
+    setEditingCommentId(null);
+    setEditDraft('');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingCommentId || !onUpdate) return;
+
+    const text = editDraft.trim();
+    if (!text) {
+      showToast('Comment cannot be empty.', 'destructive');
+      return;
+    }
+
+    setSavingEdit(true);
+    const ok = await onUpdate(editingCommentId, text);
+    setSavingEdit(false);
+
+    if (ok) {
+      cancelEditing();
+      showToast('Comment updated.', 'success');
+      return;
+    }
+
+    showToast('Failed to update comment.', 'destructive');
+  };
+
+  const isEdited = (comment: BoardComment) =>
+    new Date(comment.updatedAt).getTime() > new Date(comment.createdAt).getTime() + 1000;
 
   const handleMarkAllRead = async () => {
     if (!onMarkAllRead) return;
@@ -306,7 +351,10 @@ export function BoardCommentsPanel({
                             </span>
                           ) : null}
                         </div>
-                        <p className="text-xs text-(--text-muted)">{formatDateTime(comment.createdAt)}</p>
+                        <p className="text-xs text-(--text-muted)">
+                          {formatDateTime(comment.createdAt)}
+                          {isEdited(comment) ? ' (edited)' : ''}
+                        </p>
                       </div>
                       <div className="flex items-center gap-1">
                         {filter === 'hidden' ? (
@@ -355,6 +403,18 @@ export function BoardCommentsPanel({
                                 <Archive className="h-4 w-4" />
                               </Button>
                             ) : null}
+                            {canEditComment(comment) ? (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => startEditing(comment)}
+                                className="h-8 w-8 rounded-full text-(--text-muted) hover:text-(--text-strong)"
+                                aria-label={`Edit comment by ${comment.authorName}`}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            ) : null}
                             {isOwner ? (
                               <Button
                                 type="button"
@@ -371,9 +431,41 @@ export function BoardCommentsPanel({
                         )}
                       </div>
                     </div>
-                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-(--text)">
-                      {comment.body}
-                    </p>
+                    {editingCommentId === comment.id ? (
+                      <div className="mt-3 space-y-3">
+                        <Textarea
+                          value={editDraft}
+                          onChange={(event) => setEditDraft(event.target.value)}
+                          rows={3}
+                          className="min-h-24 rounded-2xl border-(--border) bg-(--background)"
+                        />
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={cancelEditing}
+                            disabled={savingEdit}
+                            className="rounded-full"
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => void handleSaveEdit()}
+                            disabled={savingEdit || !editDraft.trim()}
+                            className="rounded-full"
+                          >
+                            {savingEdit ? 'Saving…' : 'Save'}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-(--text)">
+                        {comment.body}
+                      </p>
+                    )}
                   </li>
                 ))}
               </ul>

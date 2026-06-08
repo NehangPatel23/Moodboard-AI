@@ -22,7 +22,7 @@ type CollaborationStateRow = {
 };
 
 export function isCollaborationItemRead(
-  createdAt: string,
+  activityAt: string,
   lastReadAt: string | null | undefined,
   readOverride?: boolean | null,
 ): boolean {
@@ -30,7 +30,20 @@ export function isCollaborationItemRead(
     return readOverride;
   }
   if (!lastReadAt) return false;
-  return new Date(createdAt).getTime() <= new Date(lastReadAt).getTime();
+  return new Date(activityAt).getTime() <= new Date(lastReadAt).getTime();
+}
+
+export async function clearCommentItemStateOverrides(commentId: string): Promise<void> {
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from('board_collaboration_item_state')
+    .delete()
+    .eq('item_type', 'comment')
+    .eq('item_id', commentId);
+
+  if (error && !isMissingRelationError(error, 'board_collaboration_item_state')) {
+    throw error;
+  }
 }
 
 export type CollaborationItemOverride = {

@@ -29,7 +29,8 @@ In Vercel → **Settings** → **Environment Variables**, add:
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase `anon` public key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase `service_role` secret key |
 | `GEMINI_API_KEY` | Optional — enables free-tier Gemini AI (see [`docs/GEMINI_SETUP.md`](GEMINI_SETUP.md)) |
-| `PEXELS_API_KEY` | Optional — search-relevant reference photos (see [`docs/PEXELS_SETUP.md`](PEXELS_SETUP.md)) |
+| `PEXELS_API_KEY` | Optional — primary reference photo search (see [`docs/REFERENCE_PHOTOS.md`](REFERENCE_PHOTOS.md)) |
+| `UNSPLASH_ACCESS_KEY` | Optional — fallback reference photo search (see [`docs/REFERENCE_PHOTOS.md`](REFERENCE_PHOTOS.md)) |
 
 Apply to **Production**, **Preview**, and **Development**.
 
@@ -62,6 +63,7 @@ After deploying collaboration features, run these in the **production** Supabase
 6. [`supabase/migrations/011_user_settings_retention.sql`](../supabase/migrations/011_user_settings_retention.sql) — collaboration retention settings (hide + owner purge)
 7. [`supabase/migrations/012_collaboration_item_state.sql`](../supabase/migrations/012_collaboration_item_state.sql) — per-item read/hide overrides + owner-only comment delete
 8. [`supabase/migrations/013_activity_owner_delete.sql`](../supabase/migrations/013_activity_owner_delete.sql) — owner-only activity delete (non-owners use Hide)
+9. [`supabase/migrations/014_reference_uploads_storage.sql`](../supabase/migrations/014_reference_uploads_storage.sql) — public `reference-uploads` bucket for manual reference image uploads
 
 If collaboration was already live, confirm migrations `004` and `005` are applied before `006`.
 
@@ -75,7 +77,7 @@ Before manual testing, verify the connected Supabase project locally:
 npm run verify:collaboration
 ```
 
-Confirm **Production** env vars on Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, optional `GEMINI_API_KEY` (text generation), optional `PEXELS_API_KEY` (reference photos).
+Confirm **Production** env vars on Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, optional `GEMINI_API_KEY` (text generation), optional `PEXELS_API_KEY` and `UNSPLASH_ACCESS_KEY` (reference photos).
 
 | Test | Expected |
 |------|----------|
@@ -98,8 +100,13 @@ Confirm **Production** env vars on Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUB
 | Per-item hide / Hidden filter | Hide removes item from your view only; restore from Hidden filter |
 | Owner comment/activity delete | Trash visible only for owners; non-owners use Hide; app confirmation modal |
 | Settings → Collaboration | Hide/purge retention controls persist |
-| Reference editor → **Find photo** | Pexels photo or demo placeholder; persists after save + refresh (requires `PEXELS_API_KEY` for stock photos) |
-| `POST /api/boards/[id]/comments` without auth | 401 Unauthorized |
+| Reference editor → **Find photo** | Pexels or Unsplash photo (or demo placeholder); source badge shows correctly |
+| Reference editor → **Apply URL** | Custom `https://` image applied and persists after save |
+| Reference editor → **Upload file** | Image stored in Supabase; persists after save (requires migration 014) |
+| Board editor → **Suggest typography** | Typography rows update (Gemini or demo fallback) |
+| Board editor → Export → **Download PNG** | PNG moodboard downloads with palette, typography, references |
+| Comment author → Edit | Inline edit saves; shows “(edited)”; syncs via Realtime UPDATE |
+| `PATCH /api/boards/[id]/comments/[commentId]` without auth | 401 Unauthorized |
 
 ## Troubleshooting
 
@@ -109,7 +116,9 @@ Confirm **Production** env vars on Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUB
 
 **Demo generation only** — `GEMINI_API_KEY` not set in Vercel (mock fallback is intentional).
 
-**Pexels photos missing** — `PEXELS_API_KEY` not set in Vercel; references use SVG demo placeholders.
+**Pexels photos missing** — `PEXELS_API_KEY` not set; Unsplash may still apply if `UNSPLASH_ACCESS_KEY` is set. Otherwise references use SVG demo placeholders.
+
+**Reference upload fails** — Run migration `014_reference_uploads_storage.sql` and confirm `SUPABASE_SERVICE_ROLE_KEY` on Vercel.
 
 ## Portfolio demo script (~3 min)
 
@@ -117,10 +126,10 @@ Use this flow when recording or walking through the project:
 
 1. **Landing** — Open `/`, note gated CTAs; sign in with demo account (`admin@moodboard.ai` / `moodboard123`).
 2. **Create board** — Go to `/app/new`, enter a prompt, click **Generate board**. Point out progressive preview and **Powered by Gemini** badge (or demo fallback).
-3. **References** — Open the new board; show Pexels photos on reference cards (requires `PEXELS_API_KEY`). Edit a reference → **Find photo** → **Refresh photo** for a different result.
+3. **References** — Open the new board; show Pexels/Unsplash photos on reference cards. Edit a reference → **Find photo** → **Apply URL** or **Upload file**.
 4. **Collaboration** — Set board visibility to **Shared**; open **Collaborate** modal. In a second browser (or incognito), accept invite or open `/share/[id]`.
 5. **Realtime** — Save in one browser; show presence avatars, live sync, or conflict banner in the other.
 6. **Activity** — Open **Activity** panel; save a change; replay a prior save. Show read/hide badges.
 7. **Discover** — Visit `/discover` and search public boards.
 
-**Env checklist for demos:** Supabase (required) · Gemini (AI text) · Pexels (stock photos) · Vercel deploy on `main`.
+**Env checklist for demos:** Supabase (required) · Gemini (AI text) · Pexels + Unsplash (stock photos) · Vercel deploy on `main`.

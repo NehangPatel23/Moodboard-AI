@@ -1,15 +1,14 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { AiGenerateButton } from '@/components/shared/AiGenerateButton';
 
 type TemplateUseTemplateButtonProps = {
   isCreating: boolean;
   isActive?: boolean;
   onClick: () => void;
   className?: string;
+  idleClassName?: string;
   children?: ReactNode;
 };
 
@@ -18,25 +17,22 @@ export function TemplateUseTemplateButton({
   isActive = false,
   onClick,
   className,
+  idleClassName,
   children,
 }: TemplateUseTemplateButtonProps) {
-  const showGeminiAnimation = isCreating && isActive;
+  const loading = isCreating && isActive;
 
   return (
-    <Button
-      type="button"
-      onClick={onClick}
+    <AiGenerateButton
+      loading={loading}
       disabled={isCreating}
-      aria-busy={showGeminiAnimation}
-      className={cn(
-        'rounded-full',
-        showGeminiAnimation
-          ? 'gemini-creating-button border-slate-900/10 text-slate-900 shadow-[0_4px_20px_rgba(147,197,253,0.35)] hover:opacity-95'
-          : className,
-      )}
+      onClick={onClick}
+      idleLabel="Use template"
+      loadingLabel="Creating board..."
+      className={className}
+      idleClassName={idleClassName}
     >
-      {children ?? (showGeminiAnimation ? 'Creating board...' : 'Use template')}
-      <Sparkles className={cn('h-4 w-4', showGeminiAnimation && 'animate-pulse')} />
-    </Button>
+      {children ?? (loading ? 'Creating board...' : 'Use template')}
+    </AiGenerateButton>
   );
 }

@@ -46,12 +46,16 @@ import { BoardPresenceStrip } from '@/components/board/BoardPresenceStrip';
 import { RemoteUpdateBanner } from '@/components/board/RemoteUpdateBanner';
 import { ReferenceImageDisplay } from '@/components/board/ReferenceImageDisplay';
 import { ReferenceImageSearchButton } from '@/components/board/ReferenceImageSearchButton';
-import { getReferenceSourceLabel, isPexelsReference } from '@/lib/reference-source-label';
+import { AiGenerateButton } from '@/components/shared/AiGenerateButton';
+import { getReferenceSourceLabel, isPexelsReference, isUnsplashReference } from '@/lib/reference-source-label';
 import {
   REFERENCE_IMAGE_SOURCE,
+  REFERENCE_IMAGE_SOURCE_CUSTOM,
+  REFERENCE_IMAGE_SOURCE_UPLOAD,
   buildReferenceImageUrl,
   sanitizeReferenceItem,
 } from '@/lib/reference-images';
+import { fetchReferenceImageUpload, fetchTypographySuggestions } from '@/lib/ai';
 import { formatDateTime } from '@/lib/utils';
 import {
   getFirstReplaySectionIndex,
@@ -351,6 +355,8 @@ function ReferenceEditorModal({
   onClose: () => void;
 }) {
   const [draft, setDraft] = useState(() => sanitizeReferenceItem(reference, board, 0));
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -377,6 +383,35 @@ function ReferenceEditorModal({
 
   const updateDraft = (patch: Partial<ReferenceItem>) => {
     setDraft((current) => ({ ...current, ...patch }));
+  };
+
+  const applyCustomUrl = () => {
+    const url = draft.imageUrl?.trim() ?? '';
+    if (!/^https:\/\/.+/i.test(url)) {
+      showToast('Enter a valid https:// image URL.', 'destructive');
+      return;
+    }
+
+    updateDraft({ imageUrl: url, source: REFERENCE_IMAGE_SOURCE_CUSTOM });
+    showToast('Custom image URL applied.', 'success');
+  };
+
+  const handleUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      const result = await fetchReferenceImageUpload({
+        file,
+        boardId: board.id,
+        referenceId: draft.id,
+      });
+      updateDraft({ imageUrl: result.imageUrl, source: REFERENCE_IMAGE_SOURCE_UPLOAD });
+      showToast('Image uploaded.', 'success');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Upload failed';
+      showToast(message, 'destructive');
+    } finally {
+      setUploading(false);
+    }
   };
 
   return createPortal(
@@ -439,7 +474,7 @@ function ReferenceEditorModal({
 
               <div className="flex flex-wrap gap-2">
                 <Badge variant="secondary">{draft.category}</Badge>
-                <Badge variant={isPexelsReference(draft.source, draft.imageUrl) ? 'default' : 'outline'}>
+                <Badge variant={isPexelsReference(draft.source, draft.imageUrl) || isUnsplashReference(draft.source, draft.imageUrl) ? 'default' : 'outline'}>
                   {getReferenceSourceLabel(draft.source, draft.imageUrl)}
                 </Badge>
               </div>
@@ -495,6 +530,36 @@ function ReferenceEditorModal({
                   referenceId={draft.id}
                   onResolved={(imageUrl, source) => {
                     updateDraft({ imageUrl, source });
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={applyCustomUrl}
+                  className="rounded-full"
+                >
+                  Apply URL
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="rounded-full"
+                >
+                  {uploading ? 'Uploading…' : 'Upload file'}
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = '';
+                    if (file) {
+                      void handleUpload(file);
+                    }
                   }}
                 />
               </div>
@@ -573,6 +638,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const sectionContentRef = useRef<HTMLDivElement>(null);
   const skipInitialSectionScroll = useRef(true);
+  const [typographyLoading, setTypographyLoading] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
   const [replayEvent, setReplayEvent] = useState<BoardActivityEvent | null>(null);
@@ -649,6 +715,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     posting: commentsPosting,
     postComment,
     deleteComment,
+    updateComment,
     patchCommentState,
     refresh: refreshComments,
   } = useBoardComments({
@@ -989,6 +1056,31 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
       ],
     }));
     showToast('Typography row added.', 'success');
+  };
+
+  const handleSuggestTypography = async () => {
+    if (!editorBoard) return;
+
+    setTypographyLoading(true);
+    try {
+      const result = await fetchTypographySuggestions(editorBoard);
+      updateDraft((current) => ({ ...current, typography: result.typography }));
+
+      if (result.notice) {
+        showToast(result.notice, 'default');
+        return;
+      }
+
+      showToast(
+        result.source === 'gemini' ? 'Typography updated with Gemini.' : 'Demo typography applied.',
+        'success',
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Typography suggestion failed';
+      showToast(message, 'destructive');
+    } finally {
+      setTypographyLoading(false);
+    }
   };
 
   const handleAddReference = () => {
@@ -1848,15 +1940,23 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
               </div>
 
               {canMutateBoard ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleAddTypography}
-                  className={editorGhostButtonClass}
-                >
-                  <Plus className="h-4 w-4" />
-                  Add row
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <AiGenerateButton
+                    loading={typographyLoading}
+                    onClick={() => void handleSuggestTypography()}
+                    idleLabel="Suggest typography"
+                    loadingLabel="Suggesting…"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleAddTypography}
+                    className={editorGhostButtonClass}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add row
+                  </Button>
+                </div>
               ) : null}
             </CardHeader>
 
@@ -2088,9 +2188,9 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
       <ExportModal
         open={exportOpen}
         board={editorBoard}
-        onExported={() => {
+        onExported={(format) => {
           setExportOpen(false);
-          showToast('Board exported as JSON.', 'success');
+          showToast(format === 'png' ? 'Board exported as PNG.' : 'Board exported as JSON.', 'success');
         }}
         onClose={() => setExportOpen(false)}
       />
@@ -2102,6 +2202,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         loading={commentsLoading}
         posting={commentsPosting}
         isOwner={isOwner}
+        currentUserId={auth.user?.id ?? null}
         onClose={() => setCommentsOpen(false)}
         onPost={async (body) => {
           const ok = await postComment(body);
@@ -2110,6 +2211,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
           }
           return ok;
         }}
+        onUpdate={updateComment}
         onDelete={deleteComment}
         onMarkAllRead={async () => {
           const ok = await markCommentsRead();

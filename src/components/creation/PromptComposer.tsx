@@ -22,10 +22,10 @@ import {
   type GenerationPhase,
 } from '@/components/creation/GenerationPreview';
 import { GenerationSourceBadge } from '@/components/creation/GenerationSourceBadge';
+import { AiGenerateButton } from '@/components/shared/AiGenerateButton';
 import {
   creationFocusRingClass,
   creationPanelClass,
-  creationPrimaryButtonClass,
   creationSectionClass,
   creationSuggestionButtonClass,
   creationTagPillClass,
@@ -446,15 +446,14 @@ export function PromptComposer() {
               <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-7">
                 <SuggestionPills suggestions={suggestions} onSelect={updatePrompt} />
 
-                <Button
-                  type="button"
-                  onClick={() => void handleGenerate()}
+                <AiGenerateButton
+                  loading={isGenerating}
                   disabled={!canGenerate}
-                  aria-busy={isGenerating}
-                  className={`rounded-full px-5 shadow-sm ${creationPrimaryButtonClass}`}
-                >
-                  {isGenerating ? 'Generating...' : 'Generate board'}
-                </Button>
+                  onClick={() => void handleGenerate()}
+                  idleLabel="Generate board"
+                  loadingLabel="Generating..."
+                  className="px-5 shadow-sm"
+                />
               </div>
 
               <p className="text-xs text-(--text-muted)">Press Ctrl/Cmd + Enter to generate faster.</p>

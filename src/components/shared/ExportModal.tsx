@@ -1,12 +1,16 @@
 'use client';
 
+import { useRef, useState } from 'react';
 import type { Board } from '@/types/board';
+import { toPng } from 'html-to-image';
 import { Button } from '@/components/ui/button';
+import { BoardExportCapture } from '@/components/board/BoardExportCapture';
+import { showToast } from '@/components/shared/toast-store';
 
 type ExportModalProps = {
   open: boolean;
   board: Board;
-  onExported: () => void;
+  onExported: (format: 'json' | 'png') => void;
   onClose: () => void;
 };
 
@@ -16,9 +20,12 @@ export function ExportModal({
   onExported,
   onClose,
 }: ExportModalProps) {
+  const captureRef = useRef<HTMLDivElement>(null);
+  const [exportingPng, setExportingPng] = useState(false);
+
   if (!open) return null;
 
-  function handleDownload() {
+  function handleDownloadJson() {
     const payload = JSON.stringify(board, null, 2);
 
     const blob = new Blob([payload], {
@@ -39,7 +46,36 @@ export function ExportModal({
 
     URL.revokeObjectURL(url);
 
-    onExported();
+    onExported('json');
+  }
+
+  async function handleDownloadPng() {
+    const node = captureRef.current;
+    if (!node) {
+      showToast('Export layout not ready.', 'destructive');
+      return;
+    }
+
+    setExportingPng(true);
+    try {
+      const dataUrl = await toPng(node, {
+        cacheBust: true,
+        pixelRatio: 2,
+      });
+
+      const anchor = document.createElement('a');
+      anchor.href = dataUrl;
+      anchor.download = `${board.title.replace(/\s+/g, '-').toLowerCase()}.png`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+
+      onExported('png');
+    } catch {
+      showToast('PNG export failed. Try again or export JSON instead.', 'destructive');
+    } finally {
+      setExportingPng(false);
+    }
   }
 
   return (
@@ -64,20 +100,26 @@ export function ExportModal({
             id="export-title"
             className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-[var(--text-strong)]"
           >
-            Download JSON
+            Download board
           </h2>
 
           <p
             id="export-description"
             className="text-sm leading-6 text-[var(--text-muted)]"
           >
-            Download the current board as JSON for backup or handoff.
+            Export the current board as JSON for backup or as a PNG moodboard for sharing.
           </p>
         </div>
 
-        <div className="mt-5 rounded-[1.75rem] border border-[var(--border)] bg-[var(--surface-subtle)] p-4 text-sm leading-6 text-[var(--text-muted)]">
-          Includes title, prompt, summary, palette, typography,
-          references, notes, timestamps, and visibility.
+        <div className="mt-5 space-y-3">
+          <div className="rounded-[1.75rem] border border-[var(--border)] bg-[var(--surface-subtle)] p-4 text-sm leading-6 text-[var(--text-muted)]">
+            <strong className="font-medium text-[var(--text-strong)]">JSON</strong> — full board
+            data including palette, typography, references, notes, and timestamps.
+          </div>
+          <div className="rounded-[1.75rem] border border-[var(--border)] bg-[var(--surface-subtle)] p-4 text-sm leading-6 text-[var(--text-muted)]">
+            <strong className="font-medium text-[var(--text-strong)]">PNG moodboard</strong> — visual
+            summary with title, palette swatches, typography, and reference thumbnails.
+          </div>
         </div>
 
         <div className="mt-6 flex flex-wrap justify-end gap-3">
@@ -92,12 +134,30 @@ export function ExportModal({
 
           <Button
             type="button"
-            onClick={handleDownload}
+            variant="outline"
+            onClick={handleDownloadJson}
             className="rounded-full"
           >
             Download JSON
           </Button>
+
+          <Button
+            type="button"
+            onClick={() => void handleDownloadPng()}
+            disabled={exportingPng}
+            className="rounded-full"
+          >
+            {exportingPng ? 'Exporting…' : 'Download PNG'}
+          </Button>
         </div>
+      </div>
+
+      <div
+        ref={captureRef}
+        aria-hidden="true"
+        className="pointer-events-none fixed -left-[9999px] top-0"
+      >
+        <BoardExportCapture board={board} />
       </div>
     </div>
   );
