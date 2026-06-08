@@ -64,6 +64,7 @@ After deploying collaboration features, run these in the **production** Supabase
 7. [`supabase/migrations/012_collaboration_item_state.sql`](../supabase/migrations/012_collaboration_item_state.sql) — per-item read/hide overrides + owner-only comment delete
 8. [`supabase/migrations/013_activity_owner_delete.sql`](../supabase/migrations/013_activity_owner_delete.sql) — owner-only activity delete (non-owners use Hide)
 9. [`supabase/migrations/014_reference_uploads_storage.sql`](../supabase/migrations/014_reference_uploads_storage.sql) — public `reference-uploads` bucket for manual reference image uploads
+10. [`supabase/migrations/015_board_snapshots.sql`](../supabase/migrations/015_board_snapshots.sql) — `board_snapshots` table for manual save and restore
 
 If collaboration was already live, confirm migrations `004` and `005` are applied before `006`.
 
@@ -105,6 +106,10 @@ Confirm **Production** env vars on Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUB
 | Reference editor → **Upload file** | Image stored in Supabase; persists after save (requires migration 014) |
 | Board editor → **Suggest typography** | Typography rows update (Gemini or demo fallback) |
 | Board editor → Export → **Download PNG** | PNG moodboard downloads with palette, typography, references |
+| Board editor → Export → **Download PDF** | PDF moodboard downloads scaled to A4 |
+| Board editor → **Suggest palette** | Palette rows update (Gemini or demo fallback) |
+| Board editor → **Snapshots** → Save / Restore | Snapshot persists; restore replaces board and logs activity (migration 015) |
+| Two browsers on same board — section presence | Collaborator section shown in presence strip and section bar |
 | Comment author → Edit | Inline edit saves; shows “(edited)”; syncs via Realtime UPDATE |
 | `PATCH /api/boards/[id]/comments/[commentId]` without auth | 401 Unauthorized |
 

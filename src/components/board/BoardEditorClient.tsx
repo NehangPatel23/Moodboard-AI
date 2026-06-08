@@ -39,6 +39,8 @@ import {
 } from '@/lib/auth-store';
 import { BoardCommentsPanel } from '@/components/board/BoardCommentsPanel';
 import { BoardActivityPanel } from '@/components/board/BoardActivityPanel';
+import { BoardSnapshotsPanel } from '@/components/board/BoardSnapshotsPanel';
+import { BoardSectionPresenceBar } from '@/components/board/BoardSectionPresenceBar';
 import { BoardReplayBanner } from '@/components/board/BoardReplayBanner';
 import { BoardReplayCallout, BoardReplaySectionBlock } from '@/components/board/BoardReplayCallout';
 import { BoardEditorSkeleton } from '@/components/board/BoardEditorSkeleton';
@@ -55,7 +57,7 @@ import {
   buildReferenceImageUrl,
   sanitizeReferenceItem,
 } from '@/lib/reference-images';
-import { fetchReferenceImageUpload, fetchTypographySuggestions } from '@/lib/ai';
+import { fetchPaletteSuggestions, fetchReferenceImageUpload, fetchTypographySuggestions } from '@/lib/ai';
 import { formatDateTime } from '@/lib/utils';
 import {
   getFirstReplaySectionIndex,
@@ -97,6 +99,7 @@ import {
   Lock,
   MessageSquare,
   History,
+  Camera,
 } from 'lucide-react';
 import { showToast } from '@/components/shared/toast-store';
 import {
@@ -639,8 +642,10 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const sectionContentRef = useRef<HTMLDivElement>(null);
   const skipInitialSectionScroll = useRef(true);
   const [typographyLoading, setTypographyLoading] = useState(false);
+  const [paletteLoading, setPaletteLoading] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
+  const [snapshotsOpen, setSnapshotsOpen] = useState(false);
   const [replayEvent, setReplayEvent] = useState<BoardActivityEvent | null>(null);
   const [pendingRemoteBoard, setPendingRemoteBoard] = useState<Board | null>(null);
   const [pendingRemoteSavedByName, setPendingRemoteSavedByName] = useState<string | null>(null);
@@ -648,6 +653,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const replayEventRef = useRef(replayEvent);
   const commentsButtonRef = useRef<HTMLButtonElement>(null);
   const activityButtonRef = useRef<HTMLButtonElement>(null);
+  const snapshotsButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     activeSectionIndexRef.current = activeSectionIndex;
@@ -692,6 +698,10 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     localUpdatedAt: editorBoard?.updatedAt ?? null,
     isDirty,
     enabled: realtimeEnabled,
+    activeSection: {
+      index: activeSectionIndex,
+      label: EDITOR_SECTION_META[EDITOR_SECTIONS[activeSectionIndex]].label,
+    },
     onRemoteBoard: handleRemoteBoard,
   });
 
@@ -1058,6 +1068,31 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     showToast('Typography row added.', 'success');
   };
 
+  const handleSuggestPalette = async () => {
+    if (!editorBoard) return;
+
+    setPaletteLoading(true);
+    try {
+      const result = await fetchPaletteSuggestions(editorBoard);
+      updateDraft((current) => ({ ...current, palette: result.palette }));
+
+      if (result.notice) {
+        showToast(result.notice, 'default');
+        return;
+      }
+
+      showToast(
+        result.source === 'gemini' ? 'Palette updated with Gemini.' : 'Demo palette applied.',
+        'success',
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Palette suggestion failed';
+      showToast(message, 'destructive');
+    } finally {
+      setPaletteLoading(false);
+    }
+  };
+
   const handleSuggestTypography = async () => {
     if (!editorBoard) return;
 
@@ -1240,6 +1275,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                   variant="outline"
                   onClick={() => {
                     setActivityOpen(false);
+                    setSnapshotsOpen(false);
                     setCommentsOpen(true);
                   }}
                   className={editorGhostButtonClass}
@@ -1261,6 +1297,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                   variant="outline"
                   onClick={() => {
                     setCommentsOpen(false);
+                    setSnapshotsOpen(false);
                     setActivityOpen(true);
                   }}
                   className={editorGhostButtonClass}
@@ -1272,6 +1309,23 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                       {unreadActivityCount} new
                     </span>
                   ) : null}
+                </Button>
+              ) : null}
+
+              {canEditBoard ? (
+                <Button
+                  ref={snapshotsButtonRef}
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setCommentsOpen(false);
+                    setActivityOpen(false);
+                    setSnapshotsOpen(true);
+                  }}
+                  className={editorGhostButtonClass}
+                >
+                  <Camera className="h-4 w-4" />
+                  Snapshots
                 </Button>
               ) : null}
 
@@ -1452,6 +1506,14 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 );
               })}
             </div>
+
+            {!isReplayMode ? (
+              <BoardSectionPresenceBar
+                users={presenceUsers}
+                activeSectionIndex={activeSectionIndex}
+                activeSectionLabel={EDITOR_SECTION_META[activeSection].label}
+              />
+            ) : null}
 
             <p className="text-center text-sm leading-6 text-(--text-muted)" aria-live="polite">
               {isReplayMode
@@ -1802,15 +1864,23 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
               </div>
 
               {canMutateBoard ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleAddPalette}
-                  className={editorGhostButtonClass}
-                >
-                  <Plus className="h-4 w-4" />
-                  Add color
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <AiGenerateButton
+                    loading={paletteLoading}
+                    onClick={() => void handleSuggestPalette()}
+                    idleLabel="Suggest palette"
+                    loadingLabel="Suggesting…"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleAddPalette}
+                    className={editorGhostButtonClass}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add color
+                  </Button>
+                </div>
               ) : null}
             </CardHeader>
 
@@ -2190,7 +2260,9 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         board={editorBoard}
         onExported={(format) => {
           setExportOpen(false);
-          showToast(format === 'png' ? 'Board exported as PNG.' : 'Board exported as JSON.', 'success');
+          const label =
+            format === 'png' ? 'PNG' : format === 'pdf' ? 'PDF' : 'JSON';
+          showToast(`Board exported as ${label}.`, 'success');
         }}
         onClose={() => setExportOpen(false)}
       />
@@ -2273,6 +2345,20 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
           return unhideItem('activity', activityId);
         }}
         returnFocusRef={activityButtonRef}
+      />
+
+      <BoardSnapshotsPanel
+        open={snapshotsOpen}
+        board={editorBoard}
+        canEdit={canMutateBoard}
+        onClose={() => setSnapshotsOpen(false)}
+        onRestored={(board) => {
+          setDraft(cloneBoard(board));
+          setIsDirty(false);
+          setSaveStatus('Saved');
+          void refreshActivity();
+        }}
+        returnFocusRef={snapshotsButtonRef}
       />
     </div>
   );

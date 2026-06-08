@@ -14,6 +14,8 @@ export type BoardPresenceUser = {
   name: string;
   role: BoardRole;
   status: BoardPresenceStatus;
+  sectionIndex?: number;
+  sectionLabel?: string;
 };
 
 type UseBoardRealtimeOptions = {
@@ -24,6 +26,7 @@ type UseBoardRealtimeOptions = {
   localUpdatedAt: string | null;
   isDirty: boolean;
   enabled: boolean;
+  activeSection?: { index: number; label: string };
   onRemoteBoard: (board: Board, savedByName: string | null) => void;
 };
 
@@ -67,6 +70,23 @@ function collectPresenceUsers(
   return Array.from(byUser.values());
 }
 
+function buildPresencePayload(
+  userId: string,
+  userName: string,
+  boardRole: BoardRole,
+  isDirty: boolean,
+  activeSection?: { index: number; label: string },
+): BoardPresenceUser {
+  return {
+    userId,
+    name: userName,
+    role: boardRole,
+    status: isDirty ? 'editing' : 'viewing',
+    sectionIndex: activeSection?.index,
+    sectionLabel: activeSection?.label,
+  };
+}
+
 export function useBoardRealtime({
   boardId,
   userId,
@@ -75,19 +95,23 @@ export function useBoardRealtime({
   localUpdatedAt,
   isDirty,
   enabled,
+  activeSection,
   onRemoteBoard,
 }: UseBoardRealtimeOptions) {
   const [presenceUsers, setPresenceUsers] = useState<BoardPresenceUser[]>([]);
   const onRemoteBoardRef = useRef(onRemoteBoard);
   const localUpdatedAtRef = useRef(localUpdatedAt);
   const isDirtyRef = useRef(isDirty);
+  const activeSectionRef = useRef(activeSection);
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const trackTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     onRemoteBoardRef.current = onRemoteBoard;
     localUpdatedAtRef.current = localUpdatedAt;
     isDirtyRef.current = isDirty;
-  }, [isDirty, localUpdatedAt, onRemoteBoard]);
+    activeSectionRef.current = activeSection;
+  }, [activeSection, isDirty, localUpdatedAt, onRemoteBoard]);
 
   useEffect(() => {
     if (!enabled || !userId || !boardRole) {
@@ -139,16 +163,22 @@ export function useBoardRealtime({
       .subscribe(async (status) => {
         if (status !== 'SUBSCRIBED') return;
 
-        await channel.track({
-          userId,
-          name: userName,
-          role: boardRole,
-          status: isDirtyRef.current ? 'editing' : 'viewing',
-        });
+        await channel.track(
+          buildPresencePayload(
+            userId,
+            userName,
+            boardRole,
+            isDirtyRef.current,
+            activeSectionRef.current,
+          ),
+        );
       });
 
     return () => {
       channelRef.current = null;
+      if (trackTimerRef.current !== null) {
+        window.clearTimeout(trackTimerRef.current);
+      }
       void channel.untrack();
       void supabase.removeChannel(channel);
     };
@@ -158,16 +188,24 @@ export function useBoardRealtime({
     const channel = channelRef.current;
     if (!channel || !enabled || !userId || !boardRole) return;
 
-    void channel.track({
-      userId,
-      name: userName,
-      role: boardRole,
-      status: isDirty ? 'editing' : 'viewing',
-    });
-  }, [boardRole, enabled, isDirty, userId, userName]);
+    if (trackTimerRef.current !== null) {
+      window.clearTimeout(trackTimerRef.current);
+    }
 
-  const activePresence =
-    enabled && userId && boardRole ? presenceUsers : [];
+    trackTimerRef.current = window.setTimeout(() => {
+      void channel.track(
+        buildPresencePayload(userId, userName, boardRole, isDirty, activeSection),
+      );
+    }, 80);
+
+    return () => {
+      if (trackTimerRef.current !== null) {
+        window.clearTimeout(trackTimerRef.current);
+      }
+    };
+  }, [activeSection, boardRole, enabled, isDirty, userId, userName]);
+
+  const activePresence = enabled && userId && boardRole ? presenceUsers : [];
 
   return { presenceUsers: activePresence };
 }

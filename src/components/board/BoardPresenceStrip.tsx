@@ -52,6 +52,14 @@ export function BoardPresenceStrip({ users, className }: BoardPresenceStripProps
         {users.length} online
         {overflow > 0 ? ` (+${overflow} more)` : ''}
       </p>
+      {visible.some((user) => user.sectionLabel) ? (
+        <p className="hidden text-xs text-(--text-muted) lg:block">
+          {visible
+            .filter((user) => user.sectionLabel)
+            .map((user) => `${user.name.split(' ')[0]} · ${user.sectionLabel}`)
+            .join(' · ')}
+        </p>
+      ) : null}
     </div>
   );
 }

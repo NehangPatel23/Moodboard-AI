@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useGatedHref } from '@/components/auth/use-gated-href';
+import { LANDING_FEATURE_CHIPS } from '@/components/landing/landing-features';
 
 const primaryButtonClass =
   'inline-flex h-11 items-center justify-center rounded-full border border-transparent bg-[var(--text-strong)]! px-5 text-sm font-medium text-[var(--background)]! shadow-[0_12px_30px_rgba(15,23,42,0.14)] transition-[transform,background-color,box-shadow,color,border-color] duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-[0_16px_36px_rgba(15,23,42,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] dark:border-white/10 dark:bg-white dark:text-slate-950 dark:shadow-[0_12px_30px_rgba(0,0,0,0.22)] dark:hover:bg-slate-200 dark:hover:shadow-[0_16px_36px_rgba(0,0,0,0.28)] dark:focus-visible:ring-offset-[var(--background)]';
@@ -42,8 +43,26 @@ export function Hero() {
           transition={{ duration: 0.75, delay: 0.14, ease: [0.22, 1, 0.36, 1] }}
         >
           MoodBoard AI helps designers, founders, and creators transform vague prompts into
-          palettes, typography, references, and clear creative direction.
+          palettes, typography, references, and clear creative direction — with collaboration
+          and export built in.
         </motion.p>
+
+        <motion.ul
+          className="mt-6 flex flex-wrap gap-2"
+          initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+          whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.35 }}
+          transition={{ duration: 0.7, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {LANDING_FEATURE_CHIPS.map((chip) => (
+            <li
+              key={chip}
+              className="rounded-full border border-(--border) bg-(--surface-elevated) px-3 py-1 text-xs font-medium text-(--text-muted)"
+            >
+              {chip}
+            </li>
+          ))}
+        </motion.ul>
 
         <motion.div
           className="mt-8 flex flex-wrap gap-3"

@@ -131,6 +131,16 @@ export type Board = {
   role?: BoardRole;
 };
 
+export type BoardSnapshot = {
+  id: string;
+  boardId: string;
+  userId: string;
+  actorName: string;
+  label: string | null;
+  boardData: Board;
+  createdAt: string;
+};
+
 export type BoardTemplatePaletteItem = {
   label: string;
   hex: string;

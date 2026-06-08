@@ -90,6 +90,28 @@ export async function fetchTypographySuggestions(
   });
 }
 
+export type PaletteSuggestionResult = {
+  palette: Board['palette'];
+  source: 'gemini' | 'mock';
+  notice?: string;
+};
+
+export async function fetchPaletteSuggestions(
+  board: Pick<Board, 'id' | 'prompt' | 'mood' | 'summary' | 'tone' | 'palette'>,
+): Promise<PaletteSuggestionResult> {
+  return apiFetch<PaletteSuggestionResult>('/api/generate/palette', {
+    method: 'POST',
+    body: JSON.stringify({
+      boardId: board.id,
+      prompt: board.prompt,
+      mood: board.mood,
+      summary: board.summary,
+      tone: board.tone,
+      palette: board.palette,
+    }),
+  });
+}
+
 export async function fetchGeneratedBoardDraft(prompt: string): Promise<GeneratedBoardDraft> {
   return apiFetch<GeneratedBoardDraft>('/api/generate/draft', {
     method: 'POST',

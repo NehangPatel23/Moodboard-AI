@@ -1,50 +1,10 @@
-import type { LucideIcon } from 'lucide-react';
-import { LayoutGrid, Palette, Sparkles, Type } from 'lucide-react';
-
-type Feature = {
-  title: string;
-  description: string;
-  icon: LucideIcon;
-  accent: string;
-  iconTone: string;
-};
-
-const features: Feature[] = [
-  {
-    title: 'AI creative direction',
-    description: 'Turn a vague prompt into mood, tone, and a concise design summary.',
-    icon: Sparkles,
-    accent: 'bg-sky-400/70',
-    iconTone: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
-  },
-  {
-    title: 'Curated palettes',
-    description: 'Generate a color system that feels intentional and easy to apply.',
-    icon: Palette,
-    accent: 'bg-emerald-400/70',
-    iconTone: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-  },
-  {
-    title: 'Typography pairing',
-    description: 'Suggest heading and body fonts with short usage notes.',
-    icon: Type,
-    accent: 'bg-amber-400/80',
-    iconTone: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
-  },
-  {
-    title: 'Composable boards',
-    description: 'Work with cards, notes, and references in a polished board layout.',
-    icon: LayoutGrid,
-    accent: 'bg-violet-400/70',
-    iconTone: 'bg-violet-500/10 text-violet-700 dark:text-violet-200',
-  },
-];
+import { landingFeatures } from '@/components/landing/landing-features';
 
 export function FeatureGrid() {
   return (
     <section className="py-6" aria-label="Core product capabilities">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {features.map((feature, index) => {
+        {landingFeatures.map((feature, index) => {
           const Icon = feature.icon;
 
           return (
@@ -66,9 +26,7 @@ export function FeatureGrid() {
                   <p className="text-lg font-medium tracking-tight text-(--text-strong)">
                     {feature.title}
                   </p>
-                  <p className="text-sm leading-6 text-(--text-muted)">
-                    {feature.description}
-                  </p>
+                  <p className="text-sm leading-6 text-(--text-muted)">{feature.description}</p>
                 </div>
               </div>
 
