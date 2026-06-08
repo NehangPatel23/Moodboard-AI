@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { GenerationSourceBadge } from '@/components/creation/GenerationSourceBadge';
@@ -528,6 +528,8 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const [isDirty, setIsDirty] = useState(false);
   const [editingReferenceIndex, setEditingReferenceIndex] = useState<number | null>(null);
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
+  const sectionContentRef = useRef<HTMLDivElement>(null);
+  const skipInitialSectionScroll = useRef(true);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [pendingRemoteBoard, setPendingRemoteBoard] = useState<Board | null>(null);
 
@@ -611,6 +613,15 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  useEffect(() => {
+    if (skipInitialSectionScroll.current) {
+      skipInitialSectionScroll.current = false;
+      return;
+    }
+
+    sectionContentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [activeSectionIndex]);
 
   if (isResolvingBoard) {
     return <BoardEditorSkeleton />;
@@ -1106,7 +1117,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         </div>
       </section>
 
-      <div className="space-y-6">
+      <div ref={sectionContentRef} className="space-y-6 scroll-mt-28">
         {activeSection === 'overview' ? (
           <Card className={panelClass}>
             <CardHeader>
