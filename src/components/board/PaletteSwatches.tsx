@@ -4,6 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import type { PaletteItem } from '@/types/board';
+import {
+  editorFieldClass,
+  editorLabelClass,
+  editorSettingsCardClass,
+  editorSettingsNestedClass,
+} from '@/components/board/board-editor-styles';
 import { Plus, Trash2 } from 'lucide-react';
 
 type PaletteSwatchesProps = {
@@ -15,7 +21,7 @@ type PaletteSwatchesProps = {
 
 export function PaletteSwatches({ palette, onChange, onAdd, onRemove }: PaletteSwatchesProps) {
   return (
-    <Card className="border-slate-200 bg-white/85">
+    <Card className={editorSettingsCardClass}>
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div>
           <CardTitle>Palette</CardTitle>
@@ -32,23 +38,24 @@ export function PaletteSwatches({ palette, onChange, onAdd, onRemove }: PaletteS
 
       <CardContent className="space-y-4">
         {palette.map((item, index) => (
-          <div key={item.id} className="rounded-3xl border border-slate-200 bg-slate-50/80 p-4">
-            <div className="mb-4 h-20 rounded-2xl border border-slate-200" style={{ backgroundColor: item.hex }} />
+          <div key={item.id} className={editorSettingsNestedClass}>
+            <div className="mb-4 h-20 rounded-2xl border border-(--border)" style={{ backgroundColor: item.hex }} />
 
             <div className="space-y-4">
               <div className="grid gap-2">
-                <label className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Color name</label>
+                <label className={editorLabelClass}>Color name</label>
                 <Input
                   value={item.label}
                   onChange={(e) => onChange(index, { ...item, label: e.target.value })}
                   placeholder="Ivory"
+                  className={editorFieldClass}
                 />
               </div>
 
               <div className="grid gap-2">
-                <label className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Color hex</label>
+                <label className={editorLabelClass}>Color hex</label>
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-14 items-center justify-center rounded-2xl border border-slate-200 bg-white p-1">
+                  <div className="flex h-11 w-14 items-center justify-center rounded-2xl border border-(--border) bg-(--surface-elevated) p-1">
                     <input
                       type="color"
                       value={item.hex}
@@ -61,17 +68,18 @@ export function PaletteSwatches({ palette, onChange, onAdd, onRemove }: PaletteS
                     value={item.hex}
                     onChange={(e) => onChange(index, { ...item, hex: e.target.value })}
                     placeholder="#000000"
-                    className="font-mono"
+                    className={`font-mono ${editorFieldClass}`}
                   />
                 </div>
               </div>
 
               <div className="grid gap-2">
-                <label className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Usage note</label>
+                <label className={editorLabelClass}>Usage note</label>
                 <Input
                   value={item.usage}
                   onChange={(e) => onChange(index, { ...item, usage: e.target.value })}
                   placeholder="Background and base surfaces"
+                  className={editorFieldClass}
                 />
               </div>
             </div>

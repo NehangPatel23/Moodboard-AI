@@ -1,6 +1,22 @@
 'use client';
 
 import type { BoardActivityChange } from '@/types/board';
+import {
+  editorReplayActionBadgeAddedClass,
+  editorReplayActionBadgeRemovedClass,
+  editorReplayActionBadgeUpdatedClass,
+  editorReplayAfterClass,
+  editorReplayAfterLabelClass,
+  editorReplayAfterTextClass,
+  editorReplayBeforeClass,
+  editorReplayBeforeLabelClass,
+  editorReplayBeforeTextClass,
+  editorReplayCalloutClass,
+  editorReplayRemovedClass,
+  editorReplayRemovedLabelClass,
+  editorReplayRemovedTextClass,
+  editorWarningLabelClass,
+} from '@/components/board/board-editor-styles';
 import { cn } from '@/lib/utils';
 
 function extractHex(value: string | null | undefined): string | null {
@@ -25,20 +41,11 @@ export function BoardReplayCallout({
 
   if (variant === 'removed') {
     return (
-      <div
-        className={cn(
-          'rounded-[1.75rem] border border-dashed border-red-300/80 bg-red-50/60 px-4 py-4 dark:border-red-900/50 dark:bg-red-950/20',
-          className,
-        )}
-      >
-        <p className="text-[10px] font-medium uppercase tracking-[0.24em] text-red-700 dark:text-red-300">
-          Removed in this save
-        </p>
+      <div className={cn(editorReplayRemovedClass, 'px-4 py-4', className)}>
+        <p className={editorReplayRemovedLabelClass}>Removed in this save</p>
         <p className="mt-2 text-sm font-medium text-(--text-strong)">{change.summary}</p>
         {change.before ? (
-          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-red-950/80 line-through dark:text-red-100/80">
-            {change.before}
-          </p>
+          <p className={cn('mt-2', editorReplayRemovedTextClass)}>{change.before}</p>
         ) : null}
       </div>
     );
@@ -46,25 +53,19 @@ export function BoardReplayCallout({
 
   return (
     <div
-      className={cn(
-        'rounded-2xl border border-amber-300/70 bg-amber-50/80 p-3 dark:border-amber-900/50 dark:bg-amber-950/20',
-        variant === 'card' && 'p-4',
-        className,
-      )}
+      className={cn(editorReplayCalloutClass, 'p-3', variant === 'card' && 'p-4', className)}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-medium uppercase tracking-[0.24em] text-amber-800 dark:text-amber-300">
-            Replay
-          </p>
+          <p className={editorWarningLabelClass}>Replay</p>
           <p className="mt-1 text-sm font-medium text-(--text-strong)">{change.summary}</p>
         </div>
         <span
           className={cn(
             'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.18em]',
-            change.action === 'added' && 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-            change.action === 'removed' && 'bg-red-500/10 text-red-700 dark:text-red-300',
-            change.action === 'updated' && 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
+            change.action === 'added' && editorReplayActionBadgeAddedClass,
+            change.action === 'removed' && editorReplayActionBadgeRemovedClass,
+            change.action === 'updated' && editorReplayActionBadgeUpdatedClass,
           )}
         >
           {change.action}
@@ -73,10 +74,8 @@ export function BoardReplayCallout({
 
       <div className={cn('mt-3 space-y-2', variant === 'inline' && 'grid gap-2 md:grid-cols-2')}>
         {change.before ? (
-          <div className="rounded-xl border border-red-200/70 bg-red-50/70 px-3 py-2 dark:border-red-900/40 dark:bg-red-950/20">
-            <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-red-700/80 dark:text-red-300/80">
-              Before
-            </p>
+          <div className={editorReplayBeforeClass}>
+            <p className={editorReplayBeforeLabelClass}>Before</p>
             <div className="mt-1 flex items-center gap-2">
               {beforeHex ? (
                 <span
@@ -85,18 +84,14 @@ export function BoardReplayCallout({
                   aria-hidden="true"
                 />
               ) : null}
-              <p className="whitespace-pre-wrap text-sm leading-6 text-red-950/90 line-through dark:text-red-100/90">
-                {change.before}
-              </p>
+              <p className={editorReplayBeforeTextClass}>{change.before}</p>
             </div>
           </div>
         ) : null}
 
         {change.after ? (
-          <div className="rounded-xl border border-emerald-200/70 bg-emerald-50/70 px-3 py-2 dark:border-emerald-900/40 dark:bg-emerald-950/20">
-            <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-emerald-700/80 dark:text-emerald-300/80">
-              {change.before ? 'After' : 'Added'}
-            </p>
+          <div className={editorReplayAfterClass}>
+            <p className={editorReplayAfterLabelClass}>{change.before ? 'After' : 'Added'}</p>
             <div className="mt-1 flex items-center gap-2">
               {afterHex ? (
                 <span
@@ -105,9 +100,7 @@ export function BoardReplayCallout({
                   aria-hidden="true"
                 />
               ) : null}
-              <p className="whitespace-pre-wrap text-sm leading-6 text-emerald-950/90 dark:text-emerald-100/90">
-                {change.after}
-              </p>
+              <p className={editorReplayAfterTextClass}>{change.after}</p>
             </div>
           </div>
         ) : null}

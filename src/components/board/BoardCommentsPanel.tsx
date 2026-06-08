@@ -10,6 +10,10 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { ConfirmationModal } from '@/components/shared/ConfirmationModal';
+import {
+  editorUnreadBadgeClass,
+  editorUnreadItemBorderClass,
+} from '@/components/board/board-editor-styles';
 import { showToast } from '@/components/shared/toast-store';
 
 type PanelFilter = 'all' | 'unread' | 'hidden';
@@ -287,7 +291,7 @@ export function BoardCommentsPanel({
                       'rounded-2xl border bg-(--surface-muted) px-4 py-3',
                       comment.isRead
                         ? 'border-(--border)'
-                        : 'border-l-4 border-l-amber-500 border-(--border)',
+                        : editorUnreadItemBorderClass,
                     ].join(' ')}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -297,7 +301,7 @@ export function BoardCommentsPanel({
                             {comment.authorName}
                           </p>
                           {!comment.isRead ? (
-                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-900 dark:bg-amber-900/40 dark:text-amber-100">
+                            <span className={editorUnreadBadgeClass}>
                               New
                             </span>
                           ) : null}

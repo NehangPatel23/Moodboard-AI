@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { Pencil, Trash2, X } from 'lucide-react';
 import { showToast } from '@/components/shared/toast-store';
 import { ReferenceImageDisplay } from '@/components/board/ReferenceImageDisplay';
+import { ReferenceImageSearchButton } from '@/components/board/ReferenceImageSearchButton';
 import { sanitizeReferenceItem } from '@/lib/reference-images';
 import type { Board } from '@/types/board';
 import {
@@ -23,7 +24,7 @@ import {
 
 type ReferenceCardProps = {
   reference: ReferenceItem;
-  board?: Pick<Board, 'prompt' | 'mood' | 'palette'>;
+  board?: Pick<Board, 'id' | 'prompt' | 'mood' | 'summary' | 'palette'>;
   readOnly?: boolean;
   onChange?: (next: ReferenceItem) => void;
   onRemove?: () => void;
@@ -41,7 +42,7 @@ function ReferenceEditorModal({
 }: {
   open: boolean;
   initialValue: ReferenceItem;
-  board?: Pick<Board, 'prompt' | 'mood' | 'palette'>;
+  board?: Pick<Board, 'id' | 'prompt' | 'mood' | 'summary' | 'palette'>;
   onSave: (next: ReferenceItem) => void;
   onClose: () => void;
 }) {
@@ -156,6 +157,14 @@ function ReferenceEditorModal({
 
             <div className="grid gap-2">
               <label className={editorLabelClass}>Image URL</label>
+              <ReferenceImageSearchButton
+                title={draft.title}
+                category={draft.category}
+                board={board}
+                referenceId={draft.id}
+                onResolved={(imageUrl, source) => updateDraft({ imageUrl, source })}
+                className="mb-2 w-fit rounded-full"
+              />
               <Textarea
                 value={draft.imageUrl}
                 onChange={(e) => updateDraft({ imageUrl: e.target.value })}

@@ -3,6 +3,12 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  editorFieldClass,
+  editorLabelClass,
+  editorSettingsCardClass,
+} from '@/components/board/board-editor-styles';
+
 type CreativeDirectionPanelProps = {
   summary: string;
   mood: string;
@@ -25,38 +31,49 @@ export function CreativeDirectionPanel({
   onTagsChange,
 }: CreativeDirectionPanelProps) {
   return (
-    <Card className="border-slate-200 bg-white/85">
+    <Card className={editorSettingsCardClass}>
       <CardHeader>
         <CardTitle>Direction, tone, and summary</CardTitle>
         <CardDescription>Adjust the core idea before refining palette, type, and references.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <label className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Mood</label>
-          <Input value={mood} onChange={(e) => onMoodChange(e.target.value)} placeholder="calm luxury" />
+          <label className={editorLabelClass}>Mood</label>
+          <Input
+            value={mood}
+            onChange={(e) => onMoodChange(e.target.value)}
+            placeholder="calm luxury"
+            className={editorFieldClass}
+          />
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Creative summary</label>
-          <Textarea value={summary} onChange={(e) => onSummaryChange(e.target.value)} className="min-h-35" />
+          <label className={editorLabelClass}>Creative summary</label>
+          <Textarea
+            value={summary}
+            onChange={(e) => onSummaryChange(e.target.value)}
+            className={`min-h-35 ${editorFieldClass}`}
+          />
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <label className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Tone descriptors</label>
+            <label className={editorLabelClass}>Tone descriptors</label>
             <Input
               value={toneText}
               onChange={(e) => onToneChange(e.target.value)}
               placeholder="minimal, warm, premium"
+              className={editorFieldClass}
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Tags</label>
+            <label className={editorLabelClass}>Tags</label>
             <Input
               value={tagsText}
               onChange={(e) => onTagsChange(e.target.value)}
               placeholder="wellness, editorial, soft contrast"
+              className={editorFieldClass}
             />
           </div>
         </div>

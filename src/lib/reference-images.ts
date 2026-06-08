@@ -46,6 +46,10 @@ export function isPexelsImageUrl(url?: string): boolean {
   return Boolean(url?.includes(PEXELS_HOST));
 }
 
+export function isSupabaseStorageImageUrl(url?: string): boolean {
+  return Boolean(url?.includes('/storage/v1/object/public/reference-images/'));
+}
+
 export function needsReferenceImageUpgrade(reference: {
   imageUrl?: string;
   source?: string;
@@ -53,6 +57,7 @@ export function needsReferenceImageUpgrade(reference: {
   const url = reference.imageUrl?.trim();
   if (!url) return true;
   if (isPexelsImageUrl(url)) return false;
+  if (isSupabaseStorageImageUrl(url)) return false;
   if (url.includes(LEGACY_UNSPLASH_HOST)) return true;
   if (url.includes(LEGACY_POLLINATIONS_HOST)) return true;
   if (isInlineReferenceImage(url)) return true;

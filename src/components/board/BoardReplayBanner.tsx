@@ -2,6 +2,11 @@
 
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import type { BoardActivityEvent } from '@/types/board';
+import {
+  editorWarningBannerClass,
+  editorWarningChipActiveClass,
+  editorWarningLabelClass,
+} from '@/components/board/board-editor-styles';
 import { formatDateTime } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -38,11 +43,11 @@ export function BoardReplayBanner({
     <div
       role="region"
       aria-label="Board replay controls"
-      className="sticky top-4 z-20 rounded-[1.75rem] border border-amber-300/80 bg-amber-50/95 px-4 py-4 shadow-[var(--shadow-card)] backdrop-blur-sm dark:border-amber-900/60 dark:bg-amber-950/90"
+      className={`sticky top-4 z-20 px-4 py-4 ${editorWarningBannerClass}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0 space-y-1">
-          <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-amber-800 dark:text-amber-300">
+          <p className={editorWarningLabelClass}>
             Board replay
           </p>
           <p className="text-sm font-medium text-(--text-strong)">
@@ -110,7 +115,7 @@ export function BoardReplayBanner({
                 className={[
                   'rounded-full border px-3 py-1 text-xs font-medium capitalize transition',
                   index === resolvedSectionIndex
-                    ? 'border-amber-500 bg-amber-100 text-amber-950 dark:bg-amber-900/50 dark:text-amber-100'
+                    ? editorWarningChipActiveClass
                     : 'border-(--border) bg-(--surface-elevated) text-(--text-muted) hover:text-(--text-strong)',
                 ].join(' ')}
               >

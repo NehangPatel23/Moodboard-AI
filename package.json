@@ -10,6 +10,7 @@
     "db:seed-demo": "node --env-file=.env.local scripts/seed-demo-user.mjs",
     "setup:supabase": "node scripts/setup-supabase.mjs",
     "setup:verify": "node --env-file=.env.local scripts/verify-supabase-setup.mjs",
+    "verify:collaboration": "node --env-file=.env.local scripts/verify-collaboration-migrations.mjs",
     "verify:generate": "node --env-file=.env.local scripts/verify-generate.mjs"
   },
   "dependencies": {

@@ -90,6 +90,7 @@ If collaboration was already live, confirm migrations `004` and `005` are applie
 | Per-item hide / Hidden filter | Hide removes item from your view only; restore from Hidden filter |
 | Owner comment/activity delete | Trash visible only for owners; non-owners use Hide; app confirmation modal |
 | Settings → Collaboration | Hide/purge retention controls persist |
+| Reference editor → **Find photo** | Pexels photo or demo placeholder; persists after save + refresh (requires `PEXELS_API_KEY` for stock photos) |
 | `POST /api/boards/[id]/comments` without auth | 401 Unauthorized |
 
 ## Troubleshooting

@@ -3,7 +3,7 @@
 > **Status:** Active Development (MVP + Production Deployed)
 > **Purpose:** GitHub README + internal handoff document for future development, AI agents, and new contributors
 > **Live:** Deployed on Vercel with Supabase + Gemini free tier
-> **Next feature:** Design system audit (incremental) and AI image generation
+> **Next feature:** Expanded reference search APIs
 
 **Setup guides:** [`docs/MANUAL_SETUP.md`](docs/MANUAL_SETUP.md) · [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md) · [`docs/GEMINI_SETUP.md`](docs/GEMINI_SETUP.md) · [`docs/PEXELS_SETUP.md`](docs/PEXELS_SETUP.md) · [`docs/DEPLOY.md`](docs/DEPLOY.md)
 
@@ -29,7 +29,7 @@ It is currently a working product foundation with:
 - View-only public sharing at `/share/[id]` and discovery at `/discover`
 - Vercel Analytics
 
-The app is not finished. Core UX, persistence, auth, AI generation, public sharing, discovery, team collaboration, real-time co-editing, and board comments are in place; incremental design polish and AI enhancements are next.
+The app is not finished. Core UX, persistence, auth, AI text generation, Pexels reference photos, public sharing, discovery, team collaboration, real-time co-editing, board comments, and activity replay are in place; incremental design polish and expanded reference search are next.
 
 ---
 
@@ -648,7 +648,7 @@ Goal:
 
 Implemented — see [AI Generation (Implemented)](#ai-generation-implemented). Optional `GEMINI_API_KEY` enables free-tier Gemini generation; otherwise demo/mock fallback.
 
-Remaining enhancements: AI image generation and expanded reference search APIs.
+Remaining enhancements: expanded reference search APIs (Behance, Dribbble, etc.).
 
 ### Database
 
@@ -884,9 +884,9 @@ Incremental polish only; full redesign was attempted and reverted. Current landi
 
 Google Gemini free-tier integration via staged `POST /api/generate/draft` → `POST /api/generate/enrich`, with live progressive preview on `/app/new` and `/templates`. See [AI Generation (Implemented)](#ai-generation-implemented).
 
-### 4. Design System Audit — IN PROGRESS
+### 4. Design System Audit — IN PROGRESS (Phase 2 done)
 
-Shadow tokens (`--shadow-card`, `--shadow-elevated`) added. **Phase 1 done:** board editor cluster (`BoardEditorClient`, `ReferenceCard`, `BoardHeader`, `StickyNote`, `TypographyPairingCard`) uses semantic tokens via [`board-editor-styles.ts`](src/components/board/board-editor-styles.ts); ~270 lines of `.board-editor-page` dark-mode CSS overrides removed from `globals.css`. Remaining: other board subcomponents, creation flow, landing polish.
+Shadow tokens (`--shadow-card`, `--shadow-elevated`) added. **Phase 1 done:** board editor cluster uses semantic tokens via [`board-editor-styles.ts`](src/components/board/board-editor-styles.ts). **Phase 2 done:** collaboration panels, creation flow, and settings cards tokenized. Remaining: landing polish (deferred).
 
 ### 5. Deploy to Production — DONE
 
@@ -903,6 +903,14 @@ Invites, roles (owner/editor/viewer), and permission-gated editing.
 ### 8. Real-Time Co-Editing + Comments — DONE
 
 Supabase Realtime presence, live board sync on save, conflict banner, and board comments panel. See [Team Collaboration (Implemented)](#team-collaboration-implemented). Migration `006_board_realtime_comments.sql`.
+
+### 9. Board Activity + Replay — DONE
+
+Activity feed with structured change replay, per-item read/hide, owner-only delete, and collaboration retention settings. Migrations `008`–`013`. Verify with `npm run verify:collaboration`.
+
+### 10. Reference Photos (Pexels) — DONE
+
+Pexels search during board enrich and **Find photo** in the reference editor (`POST /api/reference-images/search`), with SVG demo placeholders when Pexels is unavailable. See [`docs/PEXELS_SETUP.md`](docs/PEXELS_SETUP.md).
 
 ---
 
@@ -929,11 +937,10 @@ Implemented:
 - Empty states
 - Public sharing (`/share/[id]`) and discovery (`/discover`)
 
-Database persistence, Supabase Auth, **progressive AI generation** (draft → enrich + live preview), theme sync (including TopBar toggle), production deploy, view-only public sharing, discover, **team collaboration (MVP)**, **real-time co-editing**, and **board comments** are implemented.
+Database persistence, Supabase Auth, **progressive AI text generation** (draft → enrich + live preview), **Pexels reference photos**, theme sync (including TopBar toggle), production deploy, view-only public sharing, discover, **team collaboration (MVP)**, **real-time co-editing**, **board comments**, and **activity replay** are implemented.
 
-1. Design system standardization (incremental — board editor Phase 1 done)
-2. AI image generation and expanded reference search
-3. Landing page — deferred unless targeted polish is requested
+1. Expanded reference search APIs (Behance, Dribbble, etc.)
+2. Landing page — deferred unless targeted polish is requested
 
 ---
 
@@ -957,12 +964,14 @@ Important context:
 - **Collaboration** — invite by email with editor/viewer roles; accept at `/invite/[token]`; dashboard **With me** filter (migration `003_board_collaboration.sql`)
 - **Real-time co-editing** — presence avatars, live board sync on collaborator save, conflict banner for unsaved local edits (migration `006_board_realtime_comments.sql`)
 - **Board comments** — slide-over panel with live sync; `GET/POST/DELETE /api/boards/[id]/comments`
-- **Design system Phase 1:** board editor uses semantic tokens; `globals.css` board-editor override hacks removed
-- **Next features:** design system audit Phase 2 (remaining board components), AI image generation
+- **Board activity + replay** — Activity panel, structured change replay, read/hide, owner-only delete (migrations `008`–`013`; verify with `npm run verify:collaboration`)
+- **Reference photos** — Pexels during enrich + **Find photo** in reference editor (`POST /api/reference-images/search`); demo SVG placeholders as fallback. See [`docs/PEXELS_SETUP.md`](docs/PEXELS_SETUP.md)
+- **Design system Phase 1 + 2:** board editor + collaboration/creation clusters use semantic tokens; `globals.css` board-editor override hacks removed
+- **Next features:** expanded reference search APIs
 - Board editor handles refresh correctly (loads from Supabase after hydration; no false "not found")
 - Settings controls are all wired to real behavior (theme, reduce motion / focus rings, default visibility, presentation mode, workspace identity)
 
-When resuming work, focus on incremental design tokens and AI image generation.
+When resuming work, focus on expanded reference search and optional landing polish.
 
 ---
 

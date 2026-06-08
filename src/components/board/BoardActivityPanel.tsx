@@ -9,6 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ConfirmationModal } from '@/components/shared/ConfirmationModal';
 import { showToast } from '@/components/shared/toast-store';
+import {
+  editorReplayActiveBorderClass,
+  editorUnreadBadgeClass,
+  editorUnreadItemBorderClass,
+} from '@/components/board/board-editor-styles';
 
 type PanelFilter = 'all' | 'unread' | 'hidden';
 
@@ -85,10 +90,10 @@ function ActivityItem({
       className={[
         'rounded-2xl border bg-(--surface-muted) px-4 py-3',
         isActiveReplay
-          ? 'border-amber-400/80 ring-1 ring-amber-400/40'
+          ? editorReplayActiveBorderClass
           : event.isRead
             ? 'border-(--border)'
-            : 'border-l-4 border-l-amber-500 border-(--border)',
+            : editorUnreadItemBorderClass,
       ].join(' ')}
     >
       <div className="flex items-start gap-3">
@@ -102,7 +107,7 @@ function ActivityItem({
               <div className="flex items-center gap-2">
                 <p className="text-sm font-medium text-(--text-strong)">{event.actorName}</p>
                 {!event.isRead ? (
-                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-900 dark:bg-amber-900/40 dark:text-amber-100">
+                  <span className={editorUnreadBadgeClass}>
                     New
                   </span>
                 ) : null}

@@ -22,6 +22,20 @@ import {
   type GenerationPhase,
 } from '@/components/creation/GenerationPreview';
 import { GenerationSourceBadge } from '@/components/creation/GenerationSourceBadge';
+import {
+  creationFocusRingClass,
+  creationPanelClass,
+  creationPrimaryButtonClass,
+  creationSectionClass,
+  creationSuggestionButtonClass,
+  creationTagPillClass,
+  creationTemplateCardClass,
+  creationTemplateInsetClass,
+  editorCardTitleClass,
+  editorFieldClass,
+  editorLabelClass,
+  editorSubtleSurfaceClass,
+} from '@/components/board/board-editor-styles';
 import { loadBoards, saveBoards, upsertBoard } from '@/lib/board-store';
 import { readAppSettings } from '@/lib/settings-store';
 import { cn } from '@/lib/utils';
@@ -41,7 +55,7 @@ function SuggestionPills({ suggestions, onSelect }: SuggestionPillsProps) {
           variant="outline"
           size="sm"
           onClick={() => onSelect(suggestion)}
-          className="rounded-full border-(--border) bg-(--surface) text-(--text-muted) hover:bg-(--surface-subtle) hover:text-(--text-strong) dark:bg-[rgba(255,255,255,0.05)] dark:text-(--text-muted) dark:hover:bg-[rgba(255,255,255,0.08)] dark:hover:text-(--text-strong)"
+          className={creationSuggestionButtonClass}
         >
           {suggestion.charAt(0).toUpperCase() + suggestion.slice(1)}
         </Button>
@@ -78,11 +92,12 @@ function TemplatePicker({ templates, activeTemplateId, onCreateTemplate }: Templ
             aria-pressed={isActive}
             aria-label={`Create board from template ${template.name}`}
             className={cn(
-              'group rounded-[1.75rem] text-left transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background) dark:focus-visible:ring-[rgba(255,255,255,0.22)]',
-              isActive ? 'ring-1 ring-(--border) dark:ring-white/10' : '',
+              'group rounded-[1.75rem] text-left transition hover:-translate-y-0.5',
+              creationFocusRingClass,
+              isActive ? 'ring-1 ring-(--border)' : '',
             )}
           >
-            <Card className="h-full overflow-hidden rounded-[1.75rem] border border-(--border) bg-(--surface-elevated) shadow-[0_10px_30px_rgba(15,23,42,0.06)] dark:shadow-[0_18px_50px_rgba(0,0,0,0.22)]">
+            <Card className={creationTemplateCardClass}>
               <div
                 className="h-1.5 w-full"
                 style={{
@@ -94,7 +109,7 @@ function TemplatePicker({ templates, activeTemplateId, onCreateTemplate }: Templ
               <div className="p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="[font-family:var(--font-display),serif] text-2xl tracking-tight text-(--text-strong)">
+                    <h3 className={editorCardTitleClass}>
                       {template.name}
                     </h3>
                     <p className="mt-2 text-sm leading-6 text-(--text-muted)">
@@ -106,8 +121,8 @@ function TemplatePicker({ templates, activeTemplateId, onCreateTemplate }: Templ
                 </div>
 
                 {template.mood || template.summary ? (
-                  <div className="mt-4 rounded-[1.35rem] border border-(--border) bg-(--surface) p-4 dark:bg-[rgba(255,255,255,0.04)]">
-                    <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
+                  <div className={creationTemplateInsetClass}>
+                    <p className={editorLabelClass}>
                       Mood
                     </p>
                     {template.mood ? (
@@ -131,7 +146,7 @@ function TemplatePicker({ templates, activeTemplateId, onCreateTemplate }: Templ
                   {template.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="rounded-full border border-(--border) bg-(--surface) px-3 py-1 text-[11px] font-medium tracking-wide text-(--text-muted) dark:bg-[rgba(255,255,255,0.04)]"
+                      className={creationTagPillClass}
                     >
                       {tag}
                     </span>
@@ -148,7 +163,7 @@ function TemplatePicker({ templates, activeTemplateId, onCreateTemplate }: Templ
 
 function LoadingPreview() {
   return (
-    <section className="rounded-[2.25rem] border border-(--border) bg-(--surface-elevated) p-6 shadow-[0_20px_50px_rgba(15,23,42,0.06)] dark:shadow-[0_24px_60px_rgba(0,0,0,0.22)]">
+    <section className={creationPanelClass}>
       <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
         <div className="space-y-4">
           <Skeleton className="h-4 w-28" />
@@ -396,7 +411,7 @@ export function PromptComposer() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-[2.5rem] border border-(--border) bg-(--surface-elevated) p-6 shadow-[0_24px_60px_rgba(15,23,42,0.06)] md:p-8 dark:shadow-[0_24px_60px_rgba(0,0,0,0.22)]">
+      <section className={creationSectionClass}>
         <div className="grid gap-8 xl:grid-cols-[1.15fr_0.85fr]">
           <div className="space-y-6">
             <div className="space-y-4">
@@ -423,7 +438,7 @@ export function PromptComposer() {
                   onChange={(event) => updatePrompt(event.target.value)}
                   onKeyDown={handleComposerKeyDown}
                   placeholder="e.g. soft, modern brand for a skincare startup"
-                  className="min-h-56 resize-y rounded-[1.75rem] border-(--border) bg-(--surface) px-4 py-4 text-base text-(--text-strong) shadow-none placeholder:text-(--text-muted)! focus-visible:ring-(--ring) dark:bg-[rgba(255,255,255,0.04)] dark:placeholder:text-[rgba(219,229,242,0.45)]"
+                  className={`min-h-56 resize-y rounded-[1.75rem] px-4 py-4 text-base shadow-none placeholder:text-(--text-muted)! ${editorFieldClass}`}
                   disabled={isGenerating}
                 />
               </div>
@@ -436,7 +451,7 @@ export function PromptComposer() {
                   onClick={() => void handleGenerate()}
                   disabled={!canGenerate}
                   aria-busy={isGenerating}
-                  className="rounded-full bg-(--text-strong)! px-5 text-(--background)! shadow-sm hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
+                  className={`rounded-full px-5 shadow-sm ${creationPrimaryButtonClass}`}
                 >
                   {isGenerating ? 'Generating...' : 'Generate board'}
                 </Button>
@@ -467,7 +482,7 @@ export function PromptComposer() {
           </div>
 
           <aside className="space-y-4">
-            <div className="rounded-4xl border border-(--border) bg-(--surface) p-5 shadow-[0_10px_30px_rgba(15,23,42,0.04)] dark:bg-[rgba(255,255,255,0.04)] dark:shadow-[0_12px_30px_rgba(0,0,0,0.18)]">
+            <div className={editorSubtleSurfaceClass}>
               <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
                 Studio guide
               </p>
@@ -478,7 +493,7 @@ export function PromptComposer() {
               </ul>
             </div>
 
-            <div className="rounded-4xl border border-(--border) bg-(--surface) p-5 shadow-[0_10px_30px_rgba(15,23,42,0.04)] dark:bg-[rgba(255,255,255,0.04)] dark:shadow-[0_12px_30px_rgba(0,0,0,0.18)]">
+            <div className={editorSubtleSurfaceClass}>
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
                   Templates
@@ -503,8 +518,8 @@ export function PromptComposer() {
                       className={cn(
                         'w-full rounded-3xl border text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background) dark:focus-visible:ring-[rgba(255,255,255,0.22)]',
                         active
-                          ? 'border-(--border) bg-(--surface-subtle) dark:border-white/10 dark:bg-[rgba(255,255,255,0.06)]'
-                          : 'border-(--border) bg-(--surface-elevated) hover:bg-(--surface-subtle) dark:border-white/10 dark:bg-[rgba(255,255,255,0.03)] dark:hover:bg-[rgba(255,255,255,0.06)]',
+                          ? 'border-(--border) bg-(--surface-subtle)'
+                          : 'border-(--border) bg-(--surface-elevated) hover:bg-(--surface-subtle)',
                       )}
                     >
                       <div className="p-4">
@@ -533,7 +548,7 @@ export function PromptComposer() {
                           {template.tags.map((tag) => (
                             <span
                               key={tag}
-                              className="rounded-full border border-(--border) bg-(--surface) px-3 py-1 text-[11px] font-medium tracking-wide text-(--text-muted) dark:bg-[rgba(255,255,255,0.04)]"
+                              className={creationTagPillClass}
                             >
                               {tag}
                             </span>

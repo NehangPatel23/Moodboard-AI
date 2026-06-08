@@ -18,6 +18,27 @@ export async function fetchGenerationProvider(): Promise<'gemini' | 'mock'> {
   return data.provider;
 }
 
+export type ReferenceImageSearchResult = {
+  imageUrl: string;
+  sourceLabel: string;
+  notice?: string;
+};
+
+export async function fetchReferenceImageSearch(input: {
+  title: string;
+  category?: string;
+  mood?: string;
+  prompt?: string;
+  palette?: Array<{ hex: string; label?: string }>;
+  boardId?: string;
+  referenceId?: string;
+}): Promise<ReferenceImageSearchResult> {
+  return apiFetch<ReferenceImageSearchResult>('/api/reference-images/search', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
 export async function fetchGeneratedBoardDraft(prompt: string): Promise<GeneratedBoardDraft> {
   return apiFetch<GeneratedBoardDraft>('/api/generate/draft', {
     method: 'POST',

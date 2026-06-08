@@ -45,6 +45,7 @@ import { BoardEditorSkeleton } from '@/components/board/BoardEditorSkeleton';
 import { BoardPresenceStrip } from '@/components/board/BoardPresenceStrip';
 import { RemoteUpdateBanner } from '@/components/board/RemoteUpdateBanner';
 import { ReferenceImageDisplay } from '@/components/board/ReferenceImageDisplay';
+import { ReferenceImageSearchButton } from '@/components/board/ReferenceImageSearchButton';
 import {
   REFERENCE_IMAGE_SOURCE,
   buildReferenceImageUrl,
@@ -480,6 +481,18 @@ function ReferenceEditorModal({
                   onChange={(e) => updateDraft({ source: e.target.value })}
                   placeholder="Generated"
                   className="border-(--border) bg-(--surface-elevated) text-(--text) placeholder:text-(--text-muted) focus-visible:ring-(--ring)"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <ReferenceImageSearchButton
+                  title={draft.title}
+                  category={draft.category}
+                  board={board}
+                  referenceId={draft.id}
+                  onResolved={(imageUrl, source) => {
+                    updateDraft({ imageUrl, source });
+                  }}
                 />
               </div>
 

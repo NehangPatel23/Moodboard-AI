@@ -20,6 +20,13 @@ import {
 import { BoardEditorSkeleton } from '@/components/board/BoardEditorSkeleton';
 import { ReferenceImageDisplay } from '@/components/board/ReferenceImageDisplay';
 import {
+  editorGhostButtonClass,
+  editorPanelClass,
+  editorReferenceCardClass,
+  editorSectionClass,
+  editorSubtleSurfaceClass,
+} from '@/components/board/board-editor-styles';
+import {
   DEFAULT_APP_SETTINGS,
   readAppSettings,
   subscribeAppSettings,
@@ -92,17 +99,13 @@ const TYPOGRAPHY_FALLBACK_FAMILIES: Record<string, string> = {
   'ibm plex mono': '"IBM Plex Mono", "Courier New", Courier, monospace',
 };
 
-const outerPanelClass =
-  'rounded-[2.5rem] border border-[var(--border)] bg-[var(--surface-elevated)] p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)] dark:shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:p-8';
+const outerPanelClass = editorSectionClass;
 
-const innerPanelClass =
-  'rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] shadow-[0_10px_30px_rgba(15,23,42,0.04)] dark:shadow-[0_10px_30px_rgba(0,0,0,0.18)]';
+const innerPanelClass = editorPanelClass;
 
-const softPanelClass =
-  'rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface-soft)] p-4';
+const softPanelClass = editorSubtleSurfaceClass;
 
-const actionLinkClass =
-  'inline-flex h-11 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] px-5 text-sm font-medium text-[var(--text-strong)] transition hover:bg-[var(--surface-subtle)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] dark:bg-[rgba(255,255,255,0.04)] dark:text-[var(--text-strong)] dark:hover:bg-[rgba(255,255,255,0.08)]';
+const actionLinkClass = `${editorGhostButtonClass} inline-flex h-11 items-center justify-center px-5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)`;
 
 function NoteTypeIcon({ type }: { type: NoteType }) {
   switch (type) {
@@ -199,7 +202,7 @@ function ReadOnlyReferenceCard({
   board: { prompt: string; mood: string; palette: Array<{ hex: string; label?: string }> };
 }) {
   return (
-    <article className="group overflow-hidden rounded-[1.75rem] border border-(--border) bg-(--surface) shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] dark:shadow-[0_18px_40px_rgba(0,0,0,0.22)]">
+    <article className={`group overflow-hidden ${editorReferenceCardClass}`}>
       <div className="relative aspect-4/3 w-full overflow-hidden">
         <ReferenceImageDisplay
           title={title}

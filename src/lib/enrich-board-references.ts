@@ -1,27 +1,10 @@
 import {
-  REFERENCE_IMAGE_SOURCE,
-  REFERENCE_IMAGE_SOURCE_PEXELS,
-  buildReferenceImageUrl,
   needsReferenceImageUpgrade,
   padReferencesToCount,
   type ReferenceImageInput,
 } from '@/lib/reference-images';
-import { searchPexelsImage } from '@/lib/pexels';
+import { resolveReferenceImage } from '@/lib/resolve-reference-image';
 import type { Board, ReferenceItem } from '@/types/board';
-
-async function resolveReferenceImage(
-  input: ReferenceImageInput,
-): Promise<{ imageUrl: string; source: string }> {
-  const pexelsUrl = await searchPexelsImage(input);
-  if (pexelsUrl) {
-    return { imageUrl: pexelsUrl, source: REFERENCE_IMAGE_SOURCE_PEXELS };
-  }
-
-  return {
-    imageUrl: buildReferenceImageUrl(input),
-    source: REFERENCE_IMAGE_SOURCE,
-  };
-}
 
 export async function enrichReferenceItem(
   reference: ReferenceItem,
