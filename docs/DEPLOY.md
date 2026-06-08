@@ -50,11 +50,20 @@ Trigger a deploy from the Vercel dashboard or:
 npx vercel --prod
 ```
 
-## Step 5b — Run collaboration migration (production Supabase)
+## Step 5b — Run collaboration migrations (production Supabase)
 
-After deploying code that includes real-time co-editing and comments, run [`supabase/migrations/006_board_realtime_comments.sql`](../supabase/migrations/006_board_realtime_comments.sql) in the **production** Supabase SQL Editor.
+After deploying collaboration features, run these in the **production** Supabase SQL Editor (in order):
 
-This enables Realtime on `boards`, creates `board_comments`, and enables live comment sync. If collaboration was already live, also confirm migrations `004` and `005` are applied.
+1. [`supabase/migrations/006_board_realtime_comments.sql`](../supabase/migrations/006_board_realtime_comments.sql) — Realtime on `boards`, `board_comments` table, live comment sync
+2. [`supabase/migrations/007_collaboration_polish.sql`](../supabase/migrations/007_collaboration_polish.sql) — `last_saved_by_name` on boards, `author_name` on comments (conflict banner + live comment attribution)
+3. [`supabase/migrations/008_board_activity.sql`](../supabase/migrations/008_board_activity.sql) — `board_activity` table + Realtime for the Activity panel (live save history)
+4. [`supabase/migrations/009_board_activity_changes.sql`](../supabase/migrations/009_board_activity_changes.sql) — structured `changes` JSON on activity rows (detailed summaries + replay)
+5. [`supabase/migrations/010_collaboration_hygiene.sql`](../supabase/migrations/010_collaboration_hygiene.sql) — read/unread state + activity delete policy
+6. [`supabase/migrations/011_user_settings_retention.sql`](../supabase/migrations/011_user_settings_retention.sql) — collaboration retention settings (hide + owner purge)
+7. [`supabase/migrations/012_collaboration_item_state.sql`](../supabase/migrations/012_collaboration_item_state.sql) — per-item read/hide overrides + owner-only comment delete
+8. [`supabase/migrations/013_activity_owner_delete.sql`](../supabase/migrations/013_activity_owner_delete.sql) — owner-only activity delete (non-owners use Hide)
+
+If collaboration was already live, confirm migrations `004` and `005` are applied before `006`.
 
 > `alter publication supabase_realtime add table` is not idempotent. If `006` was partially applied, check **Database → Publications → supabase_realtime** before re-running.
 
@@ -70,9 +79,17 @@ This enables Realtime on `boards`, creates `board_comments`, and enables live co
 | TopBar theme toggle | Sun/moon control next to search; theme persists across navigation |
 | Settings change | Persists after sign-out/in |
 | Open board → **Comments** | Panel opens; post succeeds |
+| Open board → **Activity** | Panel opens; save events appear in real time |
+| Board sidebar | Shows **Last saved by** after a save (requires migration 007) |
 | Two browsers on same board (owner + invited editor) | Presence avatars appear for both |
 | Save in browser A (B has no unsaved edits) | Browser B updates without refresh |
-| Save in browser A while B has unsaved edits | B shows conflict banner (Reload / Keep editing) |
+| Save in browser A while B has unsaved edits | B shows conflict banner with saver name (Reload / Keep editing) |
+| Viewer opens shared board | Inputs read-only; comments still work |
+| User A posts comment | User B sees A's name via realtime (not "Collaborator") |
+| Comments / Activity unread badges | New items show unread styling; Eye/EyeOff toggles per item; opening panel marks all read |
+| Per-item hide / Hidden filter | Hide removes item from your view only; restore from Hidden filter |
+| Owner comment/activity delete | Trash visible only for owners; non-owners use Hide; app confirmation modal |
+| Settings → Collaboration | Hide/purge retention controls persist |
 | `POST /api/boards/[id]/comments` without auth | 401 Unauthorized |
 
 ## Troubleshooting

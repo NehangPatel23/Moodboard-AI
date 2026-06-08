@@ -17,6 +17,7 @@ export type BoardRow = {
   visibility: BoardVisibility;
   created_at: string;
   updated_at: string;
+  last_saved_by_name?: string | null;
 };
 
 export function rowToBoard(row: BoardRow): Board {
@@ -36,6 +37,7 @@ export function rowToBoard(row: BoardRow): Board {
     visibility: row.visibility,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    lastSavedByName: row.last_saved_by_name ?? null,
   };
 }
 

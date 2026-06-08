@@ -19,6 +19,10 @@ export type AppSettings = {
   reduceMotionEnabled: boolean;
   focusRingsEnabled: boolean;
   themeMode: ThemeMode;
+  commentsHideAfterDays: number;
+  activityHideAfterDays: number;
+  purgeCommentsAfterDays: number;
+  purgeActivityAfterDays: number;
 };
 
 export const WORKSPACE_AVATAR_ACCENTS = [
@@ -75,4 +79,8 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   reduceMotionEnabled: false,
   focusRingsEnabled: true,
   themeMode: 'system',
+  commentsHideAfterDays: 0,
+  activityHideAfterDays: 0,
+  purgeCommentsAfterDays: 0,
+  purgeActivityAfterDays: 0,
 };

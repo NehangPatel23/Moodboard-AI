@@ -30,6 +30,51 @@ export type BoardComment = {
   body: string;
   createdAt: string;
   updatedAt: string;
+  isRead?: boolean;
+  isHidden?: boolean;
+};
+
+export type BoardActivityAction = 'saved';
+
+export type BoardActivityChangeAction = 'added' | 'removed' | 'updated';
+
+export type BoardActivityChange = {
+  kind: 'field' | 'palette' | 'typography' | 'reference' | 'note';
+  action: BoardActivityChangeAction;
+  section: string;
+  label: string;
+  summary: string;
+  before?: string | null;
+  after?: string | null;
+};
+
+export type BoardActivityEvent = {
+  id: string;
+  boardId: string;
+  userId: string;
+  actorName: string;
+  action: BoardActivityAction;
+  summary: string | null;
+  changes: BoardActivityChange[];
+  createdAt: string;
+  isRead?: boolean;
+  isHidden?: boolean;
+};
+
+export type CollaborationItemType = 'comment' | 'activity';
+
+export type CollaborationItemStateInput = {
+  type: CollaborationItemType;
+  id: string;
+  isRead?: boolean;
+  isHidden?: boolean;
+};
+
+export type BoardCollaborationStateResponse = {
+  commentsLastReadAt: string | null;
+  activityLastReadAt: string | null;
+  unreadComments: number;
+  unreadActivity: number;
 };
 
 export type PaletteItem = {
@@ -80,6 +125,7 @@ export type Board = {
   notes: NoteItem[];
   createdAt: string;
   updatedAt: string;
+  lastSavedByName?: string | null;
   isFavorite: boolean;
   visibility: BoardVisibility;
   role?: BoardRole;

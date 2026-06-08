@@ -9,6 +9,7 @@ type BoardActionsMenuProps = {
   isFavorite: boolean;
   saveStatus: string;
   isDirty: boolean;
+  canEdit?: boolean;
   viewHref: string;
   onSave: () => void;
   onDuplicate: () => void;
@@ -22,6 +23,7 @@ export function BoardActionsMenu({
   isFavorite,
   saveStatus,
   isDirty,
+  canEdit = true,
   viewHref,
   onSave,
   onDuplicate,
@@ -36,37 +38,45 @@ export function BoardActionsMenu({
         {saveStatus}
       </Badge>
 
-      <Button
-        type="button"
-        variant={isDirty ? 'default' : 'outline'}
-        size="sm"
-        onClick={onSave}
-        disabled={!isDirty}
-        className="shrink-0 whitespace-nowrap px-3"
-      >
-        Save
-      </Button>
+      {canEdit ? (
+        <Button
+          type="button"
+          variant={isDirty ? 'default' : 'outline'}
+          size="sm"
+          onClick={onSave}
+          disabled={!isDirty}
+          className="shrink-0 whitespace-nowrap px-3"
+        >
+          Save
+        </Button>
+      ) : null}
 
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={onToggleFavorite}
-        className="shrink-0 whitespace-nowrap px-3"
-      >
-        {isFavorite ? <Star className="h-4 w-4" /> : <Star className="h-4 w-4" />}
-        {isFavorite ? 'Unfavorite' : 'Favorite'}
-      </Button>
+      {canEdit ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onToggleFavorite}
+          className="shrink-0 whitespace-nowrap px-3"
+        >
+          {isFavorite ? <Star className="h-4 w-4" /> : <Star className="h-4 w-4" />}
+          {isFavorite ? 'Unfavorite' : 'Favorite'}
+        </Button>
+      ) : null}
 
-      <Button type="button" variant="outline" size="sm" onClick={onDuplicate} className="shrink-0 whitespace-nowrap px-3">
-        <Copy className="h-4 w-4" />
-        Duplicate
-      </Button>
+      {canEdit ? (
+        <Button type="button" variant="outline" size="sm" onClick={onDuplicate} className="shrink-0 whitespace-nowrap px-3">
+          <Copy className="h-4 w-4" />
+          Duplicate
+        </Button>
+      ) : null}
 
-      <Button type="button" variant="outline" size="sm" onClick={onShare} className="shrink-0 whitespace-nowrap px-3">
-        <Share2 className="h-4 w-4" />
-        Share
-      </Button>
+      {canEdit ? (
+        <Button type="button" variant="outline" size="sm" onClick={onShare} className="shrink-0 whitespace-nowrap px-3">
+          <Share2 className="h-4 w-4" />
+          Share
+        </Button>
+      ) : null}
 
       <Button type="button" variant="outline" size="sm" onClick={onExport} className="shrink-0 whitespace-nowrap px-3">
         <Download className="h-4 w-4" />
@@ -75,16 +85,18 @@ export function BoardActionsMenu({
 
       <Link
         href={viewHref}
-        className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-3 text-sm font-medium text-slate-900 transition hover:bg-slate-50 whitespace-nowrap"
+        className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-full border border-(--border) bg-(--surface-elevated) px-3 text-sm font-medium text-(--text) transition hover:bg-(--surface-subtle) whitespace-nowrap"
       >
         <ExternalLink className="h-4 w-4" />
         View
       </Link>
 
-      <Button type="button" variant="destructive" size="sm" onClick={onDelete} className="shrink-0 whitespace-nowrap px-3">
-        <Trash2 className="h-4 w-4" />
-        Delete
-      </Button>
+      {canEdit ? (
+        <Button type="button" variant="destructive" size="sm" onClick={onDelete} className="shrink-0 whitespace-nowrap px-3">
+          <Trash2 className="h-4 w-4" />
+          Delete
+        </Button>
+      ) : null}
     </div>
   );
 }

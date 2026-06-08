@@ -48,6 +48,20 @@ Creates `profiles`, `boards`, and `user_settings` tables with Row Level Security
 
 10. Run [`supabase/migrations/006_board_realtime_comments.sql`](../supabase/migrations/006_board_realtime_comments.sql) to enable Realtime on `boards`, add `board_comments`, and enable live comment sync.
 
+11. Run [`supabase/migrations/007_collaboration_polish.sql`](../supabase/migrations/007_collaboration_polish.sql) to add `last_saved_by_name` on boards and `author_name` on comments (required for conflict-banner attribution and live comment author names). **If board saves fail with a column error, run this migration.**
+
+12. Run [`supabase/migrations/008_board_activity.sql`](../supabase/migrations/008_board_activity.sql) to add the `board_activity` log and Realtime feed for the **Activity** panel in the board editor.
+
+13. Run [`supabase/migrations/009_board_activity_changes.sql`](../supabase/migrations/009_board_activity_changes.sql) to store structured change details and enable the activity replay UI.
+
+14. Run [`supabase/migrations/010_collaboration_hygiene.sql`](../supabase/migrations/010_collaboration_hygiene.sql) to add per-user read state for comments/activity and allow activity deletion.
+
+15. Run [`supabase/migrations/011_user_settings_retention.sql`](../supabase/migrations/011_user_settings_retention.sql) to add collaboration retention preferences (hide old items from your view, optional owner purge).
+
+16. Run [`supabase/migrations/012_collaboration_item_state.sql`](../supabase/migrations/012_collaboration_item_state.sql) to add per-item read/hide overrides and restrict comment deletion to board owners.
+
+17. Run [`supabase/migrations/013_activity_owner_delete.sql`](../supabase/migrations/013_activity_owner_delete.sql) to restrict activity deletion to board owners only (non-owners can hide items from their own view).
+
 ### Option B — Supabase CLI
 
 ```bash

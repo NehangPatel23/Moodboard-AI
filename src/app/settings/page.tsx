@@ -167,6 +167,46 @@ function ToggleRow({
   );
 }
 
+const RETENTION_DAY_OPTIONS = [
+  { value: 0, label: 'Never' },
+  { value: 7, label: '7 days' },
+  { value: 30, label: '30 days' },
+  { value: 90, label: '90 days' },
+] as const;
+
+function RetentionSelect({
+  label,
+  description,
+  value,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <div className="rounded-3xl border border-(--border) bg-(--surface) p-4">
+      <div className="space-y-1">
+        <p className="text-sm font-medium text-(--text-strong)">{label}</p>
+        <p className="text-sm leading-6 text-(--text-muted)">{description}</p>
+      </div>
+      <select
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+        className="mt-3 h-11 w-full rounded-2xl border border-(--border) bg-(--surface-elevated) px-4 text-sm text-(--text) outline-none focus:ring-2 focus:ring-(--ring)"
+        aria-label={label}
+      >
+        {RETENTION_DAY_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 function VisibilityToggle({
   value,
   onChange,
@@ -672,6 +712,7 @@ export default function SettingsPage() {
   const sections: SettingsNavItem[] = [
     { href: '#profile', label: 'Profile', description: 'Workspace name and avatar.' },
     { href: '#workspace', label: 'Workspace', description: 'Default behavior and sharing.' },
+    { href: '#collaboration', label: 'Collaboration', description: 'Comments, activity, and cleanup.' },
     { href: '#accessibility', label: 'Accessibility', description: 'Motion, shortcuts, and focus.' },
     { href: '#appearance', label: 'Appearance', description: 'Light, dark, or system theme.' },
     { href: '#data', label: 'Data', description: 'Import, export, and reset.' },
@@ -895,6 +936,54 @@ export default function SettingsPage() {
                   onToggle={handlePresentationModeToggle}
                 />
               </div>
+            </div>
+          </SettingsSection>
+
+          <SettingsSection
+            id="collaboration"
+            eyebrow="Collaboration"
+            title="Comments and activity"
+            description="Control what you see on boards and how old collaboration history is handled."
+          >
+            <div className="space-y-4">
+              <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
+                Your view
+              </p>
+              <RetentionSelect
+                label="Hide comments older than"
+                description="Older comments stay on the board for collaborators but disappear from your panels."
+                value={settings.commentsHideAfterDays}
+                onChange={(value) => updateSetting('commentsHideAfterDays', value)}
+              />
+              <RetentionSelect
+                label="Hide activity older than"
+                description="Older save history stays on the board for collaborators but disappears from your activity panel."
+                value={settings.activityHideAfterDays}
+                onChange={(value) => updateSetting('activityHideAfterDays', value)}
+              />
+
+              <div className="border-t border-(--border) pt-4">
+                <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
+                  Board cleanup (owners)
+                </p>
+                <p className="mt-2 text-sm leading-6 text-(--text-muted)">
+                  When you open comments or activity on a board you own, items older than these limits
+                  are permanently deleted for everyone.
+                </p>
+              </div>
+
+              <RetentionSelect
+                label="Delete comments older than"
+                description="Permanently removes old comments from boards you own. Use with care on shared boards."
+                value={settings.purgeCommentsAfterDays}
+                onChange={(value) => updateSetting('purgeCommentsAfterDays', value)}
+              />
+              <RetentionSelect
+                label="Delete activity older than"
+                description="Permanently removes old save history from boards you own, including replay details."
+                value={settings.purgeActivityAfterDays}
+                onChange={(value) => updateSetting('purgeActivityAfterDays', value)}
+              />
             </div>
           </SettingsSection>
 

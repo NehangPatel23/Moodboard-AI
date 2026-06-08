@@ -17,6 +17,10 @@ export type UserSettingsRow = {
   reduce_motion_enabled: boolean;
   focus_rings_enabled: boolean;
   theme_mode: ThemeMode;
+  comments_hide_after_days?: number;
+  activity_hide_after_days?: number;
+  purge_comments_after_days?: number;
+  purge_activity_after_days?: number;
   updated_at: string;
 };
 
@@ -32,6 +36,10 @@ export function rowToSettings(row: UserSettingsRow): AppSettings {
     reduceMotionEnabled: row.reduce_motion_enabled,
     focusRingsEnabled: row.focus_rings_enabled,
     themeMode: row.theme_mode,
+    commentsHideAfterDays: row.comments_hide_after_days ?? 0,
+    activityHideAfterDays: row.activity_hide_after_days ?? 0,
+    purgeCommentsAfterDays: row.purge_comments_after_days ?? 0,
+    purgeActivityAfterDays: row.purge_activity_after_days ?? 0,
   };
 }
 
@@ -48,6 +56,10 @@ export function settingsToRow(settings: AppSettings, userId: string): Omit<UserS
     reduce_motion_enabled: settings.reduceMotionEnabled,
     focus_rings_enabled: settings.focusRingsEnabled,
     theme_mode: settings.themeMode,
+    comments_hide_after_days: settings.commentsHideAfterDays,
+    activity_hide_after_days: settings.activityHideAfterDays,
+    purge_comments_after_days: settings.purgeCommentsAfterDays,
+    purge_activity_after_days: settings.purgeActivityAfterDays,
   };
 }
 

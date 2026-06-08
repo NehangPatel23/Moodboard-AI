@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { BoardComment } from '@/types/board';
 import { apiFetch } from '@/lib/api-client';
@@ -11,6 +11,7 @@ type CommentRow = {
   board_id: string;
   user_id: string;
   body: string;
+  author_name?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -20,6 +21,7 @@ type UseBoardCommentsOptions = {
   enabled: boolean;
   currentUserId: string | null;
   authorName: string;
+  commentsLastReadAt?: string | null;
 };
 
 function sortComments(comments: BoardComment[]): BoardComment[] {
@@ -28,7 +30,16 @@ function sortComments(comments: BoardComment[]): BoardComment[] {
   );
 }
 
-function rowToComment(row: CommentRow, authorName: string): BoardComment {
+function rowToComment(
+  row: CommentRow,
+  authorName: string,
+  commentsLastReadAt: string | null | undefined,
+  isHidden = false,
+): BoardComment {
+  const isRead = commentsLastReadAt
+    ? new Date(row.created_at).getTime() <= new Date(commentsLastReadAt).getTime()
+    : false;
+
   return {
     id: row.id,
     boardId: row.board_id,
@@ -37,7 +48,31 @@ function rowToComment(row: CommentRow, authorName: string): BoardComment {
     body: row.body,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    isRead,
+    isHidden,
   };
+}
+
+function resolveAuthorName(
+  row: CommentRow,
+  currentUserId: string | null,
+  authorNameRef: RefObject<string>,
+  authorNameByUserId: Map<string, string>,
+): string {
+  if (row.author_name?.trim()) {
+    return row.author_name.trim();
+  }
+
+  const cached = authorNameByUserId.get(row.user_id);
+  if (cached) {
+    return cached;
+  }
+
+  if (row.user_id === currentUserId) {
+    return authorNameRef.current;
+  }
+
+  return 'Collaborator';
 }
 
 export function useBoardComments({
@@ -45,15 +80,29 @@ export function useBoardComments({
   enabled,
   currentUserId,
   authorName,
+  commentsLastReadAt = null,
 }: UseBoardCommentsOptions) {
   const [comments, setComments] = useState<BoardComment[]>([]);
   const [loading, setLoading] = useState(false);
   const [posting, setPosting] = useState(false);
   const authorNameRef = useRef(authorName);
+  const authorNameByUserIdRef = useRef(new Map<string, string>());
+  const commentsLastReadAtRef = useRef(commentsLastReadAt);
 
   useEffect(() => {
     authorNameRef.current = authorName;
   }, [authorName]);
+
+  useEffect(() => {
+    commentsLastReadAtRef.current = commentsLastReadAt;
+  }, [commentsLastReadAt]);
+
+  const seedAuthorNames = useCallback((nextComments: BoardComment[]) => {
+    const map = authorNameByUserIdRef.current;
+    nextComments.forEach((comment) => {
+      map.set(comment.userId, comment.authorName);
+    });
+  }, []);
 
   const refresh = useCallback(async () => {
     if (!enabled) {
@@ -63,13 +112,14 @@ export function useBoardComments({
     setLoading(true);
     try {
       const data = await apiFetch<{ comments: BoardComment[] }>(`/api/boards/${boardId}/comments`);
+      seedAuthorNames(data.comments);
       setComments(sortComments(data.comments));
     } catch {
       setComments([]);
     } finally {
       setLoading(false);
     }
-  }, [boardId, enabled]);
+  }, [boardId, enabled, seedAuthorNames]);
 
   useEffect(() => {
     if (!enabled) {
@@ -83,6 +133,7 @@ export function useBoardComments({
       try {
         const data = await apiFetch<{ comments: BoardComment[] }>(`/api/boards/${boardId}/comments`);
         if (!cancelled) {
+          seedAuthorNames(data.comments);
           setComments(sortComments(data.comments));
         }
       } catch {
@@ -101,7 +152,7 @@ export function useBoardComments({
     return () => {
       cancelled = true;
     };
-  }, [boardId, enabled]);
+  }, [boardId, enabled, seedAuthorNames]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -126,12 +177,18 @@ export function useBoardComments({
               return current;
             }
 
-            const author =
-              row.user_id === currentUserId ? authorNameRef.current : 'Collaborator';
+            const author = resolveAuthorName(
+              row,
+              currentUserId,
+              authorNameRef,
+              authorNameByUserIdRef.current,
+            );
+
+            authorNameByUserIdRef.current.set(row.user_id, author);
 
             return sortComments([
               ...current,
-              rowToComment(row, author),
+              rowToComment(row, author, commentsLastReadAtRef.current, false),
             ]);
           });
         },
@@ -173,6 +230,8 @@ export function useBoardComments({
         body: text,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        isRead: true,
+        isHidden: false,
       };
 
       setPosting(true);
@@ -184,11 +243,13 @@ export function useBoardComments({
           body: JSON.stringify({ body: text }),
         });
 
+        authorNameByUserIdRef.current.set(data.comment.userId, data.comment.authorName);
+
         setComments((current) =>
           sortComments(
             current
               .filter((comment) => comment.id !== optimisticId)
-              .concat(data.comment),
+              .concat({ ...data.comment, isRead: true, isHidden: false }),
           ),
         );
         return true;
@@ -222,12 +283,26 @@ export function useBoardComments({
     [boardId, comments, enabled],
   );
 
+  const patchCommentState = useCallback(
+    (commentId: string, patch: Partial<Pick<BoardComment, 'isRead' | 'isHidden'>>) => {
+      setComments((current) =>
+        sortComments(
+          current.map((comment) =>
+            comment.id === commentId ? { ...comment, ...patch } : comment,
+          ),
+        ),
+      );
+    },
+    [],
+  );
+
   return {
     comments: enabled ? comments : [],
     loading: enabled ? loading : false,
     posting,
     postComment,
     deleteComment,
+    patchCommentState,
     refresh,
   };
 }

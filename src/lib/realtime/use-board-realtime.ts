@@ -121,7 +121,7 @@ export function useBoardRealtime({
             return;
           }
 
-          onRemoteBoardRef.current(board, null);
+          onRemoteBoardRef.current(board, (row.last_saved_by_name as string | null) ?? null);
         },
       )
       .on('presence', { event: 'sync' }, () => {

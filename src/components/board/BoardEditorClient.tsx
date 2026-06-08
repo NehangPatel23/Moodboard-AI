@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { GenerationSourceBadge } from '@/components/creation/GenerationSourceBadge';
 import type {
   Board,
+  BoardActivityEvent,
   NoteType,
   PaletteItem,
   ReferenceItem,
@@ -24,6 +25,8 @@ import {
 } from '@/lib/board-store';
 import { useBoardRealtime } from '@/lib/realtime/use-board-realtime';
 import { useBoardComments } from '@/lib/realtime/use-board-comments';
+import { useBoardActivity } from '@/lib/realtime/use-board-activity';
+import { useBoardCollaborationState } from '@/lib/realtime/use-board-collaboration-state';
 import {
   DEFAULT_APP_SETTINGS,
   readAppSettings,
@@ -35,6 +38,9 @@ import {
   subscribeAuth,
 } from '@/lib/auth-store';
 import { BoardCommentsPanel } from '@/components/board/BoardCommentsPanel';
+import { BoardActivityPanel } from '@/components/board/BoardActivityPanel';
+import { BoardReplayBanner } from '@/components/board/BoardReplayBanner';
+import { BoardReplayCallout, BoardReplaySectionBlock } from '@/components/board/BoardReplayCallout';
 import { BoardEditorSkeleton } from '@/components/board/BoardEditorSkeleton';
 import { BoardPresenceStrip } from '@/components/board/BoardPresenceStrip';
 import { RemoteUpdateBanner } from '@/components/board/RemoteUpdateBanner';
@@ -45,6 +51,16 @@ import {
   sanitizeReferenceItem,
 } from '@/lib/reference-images';
 import { formatDateTime } from '@/lib/utils';
+import {
+  getFirstReplaySectionIndex,
+  getNextReplaySectionIndex,
+  getPreviousReplaySectionIndex,
+  getReplayChangesForEditorSection,
+  getReplaySectionIndices,
+  findChangeByLabel,
+  sectionHasReplayChanges,
+  snapToReplaySectionIndex,
+} from '@/lib/board-replay';
 import { ConfirmationModal } from '@/components/shared/ConfirmationModal';
 import { CollaborateModal } from '@/components/shared/CollaborateModal';
 import { ExportModal } from '@/components/shared/ExportModal';
@@ -74,6 +90,7 @@ import {
   Globe,
   Lock,
   MessageSquare,
+  History,
 } from 'lucide-react';
 import { showToast } from '@/components/shared/toast-store';
 import {
@@ -219,6 +236,8 @@ function EditorTabPill({
   active,
   onClick,
   index,
+  replayHighlight = false,
+  replayDisabled = false,
 }: {
   label: string;
   description: string;
@@ -226,21 +245,29 @@ function EditorTabPill({
   active: boolean;
   onClick: () => void;
   index: number;
+  replayHighlight?: boolean;
+  replayDisabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={replayDisabled}
       aria-pressed={active}
       aria-label={`Edit ${label} section`}
       className={[
-        'flex min-w-40 items-start gap-3 rounded-3xl border px-4 py-3 text-left transition',
+        'relative flex min-w-40 items-start gap-3 rounded-3xl border px-4 py-3 text-left transition',
         'border-(--border) bg-(--surface) text-(--text-strong)',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)',
         'hover:bg-(--surface-subtle)',
         active ? 'bg-(--surface-subtle) shadow-sm' : '',
+        replayHighlight ? 'border-amber-400/70 ring-1 ring-amber-400/30' : '',
+        replayDisabled ? 'cursor-not-allowed opacity-45 hover:bg-(--surface)' : '',
       ].join(' ')}
     >
+      {replayHighlight ? (
+        <span className="absolute right-3 top-3 h-2 w-2 rounded-full bg-amber-500" aria-hidden="true" />
+      ) : null}
       <div
         className={[
           'mt-0.5 flex h-8 w-8 items-center justify-center rounded-full border',
@@ -531,7 +558,22 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const sectionContentRef = useRef<HTMLDivElement>(null);
   const skipInitialSectionScroll = useRef(true);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [activityOpen, setActivityOpen] = useState(false);
+  const [replayEvent, setReplayEvent] = useState<BoardActivityEvent | null>(null);
   const [pendingRemoteBoard, setPendingRemoteBoard] = useState<Board | null>(null);
+  const [pendingRemoteSavedByName, setPendingRemoteSavedByName] = useState<string | null>(null);
+  const activeSectionIndexRef = useRef(activeSectionIndex);
+  const replayEventRef = useRef(replayEvent);
+  const commentsButtonRef = useRef<HTMLButtonElement>(null);
+  const activityButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    activeSectionIndexRef.current = activeSectionIndex;
+  }, [activeSectionIndex]);
+
+  useEffect(() => {
+    replayEventRef.current = replayEvent;
+  }, [replayEvent]);
 
   const settings = useSyncExternalStore(
     subscribeAppSettings,
@@ -544,9 +586,10 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const canComment = boardRole !== null;
 
   const handleRemoteBoard = useCallback(
-    (board: Board) => {
+    (board: Board, savedByName: string | null) => {
       if (isDirty) {
         setPendingRemoteBoard(board);
+        setPendingRemoteSavedByName(savedByName);
         return;
       }
 
@@ -554,6 +597,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
       setDraft(null);
       setSaveStatus('Saved');
       setPendingRemoteBoard(null);
+      setPendingRemoteSavedByName(null);
     },
     [boardId, isDirty],
   );
@@ -570,17 +614,55 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   });
 
   const {
+    commentsLastReadAt,
+    activityLastReadAt,
+    markCommentsRead,
+    markActivityRead,
+    setItemRead,
+    hideItem,
+    unhideItem,
+    refresh: refreshCollaborationState,
+  } = useBoardCollaborationState({
+    boardId,
+    enabled: canComment,
+  });
+
+  const {
     comments,
     loading: commentsLoading,
     posting: commentsPosting,
     postComment,
     deleteComment,
+    patchCommentState,
+    refresh: refreshComments,
   } = useBoardComments({
     boardId,
     enabled: canComment,
     currentUserId: auth.user?.id ?? null,
     authorName: auth.user?.name ?? settings.workspaceName,
+    commentsLastReadAt,
   });
+
+  const {
+    activity,
+    loading: activityLoading,
+    deleteActivity,
+    patchActivityState,
+    refresh: refreshActivity,
+  } = useBoardActivity({
+    boardId,
+    enabled: canComment,
+    activityLastReadAt,
+  });
+
+  const unreadCommentsCount = useMemo(
+    () => comments.filter((comment) => !comment.isHidden && !comment.isRead).length,
+    [comments],
+  );
+  const unreadActivityCount = useMemo(
+    () => activity.filter((event) => !event.isHidden && !event.isRead).length,
+    [activity],
+  );
 
   useEffect(() => {
     if (generationSource === 'gemini') {
@@ -593,6 +675,29 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
       const el = event.target as HTMLElement | null;
       const tag = el?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el?.isContentEditable) {
+        return;
+      }
+
+      const replay = replayEventRef.current;
+      const currentSection = activeSectionIndexRef.current;
+
+      if (replay) {
+        if (event.key === 'ArrowRight' || event.key === ' ') {
+          event.preventDefault();
+          const next = getNextReplaySectionIndex(replay.changes, currentSection);
+          if (next !== null) {
+            setActiveSectionIndex(next);
+          }
+          return;
+        }
+
+        if (event.key === 'ArrowLeft') {
+          event.preventDefault();
+          const prev = getPreviousReplaySectionIndex(replay.changes, currentSection);
+          if (prev !== null) {
+            setActiveSectionIndex(prev);
+          }
+        }
         return;
       }
 
@@ -660,6 +765,11 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const isViewer = resolvedBoardRole === 'viewer';
   const canManageMembers = isOwner;
   const canEditBoard = isOwner || isEditor;
+  const readOnly = !canEditBoard;
+  const isReplayMode = replayEvent !== null;
+  const effectiveReadOnly = readOnly || isReplayMode;
+  const canMutateBoard = canEditBoard && !isReplayMode;
+  const replayChanges = replayEvent?.changes ?? [];
   const toneText = editorBoard.tone.join(', ');
   const tagsText = editorBoard.tags.join(', ');
   const dirtyStatus = isDirty ? 'Unsaved changes' : saveStatus;
@@ -738,13 +848,14 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   };
 
   const confirmSave = () => {
+    const saverName = auth.user?.name ?? settings.workspaceName;
     const updated = updateBoard(boardId, () => cloneBoard(editorBoard));
     if (!updated) {
       showToast('Save failed.', 'destructive');
       return;
     }
 
-    setDraft(updated);
+    setDraft({ ...updated, lastSavedByName: saverName });
     setIsDirty(false);
     setSaveStatus('Saved');
     setSaveOpen(false);
@@ -753,6 +864,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
 
   const handleSaveAndContinue = () => {
     const nextAction = pendingAction;
+    const saverName = auth.user?.name ?? settings.workspaceName;
 
     const updated = updateBoard(boardId, () => cloneBoard(editorBoard));
     if (!updated) {
@@ -760,7 +872,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
       return;
     }
 
-    setDraft(updated);
+    setDraft({ ...updated, lastSavedByName: saverName });
     setIsDirty(false);
     setSaveStatus('Saved');
     setUnsavedChangesOpen(false);
@@ -896,11 +1008,13 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     setIsDirty(false);
     setSaveStatus('Saved');
     setPendingRemoteBoard(null);
+    setPendingRemoteSavedByName(null);
     showToast('Board updated with the latest changes.', 'success');
   };
 
   const handleKeepEditingRemote = () => {
     setPendingRemoteBoard(null);
+    setPendingRemoteSavedByName(null);
   };
 
   const handleSaveReference = (next: ReferenceItem) => {
@@ -919,13 +1033,69 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     showToast('Reference saved.', 'success');
   };
 
+  const startBoardReplay = (event: BoardActivityEvent) => {
+    if (event.changes.length === 0) {
+      showToast('No change details available for this save.', 'default');
+      return;
+    }
+
+    setReplayEvent(event);
+    setCommentsOpen(false);
+    const sectionIndex = getFirstReplaySectionIndex(event.changes);
+    setActiveSectionIndex(sectionIndex);
+    const scrollBehavior = settings.reduceMotionEnabled ? 'auto' : 'smooth';
+    window.setTimeout(() => {
+      sectionContentRef.current?.scrollIntoView({ behavior: scrollBehavior, block: 'start' });
+    }, 80);
+  };
+
+  const exitBoardReplay = () => {
+    setReplayEvent(null);
+  };
+
+  const goToReplaySection = (index: number) => {
+    let targetIndex = index;
+    if (replayEvent) {
+      const replaySections = getReplaySectionIndices(replayEvent.changes);
+      if (replaySections.length > 0 && !replaySections.includes(index)) {
+        const navIndex = snapToReplaySectionIndex(replayEvent.changes, index);
+        targetIndex = replaySections[navIndex] ?? replaySections[0];
+      }
+    }
+
+    setActiveSectionIndex(targetIndex);
+    const scrollBehavior = settings.reduceMotionEnabled ? 'auto' : 'smooth';
+    window.setTimeout(() => {
+      sectionContentRef.current?.scrollIntoView({ behavior: scrollBehavior, block: 'start' });
+    }, 80);
+  };
+
+  const renderSectionReplay = (section: EditorSection) => {
+    if (!isReplayMode) return null;
+    return (
+      <BoardReplaySectionBlock
+        changes={getReplayChangesForEditorSection(section, replayChanges)}
+        className="mb-5"
+      />
+    );
+  };
+
   return (
-    <div className="space-y-8 pb-10 text-(--text)">
+    <div className={['space-y-8 pb-10 text-(--text)', activityOpen ? 'pr-0 md:pr-[28rem]' : ''].join(' ')}>
       {pendingRemoteBoard ? (
         <RemoteUpdateBanner
-          savedByName={null}
+          savedByName={pendingRemoteSavedByName}
           onReload={handleReloadRemote}
           onKeepEditing={handleKeepEditingRemote}
+        />
+      ) : null}
+
+      {replayEvent ? (
+        <BoardReplayBanner
+          event={replayEvent}
+          activeSectionIndex={activeSectionIndex}
+          onExit={exitBoardReplay}
+          onGoToSection={goToReplaySection}
         />
       ) : null}
 
@@ -936,35 +1106,77 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
               {generationSource ? <GenerationSourceBadge source={generationSource} /> : null}
               {isEditor ? <Badge variant="outline">Editor access</Badge> : null}
               {isViewer ? <Badge variant="outline">Viewer access</Badge> : null}
+              {isViewer ? (
+                <span className="text-sm text-(--text-muted)">
+                  You can view and comment on this board. Editing is disabled.
+                </span>
+              ) : null}
               <Badge variant="secondary">{editorBoard.visibility}</Badge>
               <Badge variant="secondary">{dirtyStatus}</Badge>
               <BoardPresenceStrip users={presenceUsers} />
+              <p className="sr-only" aria-live="polite">
+                {unreadCommentsCount > 0
+                  ? `${unreadCommentsCount} unread comment${unreadCommentsCount === 1 ? '' : 's'}. `
+                  : ''}
+                {unreadActivityCount > 0
+                  ? `${unreadActivityCount} unread activity update${unreadActivityCount === 1 ? '' : 's'}.`
+                  : ''}
+              </p>
             </div>
 
             <div className="flex flex-wrap gap-2">
               {canComment ? (
                 <Button
+                  ref={commentsButtonRef}
                   type="button"
                   variant="outline"
-                  onClick={() => setCommentsOpen(true)}
+                  onClick={() => {
+                    setActivityOpen(false);
+                    setCommentsOpen(true);
+                  }}
                   className={editorGhostButtonClass}
                 >
                   <MessageSquare className="h-4 w-4" />
                   Comments
-                  {comments.length > 0 ? (
-                    <span className="ml-1 text-xs text-(--text-muted)">({comments.length})</span>
+                  {unreadCommentsCount > 0 ? (
+                    <span className="ml-1 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-medium text-white">
+                      {unreadCommentsCount} new
+                    </span>
                   ) : null}
                 </Button>
               ) : null}
 
-              <Button
-                type="button"
-                onClick={handleSave}
-                disabled={!isDirty || !canEditBoard}
-                className="rounded-full border border-transparent bg-(--text-strong) px-4 text-(--background) shadow-sm transition-colors hover:opacity-90"
-              >
-                Save
-              </Button>
+              {canComment ? (
+                <Button
+                  ref={activityButtonRef}
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setCommentsOpen(false);
+                    setActivityOpen(true);
+                  }}
+                  className={editorGhostButtonClass}
+                >
+                  <History className="h-4 w-4" />
+                  Activity
+                  {unreadActivityCount > 0 ? (
+                    <span className="ml-1 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-medium text-white">
+                      {unreadActivityCount} new
+                    </span>
+                  ) : null}
+                </Button>
+              ) : null}
+
+              {canMutateBoard ? (
+                <Button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={!isDirty}
+                  className="rounded-full border border-transparent bg-(--text-strong) px-4 text-(--background) shadow-sm transition-colors hover:opacity-90"
+                >
+                  Save
+                </Button>
+              ) : null}
 
               {isOwner ? (
                 <Button
@@ -1061,8 +1273,16 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
               <label className={editorLabelClass}>
                 Board title
               </label>
+              {isReplayMode && findChangeByLabel(replayChanges, 'Title') ? (
+                <BoardReplayCallout
+                  change={findChangeByLabel(replayChanges, 'Title')!}
+                  variant="inline"
+                  className="mb-2"
+                />
+              ) : null}
               <Textarea
                 value={editorBoard.title}
+                readOnly={effectiveReadOnly}
                 onChange={(event) =>
                   updateDraft((current) => ({
                     ...current,
@@ -1086,6 +1306,9 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
               <p className="mt-3 text-sm leading-6 text-(--text)">{editorBoard.prompt}</p>
               <div className="mt-5 grid gap-3 text-xs text-(--text-muted)">
                 <p>Updated {formatDateTime(editorBoard.updatedAt)}</p>
+                {editorBoard.lastSavedByName ? (
+                  <p>Last saved by {editorBoard.lastSavedByName}</p>
+                ) : null}
                 <p>Board ID {editorBoard.id}</p>
                 <p>Creative direction canvas</p>
               </div>
@@ -1096,6 +1319,8 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
             <div className="flex flex-wrap gap-2" aria-label="Editor sections">
               {EDITOR_SECTIONS.map((section, index) => {
                 const meta = EDITOR_SECTION_META[section];
+                const hasReplayChanges =
+                  isReplayMode && sectionHasReplayChanges(replayChanges, section);
                 return (
                   <EditorTabPill
                     key={section}
@@ -1103,7 +1328,17 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                     description={meta.description}
                     icon={meta.icon}
                     active={index === activeSectionIndex}
-                    onClick={() => setActiveSectionIndex(index)}
+                    replayHighlight={hasReplayChanges}
+                    replayDisabled={isReplayMode && !hasReplayChanges}
+                    onClick={() => {
+                      if (isReplayMode) {
+                        if (hasReplayChanges) {
+                          goToReplaySection(index);
+                        }
+                        return;
+                      }
+                      setActiveSectionIndex(index);
+                    }}
                     index={index}
                   />
                 );
@@ -1111,7 +1346,9 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
             </div>
 
             <p className="text-center text-sm leading-6 text-(--text-muted)" aria-live="polite">
-              Use ← → or Space to move through sections.
+              {isReplayMode
+                ? 'Use ← → or Space to move through changed sections.'
+                : 'Use ← → or Space to move through sections.'}
             </p>
           </div>
         </div>
@@ -1130,12 +1367,14 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
             </CardHeader>
 
             <CardContent className="space-y-5">
+              {renderSectionReplay('overview')}
               <div className="grid gap-2">
                 <label className={editorLabelClass}>
                   Mood
                 </label>
                 <Input
                   value={editorBoard.mood}
+                  readOnly={effectiveReadOnly}
                   onChange={(e) => updateDraft((current) => ({ ...current, mood: e.target.value }))}
                   placeholder="calm luxury"
                   className={fieldClass}
@@ -1148,6 +1387,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 </label>
                 <Textarea
                   value={editorBoard.summary}
+                  readOnly={effectiveReadOnly}
                   onChange={(e) => updateDraft((current) => ({ ...current, summary: e.target.value }))}
                   className="min-h-42.5 rounded-3xl border-(--border) bg-(--surface-elevated) text-(--text) placeholder:text-(--text-muted) focus-visible:ring-(--ring)"
                 />
@@ -1160,6 +1400,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                   </label>
                   <Input
                     value={toneText}
+                    readOnly={effectiveReadOnly}
                     onChange={(e) =>
                       updateDraft((current) => ({
                         ...current,
@@ -1180,6 +1421,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                   </label>
                   <Input
                     value={tagsText}
+                    readOnly={effectiveReadOnly}
                     onChange={(e) =>
                       updateDraft((current) => ({
                         ...current,
@@ -1210,18 +1452,21 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 </CardDescription>
               </div>
 
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleAddReference}
-                className={editorGhostButtonClass}
-              >
-                <Plus className="h-4 w-4" />
-                Add reference
-              </Button>
+              {canMutateBoard ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleAddReference}
+                  className={editorGhostButtonClass}
+                >
+                  <Plus className="h-4 w-4" />
+                  Add reference
+                </Button>
+              ) : null}
             </CardHeader>
 
             <CardContent>
+              {renderSectionReplay('references')}
               {editorBoard.references.length ? (
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {editorBoard.references.map((reference, index) => (
@@ -1229,48 +1474,79 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                       key={reference.id}
                       className="group relative overflow-hidden rounded-[1.75rem] border border-(--border) bg-(--surface-elevated) transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)]"
                     >
-                      <button
-                        type="button"
-                        onClick={() => setEditingReferenceIndex(index)}
-                        aria-label={`Edit reference ${reference.title}`}
-                        className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring)"
-                      >
-                        <div className="relative aspect-4/3 w-full overflow-hidden">
-                          <ReferenceImageDisplay
-                            title={reference.title}
-                            category={reference.category}
-                            imageUrl={reference.imageUrl}
-                            source={reference.source}
-                            board={draft ?? editorBoard}
-                            index={index}
-                          />
-                          <div className="absolute inset-0 bg-linear-to-t from-black/20 via-transparent to-transparent" />
-                        </div>
-
-                        <div className="space-y-2 p-4">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant="secondary">{reference.category}</Badge>
-                            {reference.source ? (
-                              <span className="text-xs text-(--text-muted)">{reference.source}</span>
-                            ) : null}
+                      {effectiveReadOnly ? (
+                        <div className="block w-full text-left">
+                          <div className="relative aspect-4/3 w-full overflow-hidden">
+                            <ReferenceImageDisplay
+                              title={reference.title}
+                              category={reference.category}
+                              imageUrl={reference.imageUrl}
+                              source={reference.source}
+                              board={draft ?? editorBoard}
+                              index={index}
+                            />
+                            <div className="absolute inset-0 bg-linear-to-t from-black/20 via-transparent to-transparent" />
                           </div>
 
-                          <p className="line-clamp-2 text-sm leading-6 text-(--text)">
-                            {reference.title}
-                          </p>
-                        </div>
-                      </button>
+                          <div className="space-y-2 p-4">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge variant="secondary">{reference.category}</Badge>
+                              {reference.source ? (
+                                <span className="text-xs text-(--text-muted)">{reference.source}</span>
+                              ) : null}
+                            </div>
 
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleRequestRemoval('reference', index)}
-                        aria-label={`Remove reference ${reference.title}`}
-                        className="absolute right-3 top-3 h-9 w-9 rounded-full border border-(--border) bg-(--surface-elevated) text-(--text-muted) opacity-100 transition hover:bg-(--surface-subtle) hover:text-(--text)"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                            <p className="line-clamp-2 text-sm leading-6 text-(--text)">
+                              {reference.title}
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setEditingReferenceIndex(index)}
+                          aria-label={`Edit reference ${reference.title}`}
+                          className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring)"
+                        >
+                          <div className="relative aspect-4/3 w-full overflow-hidden">
+                            <ReferenceImageDisplay
+                              title={reference.title}
+                              category={reference.category}
+                              imageUrl={reference.imageUrl}
+                              source={reference.source}
+                              board={draft ?? editorBoard}
+                              index={index}
+                            />
+                            <div className="absolute inset-0 bg-linear-to-t from-black/20 via-transparent to-transparent" />
+                          </div>
+
+                          <div className="space-y-2 p-4">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge variant="secondary">{reference.category}</Badge>
+                              {reference.source ? (
+                                <span className="text-xs text-(--text-muted)">{reference.source}</span>
+                              ) : null}
+                            </div>
+
+                            <p className="line-clamp-2 text-sm leading-6 text-(--text)">
+                              {reference.title}
+                            </p>
+                          </div>
+                        </button>
+                      )}
+
+                      {canMutateBoard ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRequestRemoval('reference', index)}
+                          aria-label={`Remove reference ${reference.title}`}
+                          className="absolute right-3 top-3 h-9 w-9 rounded-full border border-(--border) bg-(--surface-elevated) text-(--text-muted) opacity-100 transition hover:bg-(--surface-subtle) hover:text-(--text)"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      ) : null}
                     </article>
                   ))}
                 </div>
@@ -1295,18 +1571,21 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 </CardDescription>
               </div>
 
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleAddNote}
-                className={editorGhostButtonClass}
-              >
-                <Plus className="h-4 w-4" />
-                Add note
-              </Button>
+              {canMutateBoard ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleAddNote}
+                  className={editorGhostButtonClass}
+                >
+                  <Plus className="h-4 w-4" />
+                  Add note
+                </Button>
+              ) : null}
             </CardHeader>
 
             <CardContent>
+              {renderSectionReplay('notes')}
               <div className="grid gap-4 md:grid-cols-2">
                 {editorBoard.notes.map((note, index) => (
                   <Card
@@ -1330,16 +1609,18 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                         </p>
                       </div>
 
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleRequestRemoval('note', index)}
-                        aria-label={`Remove note ${index + 1}`}
-                        className={editorIconButtonClass}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {canMutateBoard ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRequestRemoval('note', index)}
+                          aria-label={`Remove note ${index + 1}`}
+                          className={editorIconButtonClass}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      ) : null}
                     </CardHeader>
 
                     <CardContent className="space-y-4">
@@ -1349,6 +1630,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                         </label>
                         <select
                           value={note.type}
+                          disabled={effectiveReadOnly}
                           onChange={(e) =>
                             updateDraft((current) => ({
                               ...current,
@@ -1373,6 +1655,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                         </label>
                         <Textarea
                           value={note.text}
+                          readOnly={effectiveReadOnly}
                           onChange={(event) =>
                             updateDraft((current) => ({
                               ...current,
@@ -1410,33 +1693,38 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 </CardDescription>
               </div>
 
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleAddPalette}
-                className={editorGhostButtonClass}
-              >
-                <Plus className="h-4 w-4" />
-                Add color
-              </Button>
+              {canMutateBoard ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleAddPalette}
+                  className={editorGhostButtonClass}
+                >
+                  <Plus className="h-4 w-4" />
+                  Add color
+                </Button>
+              ) : null}
             </CardHeader>
 
             <CardContent className="space-y-4">
+              {renderSectionReplay('palette')}
               {editorBoard.palette.map((item: PaletteItem, index) => (
                 <Card
                   key={item.id}
                   className="relative rounded-[1.75rem] border border-(--border) bg-(--surface-subtle)"
                 >
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleRequestRemoval('palette', index)}
-                    aria-label={`Remove color ${item.label}`}
-                    className="absolute right-4 top-4 z-10 h-9 w-9 rounded-full border border-(--border) bg-(--surface-elevated) text-(--text-muted) transition hover:bg-(--surface-subtle) hover:text-(--text)"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {canMutateBoard ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRequestRemoval('palette', index)}
+                      aria-label={`Remove color ${item.label}`}
+                      className="absolute right-4 top-4 z-10 h-9 w-9 rounded-full border border-(--border) bg-(--surface-elevated) text-(--text-muted) transition hover:bg-(--surface-subtle) hover:text-(--text)"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  ) : null}
 
                   <CardContent className="space-y-4 p-4">
                     <div
@@ -1451,6 +1739,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                         </label>
                         <Input
                           value={item.label}
+                          readOnly={effectiveReadOnly}
                           onChange={(e) =>
                             updateDraft((current) => ({
                               ...current,
@@ -1473,6 +1762,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                             <input
                               type="color"
                               value={item.hex}
+                              disabled={effectiveReadOnly}
                               onChange={(e) =>
                                 updateDraft((current) => ({
                                   ...current,
@@ -1487,6 +1777,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                           </div>
                           <Input
                             value={item.hex}
+                            readOnly={effectiveReadOnly}
                             onChange={(e) =>
                               updateDraft((current) => ({
                                 ...current,
@@ -1507,6 +1798,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                         </label>
                         <Input
                           value={item.usage}
+                          readOnly={effectiveReadOnly}
                           onChange={(e) =>
                             updateDraft((current) => ({
                               ...current,
@@ -1539,18 +1831,21 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 </CardDescription>
               </div>
 
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleAddTypography}
-                className={editorGhostButtonClass}
-              >
-                <Plus className="h-4 w-4" />
-                Add row
-              </Button>
+              {canMutateBoard ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleAddTypography}
+                  className={editorGhostButtonClass}
+                >
+                  <Plus className="h-4 w-4" />
+                  Add row
+                </Button>
+              ) : null}
             </CardHeader>
 
             <CardContent className="space-y-4">
+              {renderSectionReplay('typography')}
               {editorBoard.typography.map((item: TypographyItem, index) => {
                 const presetValue = fontOptions.includes(item.fontName)
                   ? item.fontName
@@ -1563,16 +1858,18 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                     key={item.id}
                     className="relative rounded-[1.75rem] border border-(--border) bg-(--surface-subtle)"
                   >
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRequestRemoval('typography', index)}
-                      aria-label={`Remove ${item.role} typography`}
-                      className="absolute right-4 top-4 z-10 h-9 w-9 rounded-full border border-(--border) bg-(--surface-elevated) text-(--text-muted) transition hover:bg-(--surface-subtle) hover:text-(--text)"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {canMutateBoard ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRequestRemoval('typography', index)}
+                        aria-label={`Remove ${item.role} typography`}
+                        className="absolute right-4 top-4 z-10 h-9 w-9 rounded-full border border-(--border) bg-(--surface-elevated) text-(--text-muted) transition hover:bg-(--surface-subtle) hover:text-(--text)"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    ) : null}
 
                     <CardContent className="space-y-4 p-4">
                       <div className="flex items-center justify-between gap-3">
@@ -1585,6 +1882,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                         </label>
                         <select
                           value={item.role}
+                          disabled={effectiveReadOnly}
                           onChange={(e) =>
                             updateDraft((current) => ({
                               ...current,
@@ -1611,6 +1909,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                         </label>
                         <select
                           value={presetValue}
+                          disabled={effectiveReadOnly}
                           onChange={(e) => {
                             const nextValue = e.target.value;
                             if (nextValue === '__custom__') return;
@@ -1641,6 +1940,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                         </label>
                         <Input
                           value={item.fontName}
+                          readOnly={effectiveReadOnly}
                           onChange={(e) =>
                             updateDraft((current) => ({
                               ...current,
@@ -1660,6 +1960,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                         </label>
                         <Input
                           value={item.note}
+                          readOnly={effectiveReadOnly}
                           onChange={(e) =>
                             updateDraft((current) => ({
                               ...current,
@@ -1746,7 +2047,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         }}
       />
 
-      {editingReferenceIndex !== null && currentReference ? (
+      {canMutateBoard && editingReferenceIndex !== null && currentReference ? (
         <ReferenceEditorModal
           key={currentReference.id}
           reference={currentReference}
@@ -1784,11 +2085,76 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         comments={comments}
         loading={commentsLoading}
         posting={commentsPosting}
-        currentUserId={auth.user?.id ?? null}
         isOwner={isOwner}
         onClose={() => setCommentsOpen(false)}
-        onPost={postComment}
+        onPost={async (body) => {
+          const ok = await postComment(body);
+          if (ok) {
+            void refreshCollaborationState();
+          }
+          return ok;
+        }}
         onDelete={deleteComment}
+        onMarkAllRead={async () => {
+          const ok = await markCommentsRead();
+          if (ok) {
+            await refreshComments();
+          }
+          return ok;
+        }}
+        onToggleRead={async (commentId, isRead) => {
+          patchCommentState(commentId, { isRead });
+          const ok = await setItemRead('comment', commentId, isRead);
+          if (!ok) {
+            await refreshComments();
+          }
+          return ok;
+        }}
+        onHide={async (commentId) => {
+          patchCommentState(commentId, { isHidden: true });
+          return hideItem('comment', commentId);
+        }}
+        onUnhide={async (commentId) => {
+          patchCommentState(commentId, { isHidden: false });
+          return unhideItem('comment', commentId);
+        }}
+        returnFocusRef={commentsButtonRef}
+      />
+
+      <BoardActivityPanel
+        open={activityOpen}
+        boardTitle={editorBoard.title}
+        activity={activity}
+        loading={activityLoading}
+        isOwner={isOwner}
+        activeReplayId={replayEvent?.id ?? null}
+        onClose={() => setActivityOpen(false)}
+        onReplayOnBoard={startBoardReplay}
+        onDelete={deleteActivity}
+        onMarkAllRead={async () => {
+          const ok = await markActivityRead();
+          if (ok) {
+            await refreshActivity();
+          }
+          return ok;
+        }}
+        onToggleRead={async (activityId, isRead) => {
+          patchActivityState(activityId, { isRead });
+          const ok = await setItemRead('activity', activityId, isRead);
+          if (!ok) {
+            await refreshActivity();
+          }
+          return ok;
+        }}
+        onHide={async (activityId) => {
+          patchActivityState(activityId, { isHidden: true });
+          return hideItem('activity', activityId);
+        }}
+        onUnhide={async (activityId) => {
+          patchActivityState(activityId, { isHidden: false });
+          return unhideItem('activity', activityId);
+        }}
+        returnFocusRef={activityButtonRef}
       />
     </div>
   );

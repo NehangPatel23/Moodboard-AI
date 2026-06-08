@@ -13,6 +13,7 @@ type BoardHeaderProps = {
   isFavorite: boolean;
   saveStatus: string;
   isDirty: boolean;
+  canEdit?: boolean;
   onTitleChange: (value: string) => void;
   onSave: () => void;
   onDuplicate: () => void;
@@ -33,6 +34,7 @@ export function BoardHeader({
   isFavorite,
   saveStatus,
   isDirty,
+  canEdit = true,
   onTitleChange,
   onSave,
   onDuplicate,
@@ -54,6 +56,7 @@ export function BoardHeader({
             isFavorite={isFavorite}
             saveStatus={saveStatus}
             isDirty={isDirty}
+            canEdit={canEdit}
             viewHref={`/app/boards/${boardId}/view`}
             onSave={onSave}
             onDuplicate={onDuplicate}
@@ -71,6 +74,7 @@ export function BoardHeader({
         <div className="w-full">
           <textarea
             value={title}
+            readOnly={!canEdit}
             onChange={(event) => onTitleChange(event.target.value.slice(0, TITLE_LIMIT))}
             rows={1}
             wrap="off"

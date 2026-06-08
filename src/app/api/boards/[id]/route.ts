@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
+import { diffBoards, summarizeBoardChanges } from '@/lib/board-diff';
+import { recordBoardActivity } from '@/lib/db/board-activity';
 import { getBoardAccess } from '@/lib/db/board-access';
 import { boardToRow, rowToBoard } from '@/lib/db/board-mappers';
 import { getAuthenticatedUser } from '@/lib/db/auth';
+import { isMissingColumnError } from '@/lib/db/schema-errors';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { Board } from '@/types/board';
 
@@ -11,7 +14,7 @@ type RouteContext = {
 
 export async function PATCH(request: Request, context: RouteContext) {
   const { id } = await context.params;
-  const { user } = await getAuthenticatedUser();
+  const { user, profile } = await getAuthenticatedUser();
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -34,8 +37,22 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   const admin = createAdminClient();
+  const { data: existingRow } = await admin.from('boards').select('*').eq('id', id).maybeSingle();
+  const previousBoard = existingRow ? rowToBoard(existingRow) : null;
+
   const row = boardToRow(body.board, access.ownerId);
-  const { data, error } = await admin.from('boards').update(row).eq('id', id).select('*').maybeSingle();
+  const savedByName = profile?.name ?? 'Collaborator';
+
+  let { data, error } = await admin
+    .from('boards')
+    .update({ ...row, last_saved_by_name: savedByName })
+    .eq('id', id)
+    .select('*')
+    .maybeSingle();
+
+  if (error && isMissingColumnError(error, 'last_saved_by_name')) {
+    ({ data, error } = await admin.from('boards').update(row).eq('id', id).select('*').maybeSingle());
+  }
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -43,6 +60,19 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   if (!data) {
     return NextResponse.json({ error: 'Board not found' }, { status: 404 });
+  }
+
+  try {
+    const changes = previousBoard ? diffBoards(previousBoard, body.board) : [];
+    await recordBoardActivity(admin, {
+      boardId: id,
+      userId: user.id,
+      actorName: savedByName,
+      changes,
+      summary: summarizeBoardChanges(changes),
+    });
+  } catch {
+    // Activity logging is best-effort; board save already succeeded.
   }
 
   const role = access.role ?? 'owner';

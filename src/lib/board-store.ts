@@ -277,14 +277,28 @@ export function updateBoard(boardId: string, updater: (board: Board) => Board): 
 
   if (!activeUserId) return updated;
 
-  void apiFetch(`/api/boards/${boardId}`, {
+  void apiFetch<{ board: Board }>(`/api/boards/${boardId}`, {
     method: 'PATCH',
     body: JSON.stringify({ board: updated }),
-  }).catch(() => {
-    cachedBoards = previous;
-    notifyBoardsChanged();
-    void showPersistError('Failed to update board.');
-  });
+  })
+    .then((data) => {
+      if (!data?.board) return;
+      const current = loadBoards();
+      const idx = current.findIndex((board) => board.id === boardId);
+      if (idx === -1) return;
+      const nextBoards = current.slice();
+      nextBoards[idx] = {
+        ...sanitizeBoardReferences(data.board),
+        role: current[idx].role,
+      };
+      cachedBoards = nextBoards;
+      notifyBoardsChanged();
+    })
+    .catch(() => {
+      cachedBoards = previous;
+      notifyBoardsChanged();
+      void showPersistError('Failed to update board.');
+    });
 
   return updated;
 }

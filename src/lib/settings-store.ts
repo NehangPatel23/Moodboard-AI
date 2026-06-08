@@ -94,6 +94,14 @@ export function getWorkspaceInitials(name: string): string {
   return `${words[0][0]}${words[words.length - 1][0]}`.toUpperCase();
 }
 
+function normalizeRetentionDays(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 0;
+  const rounded = Math.floor(value);
+  if (rounded < 0) return 0;
+  if (rounded > 3650) return 3650;
+  return rounded;
+}
+
 function normalizeSettings(value: unknown): AppSettings {
   const parsed = (value ?? {}) as Partial<AppSettings>;
 
@@ -128,6 +136,10 @@ function normalizeSettings(value: unknown): AppSettings {
         ? parsed.focusRingsEnabled
         : DEFAULT_APP_SETTINGS.focusRingsEnabled,
     themeMode: normalizeThemeMode(parsed.themeMode),
+    commentsHideAfterDays: normalizeRetentionDays(parsed.commentsHideAfterDays),
+    activityHideAfterDays: normalizeRetentionDays(parsed.activityHideAfterDays),
+    purgeCommentsAfterDays: normalizeRetentionDays(parsed.purgeCommentsAfterDays),
+    purgeActivityAfterDays: normalizeRetentionDays(parsed.purgeActivityAfterDays),
   };
 }
 

@@ -4,11 +4,11 @@ import { getAuthenticatedUser } from '@/lib/db/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 type RouteContext = {
-  params: Promise<{ id: string; commentId: string }>;
+  params: Promise<{ id: string; activityId: string }>;
 };
 
 export async function DELETE(_request: Request, context: RouteContext) {
-  const { id, commentId } = await context.params;
+  const { id, activityId } = await context.params;
   const { user } = await getAuthenticatedUser();
 
   if (!user) {
@@ -20,29 +20,27 @@ export async function DELETE(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const admin = createAdminClient();
-
-  const { data: comment } = await admin
-    .from('board_comments')
-    .select('id, user_id, board_id')
-    .eq('id', commentId)
-    .eq('board_id', id)
-    .maybeSingle();
-
-  if (!comment) {
-    return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
-  }
-
-  const isOwner = access.role === 'owner';
-
-  if (!isOwner) {
+  if (access.role !== 'owner') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
+  const admin = createAdminClient();
+
+  const { data: event } = await admin
+    .from('board_activity')
+    .select('id, board_id')
+    .eq('id', activityId)
+    .eq('board_id', id)
+    .maybeSingle();
+
+  if (!event) {
+    return NextResponse.json({ error: 'Activity event not found' }, { status: 404 });
+  }
+
   const { error } = await admin
-    .from('board_comments')
+    .from('board_activity')
     .delete()
-    .eq('id', commentId)
+    .eq('id', activityId)
     .eq('board_id', id);
 
   if (error) {
