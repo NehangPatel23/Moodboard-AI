@@ -21,6 +21,32 @@ function downloadSlug(title: string): string {
   return title.replace(/\s+/g, '-').toLowerCase();
 }
 
+async function waitForCaptureReady(node: HTMLElement) {
+  if (typeof document !== 'undefined' && document.fonts?.ready) {
+    await document.fonts.ready;
+  }
+
+  const images = Array.from(node.querySelectorAll('img'));
+  await Promise.all(
+    images.map(
+      (image) =>
+        new Promise<void>((resolve) => {
+          if (image.complete) {
+            resolve();
+            return;
+          }
+
+          image.onload = () => resolve();
+          image.onerror = () => resolve();
+        }),
+    ),
+  );
+
+  await new Promise<void>((resolve) => {
+    window.requestAnimationFrame(() => resolve());
+  });
+}
+
 export function ExportModal({
   open,
   board,
@@ -52,11 +78,21 @@ export function ExportModal({
       throw new Error('Export layout not ready.');
     }
 
+    await waitForCaptureReady(node);
+
+    const width = node.offsetWidth || node.scrollWidth || 1200;
+    const height = node.offsetHeight || node.scrollHeight;
+
+    if (!width || !height) {
+      throw new Error('Export layout has no dimensions.');
+    }
+
     return toPng(node, {
       cacheBust: true,
       pixelRatio: 2,
-      width: node.scrollWidth,
-      height: node.scrollHeight,
+      width,
+      height,
+      backgroundColor: '#f7f4ef',
     });
   }
 
@@ -89,20 +125,31 @@ export function ExportModal({
       const maxWidth = pageWidth - margin * 2;
       const maxHeight = pageHeight - margin * 2;
 
-      const image = new Image();
-      image.src = dataUrl;
-      await new Promise<void>((resolve, reject) => {
-        image.onload = () => resolve();
-        image.onerror = () => reject(new Error('Failed to load capture'));
-      });
+      const { width: imageWidth, height: imageHeight } = pdf.getImageProperties(dataUrl);
+      if (!imageWidth || !imageHeight) {
+        throw new Error('Captured image has no dimensions.');
+      }
 
-      const scale = Math.min(maxWidth / image.width, maxHeight / image.height);
-      const width = image.width * scale;
-      const height = image.height * scale;
-      const x = (pageWidth - width) / 2;
-      const y = margin;
+      const pdfWidth = maxWidth;
+      const pdfHeight = (imageHeight * pdfWidth) / imageWidth;
 
-      pdf.addImage(dataUrl, 'PNG', x, y, width, height);
+      if (pdfHeight <= maxHeight) {
+        pdf.addImage(dataUrl, 'PNG', margin, margin, pdfWidth, pdfHeight);
+      } else {
+        let heightLeft = pdfHeight;
+        let position = margin;
+
+        pdf.addImage(dataUrl, 'PNG', margin, position, pdfWidth, pdfHeight);
+        heightLeft -= maxHeight;
+
+        while (heightLeft > 0) {
+          position = heightLeft - pdfHeight + margin;
+          pdf.addPage();
+          pdf.addImage(dataUrl, 'PNG', margin, position, pdfWidth, pdfHeight);
+          heightLeft -= maxHeight;
+        }
+      }
+
       pdf.save(`${downloadSlug(board.title)}.pdf`);
       onExported('pdf');
     } catch {
@@ -143,40 +190,47 @@ export function ExportModal({
         </div>
 
         <div className="mt-5 space-y-3">
-          <div className="rounded-[1.75rem] border border-[var(--border)] bg-[var(--surface-subtle)] p-4 text-sm leading-6 text-[var(--text-muted)]">
-            <strong className="font-medium text-[var(--text-strong)]">JSON</strong> — full board data.
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-[1.75rem] border border-[var(--border)] bg-[var(--surface-subtle)] p-4">
+            <p className="text-sm leading-6 text-[var(--text-muted)]">
+              <strong className="font-medium text-[var(--text-strong)]">JSON</strong> — full board data.
+            </p>
+            <Button type="button" variant="outline" onClick={handleDownloadJson} className="shrink-0 rounded-full">
+              Download JSON
+            </Button>
           </div>
-          <div className="rounded-[1.75rem] border border-[var(--border)] bg-[var(--surface-subtle)] p-4 text-sm leading-6 text-[var(--text-muted)]">
-            <strong className="font-medium text-[var(--text-strong)]">PNG</strong> — visual moodboard image.
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-[1.75rem] border border-[var(--border)] bg-[var(--surface-subtle)] p-4">
+            <p className="text-sm leading-6 text-[var(--text-muted)]">
+              <strong className="font-medium text-[var(--text-strong)]">PNG</strong> — visual moodboard image.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void handleDownloadPng()}
+              disabled={exporting}
+              className="shrink-0 rounded-full"
+            >
+              {exportingVisual === 'png' ? 'Exporting…' : 'Download PNG'}
+            </Button>
           </div>
-          <div className="rounded-[1.75rem] border border-[var(--border)] bg-[var(--surface-subtle)] p-4 text-sm leading-6 text-[var(--text-muted)]">
-            <strong className="font-medium text-[var(--text-strong)]">PDF</strong> — printable moodboard summary.
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-[1.75rem] border border-[var(--border)] bg-[var(--surface-subtle)] p-4">
+            <p className="text-sm leading-6 text-[var(--text-muted)]">
+              <strong className="font-medium text-[var(--text-strong)]">PDF</strong> — printable moodboard summary.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void handleDownloadPdf()}
+              disabled={exporting}
+              className="shrink-0 rounded-full"
+            >
+              {exportingVisual === 'pdf' ? 'Exporting…' : 'Download PDF'}
+            </Button>
           </div>
         </div>
 
-        <div className="mt-6 flex flex-wrap justify-end gap-3">
-          <Button variant="outline" type="button" onClick={onClose} className="rounded-full">
+        <div className="mt-6 flex justify-end">
+          <Button variant="default" type="button" onClick={onClose} className="rounded-full">
             Close
-          </Button>
-          <Button type="button" variant="outline" onClick={handleDownloadJson} className="rounded-full">
-            Download JSON
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => void handleDownloadPng()}
-            disabled={exporting}
-            className="rounded-full"
-          >
-            {exportingVisual === 'png' ? 'Exporting…' : 'Download PNG'}
-          </Button>
-          <Button
-            type="button"
-            onClick={() => void handleDownloadPdf()}
-            disabled={exporting}
-            className="rounded-full"
-          >
-            {exportingVisual === 'pdf' ? 'Exporting…' : 'Download PDF'}
           </Button>
         </div>
       </div>
@@ -184,7 +238,7 @@ export function ExportModal({
       <div
         ref={captureRef}
         aria-hidden="true"
-        className="pointer-events-none fixed -left-[9999px] top-0"
+        className="pointer-events-none fixed top-0 left-[-10000px]"
       >
         <BoardExportCapture board={board} />
       </div>

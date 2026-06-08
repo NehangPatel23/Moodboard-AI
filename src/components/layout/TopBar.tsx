@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { GuardedLink } from '@/components/shared/GuardedLink';
 import { Search } from 'lucide-react';
 import { openCommandPalette } from '@/components/shared/command-palette-store';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
@@ -12,7 +12,7 @@ export function TopBar() {
     <header className="border-b border-[var(--border)] bg-[var(--surface-elevated)] backdrop-blur-xl">
       <div className="mx-auto w-full max-w-360 px-4 md:px-8">
         <div className="flex items-center justify-between gap-4 py-4">
-          <Link
+          <GuardedLink
             href="/"
             aria-label="MoodBoard AI home"
             className="flex min-w-0 items-center gap-3 rounded-2xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
@@ -26,7 +26,7 @@ export function TopBar() {
               </p>
               <p className="truncate text-sm text-[var(--text-muted)]">Creative direction workspace</p>
             </div>
-          </Link>
+          </GuardedLink>
 
           <div className="flex items-center gap-3">
             <button

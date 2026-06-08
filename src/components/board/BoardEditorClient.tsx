@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { GenerationSourceBadge } from '@/components/creation/GenerationSourceBadge';
 import type {
   Board,
   BoardActivityEvent,
@@ -27,6 +26,9 @@ import { useBoardRealtime } from '@/lib/realtime/use-board-realtime';
 import { useBoardComments } from '@/lib/realtime/use-board-comments';
 import { useBoardActivity } from '@/lib/realtime/use-board-activity';
 import { useBoardCollaborationState } from '@/lib/realtime/use-board-collaboration-state';
+import type { BlockedNavigation } from '@/lib/board-editor-navigation-guard';
+import { useBoardEditorNavigationGuard } from '@/lib/use-board-editor-navigation-guard';
+import { lockBodyScroll } from '@/lib/body-scroll-lock';
 import {
   DEFAULT_APP_SETTINGS,
   readAppSettings,
@@ -44,7 +46,7 @@ import { BoardSectionPresenceBar } from '@/components/board/BoardSectionPresence
 import { BoardReplayBanner } from '@/components/board/BoardReplayBanner';
 import { BoardReplayCallout, BoardReplaySectionBlock } from '@/components/board/BoardReplayCallout';
 import { BoardEditorSkeleton } from '@/components/board/BoardEditorSkeleton';
-import { BoardPresenceStrip } from '@/components/board/BoardPresenceStrip';
+import { BoardEditorToolbar } from '@/components/board/BoardEditorToolbar';
 import { RemoteUpdateBanner } from '@/components/board/RemoteUpdateBanner';
 import { ReferenceImageDisplay } from '@/components/board/ReferenceImageDisplay';
 import { ReferenceImageSearchButton } from '@/components/board/ReferenceImageSearchButton';
@@ -78,13 +80,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  Copy,
-  Download,
-  ExternalLink,
   Plus,
-  Share2,
-  Star,
-  StarOff,
   Trash2,
   X,
   ClipboardList, 
@@ -95,11 +91,6 @@ import {
   Type,
   Layers3,
   Image as ImageIcon,
-  Globe,
-  Lock,
-  MessageSquare,
-  History,
-  Camera,
 } from 'lucide-react';
 import { showToast } from '@/components/shared/toast-store';
 import {
@@ -117,6 +108,10 @@ type BoardEditorClientProps = {
 
 type RemovalKind = 'palette' | 'typography' | 'reference' | 'note';
 type BoardAction = 'duplicate' | 'share' | 'export' | 'view';
+
+type PendingContinue =
+  | { kind: 'board-action'; action: BoardAction }
+  | BlockedNavigation;
 
 const TITLE_LIMIT = 80;
 
@@ -364,8 +359,7 @@ function ReferenceEditorModal({
   useEffect(() => {
     if (typeof document === 'undefined') return;
 
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const unlockBodyScroll = lockBodyScroll();
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -377,7 +371,7 @@ function ReferenceEditorModal({
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.body.style.overflow = originalOverflow;
+      unlockBodyScroll();
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [onClose]);
@@ -633,7 +627,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     kind: RemovalKind;
     index: number;
   } | null>(null);
-  const [pendingAction, setPendingAction] = useState<BoardAction | null>(null);
+  const [pendingContinue, setPendingContinue] = useState<PendingContinue | null>(null);
   const [unsavedChangesOpen, setUnsavedChangesOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState('Saved');
   const [isDirty, setIsDirty] = useState(false);
@@ -669,9 +663,21 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     () => DEFAULT_APP_SETTINGS,
   );
 
-  const boardRole = savedBoard?.role ?? null;
+  const boardRole = savedBoard?.role ?? (savedBoard ? 'owner' : null);
+  const canEditBoard = boardRole === 'owner' || boardRole === 'editor';
   const realtimeEnabled = auth.status === 'authenticated' && boardRole !== null;
   const canComment = boardRole !== null;
+
+  const handleBlockedNavigation = useCallback((navigation: BlockedNavigation) => {
+    setPendingContinue(navigation);
+    setUnsavedChangesOpen(true);
+  }, []);
+
+  useBoardEditorNavigationGuard({
+    isDirty,
+    enabled: canEditBoard && Boolean(editorBoard) && !isResolvingBoard,
+    onBlocked: handleBlockedNavigation,
+  });
 
   const handleRemoteBoard = useCallback(
     (board: Board, savedByName: string | null) => {
@@ -690,7 +696,9 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     [boardId, isDirty],
   );
 
-  const { presenceUsers } = useBoardRealtime({
+  const activeSectionLabel = EDITOR_SECTION_META[EDITOR_SECTIONS[activeSectionIndex]].label;
+
+  const { presenceUsers, onlineUsers } = useBoardRealtime({
     boardId,
     userId: auth.user?.id ?? null,
     userName: auth.user?.name ?? settings.workspaceName,
@@ -698,10 +706,8 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     localUpdatedAt: editorBoard?.updatedAt ?? null,
     isDirty,
     enabled: realtimeEnabled,
-    activeSection: {
-      index: activeSectionIndex,
-      label: EDITOR_SECTION_META[EDITOR_SECTIONS[activeSectionIndex]].label,
-    },
+    activeSectionIndex,
+    activeSectionLabel,
     onRemoteBoard: handleRemoteBoard,
   });
 
@@ -818,8 +824,9 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
       return;
     }
 
-    sectionContentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [activeSectionIndex]);
+    const scrollBehavior = settings.reduceMotionEnabled ? 'auto' : 'smooth';
+    sectionContentRef.current?.scrollIntoView({ behavior: scrollBehavior, block: 'start' });
+  }, [activeSectionIndex, settings.reduceMotionEnabled]);
 
   if (isResolvingBoard) {
     return <BoardEditorSkeleton />;
@@ -857,7 +864,6 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const isEditor = resolvedBoardRole === 'editor';
   const isViewer = resolvedBoardRole === 'viewer';
   const canManageMembers = isOwner;
-  const canEditBoard = isOwner || isEditor;
   const readOnly = !canEditBoard;
   const isReplayMode = replayEvent !== null;
   const effectiveReadOnly = readOnly || isReplayMode;
@@ -916,7 +922,6 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
 
       case 'export':
         setExportOpen(true);
-        showToast('Export modal opened.', 'default');
         return;
 
       case 'view':
@@ -927,13 +932,33 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
 
   const requireSavedChanges = (action: BoardAction) => {
     if (isDirty) {
-      setPendingAction(action);
+      setPendingContinue({ kind: 'board-action', action });
       setUnsavedChangesOpen(true);
-      showToast('Save your changes before continuing.', 'default');
       return;
     }
 
     performBoardAction(action);
+  };
+
+  const proceedAfterSave = (pending: PendingContinue) => {
+    window.setTimeout(() => {
+      if ('kind' in pending) {
+        performBoardAction(pending.action);
+        return;
+      }
+
+      if (pending.type === 'href') {
+        router.push(pending.href);
+        return;
+      }
+
+      if (pending.type === 'back') {
+        window.history.back();
+        return;
+      }
+
+      pending.run();
+    }, 150);
   };
 
   const handleSave = () => {
@@ -956,7 +981,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   };
 
   const handleSaveAndContinue = () => {
-    const nextAction = pendingAction;
+    const pending = pendingContinue;
     const saverName = auth.user?.name ?? settings.workspaceName;
 
     const updated = updateBoard(boardId, () => cloneBoard(editorBoard));
@@ -969,13 +994,11 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     setIsDirty(false);
     setSaveStatus('Saved');
     setUnsavedChangesOpen(false);
-    setPendingAction(null);
+    setPendingContinue(null);
     showToast('Changes saved.', 'success');
 
-    if (nextAction) {
-      window.setTimeout(() => {
-        performBoardAction(nextAction);
-      }, 150);
+    if (pending) {
+      proceedAfterSave(pending);
     }
   };
 
@@ -1244,191 +1267,55 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
 
       <section className="rounded-[2.5rem] border border-(--border) bg-(--surface-elevated) p-6 shadow-[var(--shadow-card)] md:p-8">
         <div className="flex flex-col gap-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              {generationSource ? <GenerationSourceBadge source={generationSource} /> : null}
-              {isEditor ? <Badge variant="outline">Editor access</Badge> : null}
-              {isViewer ? <Badge variant="outline">Viewer access</Badge> : null}
-              {isViewer ? (
-                <span className="text-sm text-(--text-muted)">
-                  You can view and comment on this board. Editing is disabled.
-                </span>
-              ) : null}
-              <Badge variant="secondary">{editorBoard.visibility}</Badge>
-              <Badge variant="secondary">{dirtyStatus}</Badge>
-              <BoardPresenceStrip users={presenceUsers} />
-              <p className="sr-only" aria-live="polite">
-                {unreadCommentsCount > 0
-                  ? `${unreadCommentsCount} unread comment${unreadCommentsCount === 1 ? '' : 's'}. `
-                  : ''}
-                {unreadActivityCount > 0
-                  ? `${unreadActivityCount} unread activity update${unreadActivityCount === 1 ? '' : 's'}.`
-                  : ''}
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {canComment ? (
-                <Button
-                  ref={commentsButtonRef}
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setActivityOpen(false);
-                    setSnapshotsOpen(false);
-                    setCommentsOpen(true);
-                  }}
-                  className={editorGhostButtonClass}
-                >
-                  <MessageSquare className="h-4 w-4" />
-                  Comments
-                  {unreadCommentsCount > 0 ? (
-                    <span className="ml-1 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-medium text-white">
-                      {unreadCommentsCount} new
-                    </span>
-                  ) : null}
-                </Button>
-              ) : null}
-
-              {canComment ? (
-                <Button
-                  ref={activityButtonRef}
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setCommentsOpen(false);
-                    setSnapshotsOpen(false);
-                    setActivityOpen(true);
-                  }}
-                  className={editorGhostButtonClass}
-                >
-                  <History className="h-4 w-4" />
-                  Activity
-                  {unreadActivityCount > 0 ? (
-                    <span className="ml-1 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-medium text-white">
-                      {unreadActivityCount} new
-                    </span>
-                  ) : null}
-                </Button>
-              ) : null}
-
-              {canEditBoard ? (
-                <Button
-                  ref={snapshotsButtonRef}
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setCommentsOpen(false);
-                    setActivityOpen(false);
-                    setSnapshotsOpen(true);
-                  }}
-                  className={editorGhostButtonClass}
-                >
-                  <Camera className="h-4 w-4" />
-                  Snapshots
-                </Button>
-              ) : null}
-
-              {canMutateBoard ? (
-                <Button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={!isDirty}
-                  className="rounded-full border border-transparent bg-(--text-strong) px-4 text-(--background) shadow-sm transition-colors hover:opacity-90"
-                >
-                  Save
-                </Button>
-              ) : null}
-
-              {isOwner ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleToggleFavorite}
-                  className={editorGhostButtonClass}
-                >
-                  {editorBoard.isFavorite ? <StarOff className="h-4 w-4" /> : <Star className="h-4 w-4" />}
-                  {editorBoard.isFavorite ? 'Unfavorite' : 'Favorite'}
-                </Button>
-              ) : null}
-
-              {isOwner ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleToggleVisibility}
-                  aria-pressed={editorBoard.visibility === 'shared'}
-                  className={editorGhostButtonClass}
-                >
-                  {editorBoard.visibility === 'shared' ? (
-                    <Globe className="h-4 w-4" />
-                  ) : (
-                    <Lock className="h-4 w-4" />
-                  )}
-                  {editorBoard.visibility === 'shared' ? 'Shared' : 'Private'}
-                </Button>
-              ) : null}
-
-              {isOwner ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => requireSavedChanges('duplicate')}
-                  className={editorGhostButtonClass}
-                >
-                  <Copy className="h-4 w-4" />
-                  Duplicate
-                </Button>
-              ) : null}
-
-              {isOwner ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => requireSavedChanges('share')}
-                  className={editorGhostButtonClass}
-                >
-                  <Share2 className="h-4 w-4" />
-                  Share
-                </Button>
-              ) : null}
-
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => requireSavedChanges('export')}
-                className={editorGhostButtonClass}
-              >
-                <Download className="h-4 w-4" />
-                Export
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => requireSavedChanges('view')}
-                className={editorGhostButtonClass}
-              >
-                <ExternalLink className="h-4 w-4" />
-                View
-              </Button>
-
-              {isOwner ? (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={() => {
-                    showToast('You are about to permanently delete this board.', 'destructive');
-                    setDeleteOpen(true);
-                  }}
-                  className="rounded-full px-4"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete
-                </Button>
-              ) : null}
-            </div>
-          </div>
+        <BoardEditorToolbar
+          generationSource={generationSource}
+          isEditor={isEditor}
+          isViewer={isViewer}
+          isOwner={isOwner}
+          canComment={canComment}
+          canEditBoard={canEditBoard}
+          canMutateBoard={canMutateBoard}
+          visibility={editorBoard.visibility}
+          isFavorite={editorBoard.isFavorite}
+          dirtyStatus={dirtyStatus}
+          isDirty={isDirty}
+          unreadCommentsCount={unreadCommentsCount}
+          unreadActivityCount={unreadActivityCount}
+          onlineUsers={onlineUsers}
+          currentUserId={auth.user?.id ?? null}
+          commentsOpen={commentsOpen}
+          activityOpen={activityOpen}
+          snapshotsOpen={snapshotsOpen}
+          commentsButtonRef={commentsButtonRef}
+          activityButtonRef={activityButtonRef}
+          snapshotsButtonRef={snapshotsButtonRef}
+          onOpenComments={() => {
+            setActivityOpen(false);
+            setSnapshotsOpen(false);
+            setCommentsOpen(true);
+          }}
+          onOpenActivity={() => {
+            setCommentsOpen(false);
+            setSnapshotsOpen(false);
+            setActivityOpen(true);
+          }}
+          onOpenSnapshots={() => {
+            setCommentsOpen(false);
+            setActivityOpen(false);
+            setSnapshotsOpen(true);
+          }}
+          onSave={handleSave}
+          onToggleFavorite={handleToggleFavorite}
+          onToggleVisibility={handleToggleVisibility}
+          onDuplicate={() => requireSavedChanges('duplicate')}
+          onShare={() => requireSavedChanges('share')}
+          onExport={() => requireSavedChanges('export')}
+          onView={() => requireSavedChanges('view')}
+          onDelete={() => {
+            showToast('You are about to permanently delete this board.', 'destructive');
+            setDeleteOpen(true);
+          }}
+        />
 
           <div className="grid gap-6 xl:grid-cols-[1fr_280px]">
             <div className="space-y-3">
@@ -1509,7 +1396,8 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
 
             {!isReplayMode ? (
               <BoardSectionPresenceBar
-                users={presenceUsers}
+                users={onlineUsers}
+                currentUserId={auth.user?.id ?? null}
                 activeSectionIndex={activeSectionIndex}
                 activeSectionLabel={EDITOR_SECTION_META[activeSection].label}
               />
@@ -2222,14 +2110,14 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
 
       <ConfirmationModal
         open={unsavedChangesOpen}
-        title="Unsaved changes"
-        description="Save your changes before continuing?"
-        confirmLabel="Save & continue"
-        cancelLabel="Cancel"
+        title="Save changes before leaving"
+        description="You have unsaved changes on this board. Save your changes before navigating away."
+        confirmLabel="Save changes"
+        cancelLabel="Stay on board"
         onConfirm={handleSaveAndContinue}
         onCancel={() => {
           setUnsavedChangesOpen(false);
-          setPendingAction(null);
+          setPendingContinue(null);
         }}
       />
 
@@ -2351,6 +2239,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         open={snapshotsOpen}
         board={editorBoard}
         canEdit={canMutateBoard}
+        isOwner={isOwner}
         onClose={() => setSnapshotsOpen(false)}
         onRestored={(board) => {
           setDraft(cloneBoard(board));

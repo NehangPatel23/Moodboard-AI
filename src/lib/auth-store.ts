@@ -1,5 +1,6 @@
 'use client';
 
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 import { isValidEmail, passwordRequirementsMet } from '@/lib/auth-validation';
 
@@ -112,7 +113,7 @@ export function hydrateAuthStore(): void {
   const supabase = createClient();
 
   if (!authSubscriptionAttached) {
-    supabase.auth.onAuthStateChange((_event, session) => {
+    supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       if (session?.user) {
         void mapSupabaseUser(session.user).then((user) => {
           cachedState = { status: 'authenticated', user };

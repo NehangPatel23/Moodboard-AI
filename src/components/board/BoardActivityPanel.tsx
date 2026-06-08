@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
+import { GuardedLink } from '@/components/shared/GuardedLink';
 import { Archive, Eye, EyeOff, History, Play, Trash2, X } from 'lucide-react';
 import type { BoardActivityEvent } from '@/types/board';
 import { formatDateTime } from '@/lib/utils';
@@ -14,6 +14,10 @@ import {
   editorUnreadBadgeClass,
   editorUnreadItemBorderClass,
 } from '@/components/board/board-editor-styles';
+
+function isSnapshotRestoreSummary(summary: string | null | undefined): boolean {
+  return Boolean(summary?.startsWith('Switched to Snapshot '));
+}
 
 type PanelFilter = 'all' | 'unread' | 'hidden';
 
@@ -56,6 +60,9 @@ function ActivityItem({
   onUnhide?: (activityId: string) => Promise<boolean>;
 }) {
   const changes = event.changes.length > 0 ? event.changes : [];
+  const showSummaryLine = Boolean(
+    event.summary && (changes.length === 0 || isSnapshotRestoreSummary(event.summary)),
+  );
 
   const handleToggleRead = async () => {
     if (!onToggleRead) return;
@@ -178,8 +185,12 @@ function ActivityItem({
             </div>
           </div>
 
+          {showSummaryLine ? (
+            <p className="mt-2 text-sm text-(--text-muted)">{event.summary}</p>
+          ) : null}
+
           {changes.length > 0 ? (
-            <ul className="mt-3 space-y-1.5">
+            <ul className={showSummaryLine ? 'mt-2 space-y-1.5' : 'mt-3 space-y-1.5'}>
               {changes.slice(0, 4).map((change, index) => (
                 <li key={`${event.id}-${index}`} className="text-sm leading-6 text-(--text)">
                   • {change.summary}
@@ -189,11 +200,11 @@ function ActivityItem({
                 <li className="text-sm text-(--text-muted)">+ {changes.length - 4} more changes</li>
               ) : null}
             </ul>
-          ) : (
+          ) : !showSummaryLine ? (
             <p className="mt-2 text-sm text-(--text-muted)">
               {event.summary ?? 'Saved board changes'}
             </p>
-          )}
+          ) : null}
 
           {!showHiddenActions ? (
             <Button
@@ -383,9 +394,9 @@ export function BoardActivityPanel({
                     : 'No activity yet. Saves from collaborators will appear here.'}
               </p>
               {filter === 'unread' ? (
-                <Link href="/settings#collaboration" className="text-sm text-(--text-strong) underline">
+                <GuardedLink href="/settings#collaboration" className="text-sm text-(--text-strong) underline">
                   Adjust retention in settings
-                </Link>
+                </GuardedLink>
               ) : null}
             </div>
           ) : (

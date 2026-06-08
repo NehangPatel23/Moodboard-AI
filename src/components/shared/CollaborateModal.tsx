@@ -284,7 +284,7 @@ export function CollaborateModal({
               Anyone with this link can view this board (read-only). No account required.
             </p>
             <Input readOnly value={fullShareUrl} />
-            <Button type="button" onClick={handleCopyShareLink} className="rounded-full">
+            <Button type="button" variant="outline" onClick={handleCopyShareLink} className="rounded-full">
               <Copy className="h-4 w-4" />
               Copy link
             </Button>
@@ -458,7 +458,7 @@ export function CollaborateModal({
         ) : null}
 
         <div className="mt-6 flex justify-end">
-          <Button variant="outline" type="button" onClick={handleClose} className="rounded-full">
+          <Button variant="default" type="button" onClick={handleClose} className="rounded-full">
             Close
           </Button>
         </div>

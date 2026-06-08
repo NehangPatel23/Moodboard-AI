@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Camera, RotateCcw, X } from 'lucide-react';
+import { Camera, RotateCcw, Trash2, X } from 'lucide-react';
 import type { Board, BoardSnapshot } from '@/types/board';
 import { apiFetch } from '@/lib/api-client';
 import { formatDateTime } from '@/lib/utils';
@@ -11,11 +11,13 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ConfirmationModal } from '@/components/shared/ConfirmationModal';
 import { showToast } from '@/components/shared/toast-store';
+import { lockBodyScroll } from '@/lib/body-scroll-lock';
 
 type BoardSnapshotsPanelProps = {
   open: boolean;
   board: Board;
   canEdit: boolean;
+  isOwner: boolean;
   onClose: () => void;
   onRestored: (board: Board) => void;
   returnFocusRef?: React.RefObject<HTMLButtonElement | null>;
@@ -25,6 +27,7 @@ export function BoardSnapshotsPanel({
   open,
   board,
   canEdit,
+  isOwner,
   onClose,
   onRestored,
   returnFocusRef,
@@ -33,8 +36,10 @@ export function BoardSnapshotsPanel({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [labelDraft, setLabelDraft] = useState('');
   const [pendingRestore, setPendingRestore] = useState<BoardSnapshot | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<BoardSnapshot | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -58,11 +63,17 @@ export function BoardSnapshotsPanel({
   useEffect(() => {
     if (!open) return;
 
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const unlockBodyScroll = lockBodyScroll();
+    return () => {
+      unlockBodyScroll();
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !pendingRestore) {
+      if (event.key === 'Escape' && !pendingRestore && !pendingDelete) {
         event.preventDefault();
         onClose();
       }
@@ -70,13 +81,13 @@ export function BoardSnapshotsPanel({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [onClose, open, pendingRestore]);
+  }, [onClose, open, pendingDelete, pendingRestore]);
 
   const handleClose = () => {
     setPendingRestore(null);
+    setPendingDelete(null);
     onClose();
     window.setTimeout(() => returnFocusRef?.current?.focus(), 0);
   };
@@ -125,6 +136,25 @@ export function BoardSnapshotsPanel({
       showToast(message, 'destructive');
     } finally {
       setRestoringId(null);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!pendingDelete) return;
+
+    setDeletingId(pendingDelete.id);
+    try {
+      await apiFetch(`/api/boards/${board.id}/snapshots/${pendingDelete.id}`, {
+        method: 'DELETE',
+      });
+      setSnapshots((current) => current.filter((snapshot) => snapshot.id !== pendingDelete.id));
+      setPendingDelete(null);
+      showToast('Snapshot deleted.', 'success');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete snapshot';
+      showToast(message, 'destructive');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -209,18 +239,35 @@ export function BoardSnapshotsPanel({
                     key={snapshot.id}
                     className="rounded-2xl border border-(--border) bg-(--surface-muted) px-4 py-3"
                   >
-                    <p className="text-sm font-medium text-(--text-strong)">
-                      {snapshot.label?.trim() || 'Untitled snapshot'}
-                    </p>
-                    <p className="text-xs text-(--text-muted)">
-                      {snapshot.actorName} · {formatDateTime(snapshot.createdAt)}
-                    </p>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-(--text-strong)">
+                          {snapshot.label?.trim() || 'Untitled snapshot'}
+                        </p>
+                        <p className="text-xs text-(--text-muted)">
+                          {snapshot.actorName} · {formatDateTime(snapshot.createdAt)}
+                        </p>
+                      </div>
+                      {isOwner ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          disabled={deletingId === snapshot.id}
+                          onClick={() => setPendingDelete(snapshot)}
+                          className="h-8 w-8 shrink-0 rounded-full text-(--text-muted) hover:text-red-600"
+                          aria-label={`Delete snapshot ${snapshot.label?.trim() || 'Untitled snapshot'}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      ) : null}
+                    </div>
                     {canEdit ? (
                       <Button
                         type="button"
                         size="sm"
                         variant="outline"
-                        disabled={restoringId === snapshot.id}
+                        disabled={restoringId === snapshot.id || deletingId === snapshot.id}
                         onClick={() => setPendingRestore(snapshot)}
                         className="mt-3 rounded-full"
                       >
@@ -235,6 +282,17 @@ export function BoardSnapshotsPanel({
           </div>
         </aside>
       </div>
+
+      <ConfirmationModal
+        open={pendingDelete !== null}
+        title="Delete this snapshot?"
+        description="This permanently removes the snapshot. The live board will not change."
+        confirmLabel="Delete snapshot"
+        cancelLabel="Cancel"
+        destructive
+        onConfirm={() => void handleConfirmDelete()}
+        onCancel={() => setPendingDelete(null)}
+      />
 
       <ConfirmationModal
         open={pendingRestore !== null}

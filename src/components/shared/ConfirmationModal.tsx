@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { lockBodyScroll } from '@/lib/body-scroll-lock';
 import { Button } from '@/components/ui/button';
 
 type ConfirmationModalProps = {
@@ -28,8 +29,7 @@ export function ConfirmationModal({
   useEffect(() => {
     if (!open || typeof document === 'undefined') return;
 
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const unlockBodyScroll = lockBodyScroll();
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -41,7 +41,7 @@ export function ConfirmationModal({
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.body.style.overflow = originalOverflow;
+      unlockBodyScroll();
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [open, onCancel]);

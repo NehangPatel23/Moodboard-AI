@@ -1,7 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+import type {
+  RealtimeChannel,
+  RealtimePostgresDeletePayload,
+  RealtimePostgresInsertPayload,
+  RealtimePostgresUpdatePayload,
+} from '@supabase/supabase-js';
 import type { BoardComment } from '@/types/board';
 import { apiFetch } from '@/lib/api-client';
 import { createClient } from '@/lib/supabase/client';
@@ -170,8 +175,8 @@ export function useBoardComments({
           table: 'board_comments',
           filter: `board_id=eq.${boardId}`,
         },
-        (payload) => {
-          const row = payload.new as CommentRow;
+        (payload: RealtimePostgresInsertPayload<CommentRow>) => {
+          const row = payload.new;
           setComments((current) => {
             if (current.some((comment) => comment.id === row.id)) {
               return current;
@@ -201,8 +206,8 @@ export function useBoardComments({
           table: 'board_comments',
           filter: `board_id=eq.${boardId}`,
         },
-        (payload) => {
-          const row = payload.new as CommentRow;
+        (payload: RealtimePostgresUpdatePayload<CommentRow>) => {
+          const row = payload.new;
           setComments((current) => {
             const index = current.findIndex((comment) => comment.id === row.id);
             if (index === -1) return current;
@@ -232,9 +237,9 @@ export function useBoardComments({
           table: 'board_comments',
           filter: `board_id=eq.${boardId}`,
         },
-        (payload) => {
-          const row = payload.old as { id?: string };
-          if (!row.id) return;
+        (payload: RealtimePostgresDeletePayload<{ id?: string }>) => {
+          const row = payload.old;
+          if (!row?.id) return;
           setComments((current) => current.filter((comment) => comment.id !== row.id));
         },
       )

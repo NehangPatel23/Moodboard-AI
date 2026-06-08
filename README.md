@@ -3,7 +3,7 @@
 > **Status:** Active Development (MVP + Production Deployed)
 > **Purpose:** GitHub README + internal handoff document for future development, AI agents, and new contributors
 > **Live:** Deployed on Vercel with Supabase + Gemini free tier
-> **Next feature:** Landing polish and advanced reference sources (Behance, Dribbble, etc.)
+> **Next plan of action:** See [§ Next plan of action](#next-plan-of-action) — four waves: fixes, collaboration polish, product UX, then growth.
 
 **Setup guides:** [`docs/MANUAL_SETUP.md`](docs/MANUAL_SETUP.md) · [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md) · [`docs/GEMINI_SETUP.md`](docs/GEMINI_SETUP.md) · [`docs/REFERENCE_PHOTOS.md`](docs/REFERENCE_PHOTOS.md) · [`docs/DEPLOY.md`](docs/DEPLOY.md)
 
@@ -29,7 +29,7 @@ It is currently a working product foundation with:
 - View-only public sharing at `/share/[id]` and discovery at `/discover`
 - Vercel Analytics
 
-The app is not finished. Core UX, persistence, auth, AI text generation, reference photos (Pexels + Unsplash + manual import), public sharing, discovery, team collaboration, real-time co-editing, board comments (with editing), AI typography suggestions, PNG export, and activity replay are in place; landing polish and advanced reference APIs are next.
+The app is not finished. Core UX, persistence, auth, AI text generation, reference photos (Pexels + Unsplash + manual import), public sharing, discovery, team collaboration, real-time co-editing, board comments (with editing), AI typography suggestions, board snapshots, and activity replay are in place. **Next:** see the [Next plan of action](#next-plan-of-action) roadmap (Wave 1 fixes first).
 
 ---
 
@@ -915,6 +915,116 @@ Pexels → Unsplash → demo placeholder during enrich and **Find photo**; manua
 
 ---
 
+## Next plan of action
+
+Balanced roadmap in four waves. Each wave is shippable on its own. **Recommended tomorrow:** Wave 1 (items 1–3), then Wave 2 item 4 if time allows.
+
+### Wave 1 — Fixes (start here)
+
+#### 1. Collaboration retention settings (comments & activity)
+
+Enhance **Settings → Collaboration** hide/purge controls:
+
+- **Time unit** — minutes, hours, days, or weeks (not days-only as today)
+- **User-defined amount** — numeric value + unit (e.g. hide comments after `6` `hours`, purge activity after `2` `weeks`)
+
+**Touch:** [`src/app/settings/page.tsx`](src/app/settings/page.tsx) (`RetentionSelect`), [`src/lib/settings-defaults.ts`](src/lib/settings-defaults.ts), [`src/lib/db/board-collaboration-state.ts`](src/lib/db/board-collaboration-state.ts), migration `018` (extend `user_settings`; map legacy day values on read).
+
+#### 2. Fix blank PNG & PDF exports
+
+[`ExportModal`](src/components/shared/ExportModal.tsx) + [`BoardExportCapture`](src/components/board/BoardExportCapture.tsx) can produce blank files when capture node has zero dimensions, fonts/images aren’t ready, or reference images taint the canvas.
+
+**Fix:** measurable in-document capture node (not `left: -10000px`), stronger preload (`fonts.ready`, image `decode()`, double rAF), CORS-safe reference URLs, theme-aware background (not hardcoded `#f7f4ef`).
+
+#### 3. Production hygiene
+
+- Run/document migration [`017_board_snapshots_owner_delete.sql`](supabase/migrations/017_board_snapshots_owner_delete.sql) in [`docs/DEPLOY.md`](docs/DEPLOY.md)
+- If Realtime **Allow public access** is disabled: run `016` + set `NEXT_PUBLIC_SUPABASE_REALTIME_PRIVATE=true`
+
+---
+
+### Wave 2 — Collaboration & snapshots polish
+
+#### 4. Snapshots UX
+
+Manual save/restore and owner delete are shipped ([`BoardSnapshotsPanel`](src/components/board/BoardSnapshotsPanel.tsx), migrations `015`/`017`). Add:
+
+- **Preview snapshot** — read-only modal of `board_data` before restore
+- **Auto-snapshot before restore** — optional safety backup
+- **Retention/limit** — e.g. max snapshots per board (owner setting)
+
+#### 5. Live collaborator cues (lightweight)
+
+Section presence exists in the pill and [`BoardSectionPresenceBar`](src/components/board/BoardSectionPresenceBar.tsx). Add:
+
+- Section highlight when another user is on the same editor tab
+- Optional “editing” badge from presence `status`
+
+Defer full live cursors and simultaneous field editing (needs OT or explicit merge strategy).
+
+#### 6. Collaboration notifications (in-app)
+
+- Clearer signal when a remote save lands (beyond conflict banner)
+- Tab title or toolbar pulse for unread comments/activity when panels are closed
+
+---
+
+### Wave 3 — Product UX expansion
+
+#### 7. Command palette v2
+
+[`CommandPalette`](src/components/shared/CommandPalette.tsx) today: navigation, duplicate, favorite, settings. Add:
+
+- Fuzzy board search by title/tags
+- Editor section jump (Overview, Palette, etc.) on `/app/boards/[id]`
+- Context actions: Export, Snapshots, Share
+
+#### 8. Discover & sharing polish
+
+[`/discover`](src/app/discover/page.tsx): featured/curated row, creator name on cards (`profiles`), Open Graph meta for [`/share/[id]`](src/app/share/[id]/page.tsx).
+
+#### 9. Design system pass (incremental)
+
+Continue semantic token migration ([`board-editor-styles.ts`](src/components/board/board-editor-styles.ts)); remaining hardcoded colors in read-only/presence components. No full landing redesign.
+
+---
+
+### Wave 4 — Growth (defer until Waves 1–3 stable)
+
+| Feature | Notes |
+|---------|--------|
+| AI brand strategy | Positioning/voice from board context (mirror typography/palette APIs) |
+| AI design system export | Downloadable color + type spec |
+| Template marketplace | DB, payments, moderation — deferred |
+| Advanced reference APIs | Behance, Dribbble (need legitimate APIs) |
+| User profiles (`/profile`) | Public creator pages from discover |
+| Pricing / billing | `/pricing` + Stripe when ready |
+
+---
+
+### Suggested sprints
+
+| Sprint | Scope |
+|--------|--------|
+| **A** (tomorrow) | Wave 1 items 1 + 2 |
+| **B** | Wave 2 item 4 (snapshot preview + auto-backup) |
+| **C** | Wave 3 item 7 (command palette search + editor actions) |
+
+### Success checks
+
+- Settings: “hide comments after 6 hours” respected after refresh
+- Export: PNG/PDF with palette, typography, and Pexels references render in Chrome + Safari
+- Snapshots: preview before restore; owner can delete old snapshots
+- Command palette: `⌘K` finds boards by partial title
+
+### Out of scope (near term)
+
+- Full real-time co-editing (shared cursor + simultaneous typing in one field)
+- Landing page full redesign
+- Template marketplace / payments
+
+---
+
 ## 13. Current Reality
 
 The project is no longer a starter application.
@@ -938,10 +1048,14 @@ Implemented:
 - Empty states
 - Public sharing (`/share/[id]`) and discovery (`/discover`)
 
-Database persistence, Supabase Auth, **progressive AI text generation** (draft → enrich + live preview), **reference photos** (Pexels + Unsplash + manual import), **AI typography suggestions**, **PNG export**, theme sync (including TopBar toggle), production deploy, view-only public sharing, discover, **team collaboration (MVP)**, **real-time co-editing**, **board comments with editing**, and **activity replay** are implemented.
+Database persistence, Supabase Auth, **progressive AI text generation** (draft → enrich + live preview), **reference photos** (Pexels + Unsplash + manual import), **AI typography & palette suggestions**, **board snapshots**, theme sync (including TopBar toggle), production deploy, view-only public sharing, discover, **team collaboration (MVP)**, **real-time co-editing**, **board comments with editing**, and **activity replay** are implemented.
 
-1. Landing page — deferred unless targeted polish is requested
-2. Advanced reference APIs (Behance, Dribbble, etc.)
+**Up next:** [Next plan of action](#next-plan-of-action) — Wave 1 (retention settings, PNG/PDF export fix, deploy hygiene), then collaboration polish, command palette, discover, and longer-term growth features.
+
+Deferred unless requested:
+
+- Landing page full redesign
+- Advanced reference APIs (Behance, Dribbble, etc.)
 
 ---
 
@@ -970,11 +1084,11 @@ Important context:
 - **AI typography** — **Suggest typography** via `POST /api/generate/typography`
 - **Visual export** — JSON backup + PNG moodboard in export modal
 - **Design system Phase 1 + 2:** board editor + collaboration/creation clusters use semantic tokens; `globals.css` board-editor override hacks removed
-- **Next features:** landing polish, advanced reference APIs
+- **Next plan of action:** four-wave roadmap in [§ Next plan of action](#next-plan-of-action) — start with Wave 1 (retention units, PNG/PDF export fix, migration 017 in DEPLOY)
 - Board editor handles refresh correctly (loads from Supabase after hydration; no false "not found")
 - Settings controls are all wired to real behavior (theme, reduce motion / focus rings, default visibility, presentation mode, workspace identity)
 
-When resuming work, focus on landing polish and advanced reference APIs.
+When resuming work, follow [Next plan of action](#next-plan-of-action): **Sprint A** = Wave 1 items 1–2 (retention + exports), then Wave 2–3 as listed.
 
 ---
 

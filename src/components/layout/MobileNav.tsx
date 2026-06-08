@@ -1,6 +1,8 @@
-import Link from 'next/link';
+'use client';
+
 import { LayoutDashboard, Plus, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { GuardedLink } from '@/components/shared/GuardedLink';
 
 const items = [
   { href: '/app', label: 'Boards', icon: LayoutDashboard },
@@ -15,7 +17,7 @@ export function MobileNav() {
         {items.map((item) => {
           const Icon = item.icon;
           return (
-            <Link
+            <GuardedLink
               key={item.href}
               href={item.href}
               className={cn(
@@ -25,7 +27,7 @@ export function MobileNav() {
             >
               <Icon className="h-4 w-4" />
               <span>{item.label}</span>
-            </Link>
+            </GuardedLink>
           );
         })}
       </div>

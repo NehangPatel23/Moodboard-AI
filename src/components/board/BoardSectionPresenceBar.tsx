@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 
 type BoardSectionPresenceBarProps = {
   users: BoardPresenceUser[];
+  currentUserId?: string | null;
   activeSectionIndex: number;
   activeSectionLabel: string;
   className?: string;
@@ -12,6 +13,7 @@ type BoardSectionPresenceBarProps = {
 
 export function BoardSectionPresenceBar({
   users,
+  currentUserId,
   activeSectionIndex,
   activeSectionLabel,
   className,
@@ -22,10 +24,12 @@ export function BoardSectionPresenceBar({
     return null;
   }
 
-  const names = onSection.map((user) => user.name);
+  const names = onSection.map((user) =>
+    currentUserId && user.userId === currentUserId ? 'You' : user.name,
+  );
   const label =
     names.length === 1
-      ? `${names[0]} is on ${activeSectionLabel}`
+      ? `${names[0]} ${names[0] === 'You' ? 'are' : 'is'} on ${activeSectionLabel}`
       : `${names.slice(0, 2).join(', ')}${names.length > 2 ? ` +${names.length - 2}` : ''} are on ${activeSectionLabel}`;
 
   return (

@@ -30,6 +30,7 @@ import {
   toggleFavoriteById,
 } from '@/lib/board-store';
 import { cn } from '@/lib/utils';
+import { guardedRouterPush } from '@/lib/board-editor-navigation-guard';
 
 type CommandItem = {
   id: string;
@@ -103,7 +104,7 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
         description: 'Open the board overview and recent activity.',
         keywords: ['home', 'overview', 'boards'],
         icon: <LayoutDashboard className="h-4 w-4" />,
-        onSelect: () => router.push('/app'),
+        onSelect: () => guardedRouterPush(router, '/app'),
       },
       {
         id: 'create-board',
@@ -111,7 +112,7 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
         description: 'Start a board from a prompt or template.',
         keywords: ['new', 'create', 'prompt'],
         icon: <SquarePlus className="h-4 w-4" />,
-        onSelect: () => router.push('/app/new'),
+        onSelect: () => guardedRouterPush(router, '/app/new'),
       },
       {
         id: 'open-templates',
@@ -119,7 +120,7 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
         description: 'Browse starter directions and ready-made flows.',
         keywords: ['template', 'starter', 'preset'],
         icon: <Sparkles className="h-4 w-4" />,
-        onSelect: () => router.push('/templates'),
+        onSelect: () => guardedRouterPush(router, '/templates'),
       },
       {
         id: 'open-settings',
@@ -127,7 +128,7 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
         description: 'Adjust appearance and app preferences.',
         keywords: ['preferences', 'appearance', 'account'],
         icon: <Settings2 className="h-4 w-4" />,
-        onSelect: () => router.push('/settings'),
+        onSelect: () => guardedRouterPush(router, '/settings'),
       },
     ].filter((item) => matchesQuery(item, q));
 
@@ -146,7 +147,7 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
         description: board.prompt,
         keywords: [board.title, board.summary, board.prompt, ...board.tags],
         icon: <FileText className="h-4 w-4" />,
-        onSelect: () => router.push(`/app/boards/${board.id}`),
+        onSelect: () => guardedRouterPush(router, `/app/boards/${board.id}`),
       }));
 
     const currentBoardItems: CommandItem[] = currentBoard
@@ -164,7 +165,8 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
               <FileText className="h-4 w-4" />
             ),
             onSelect: () =>
-              router.push(
+              guardedRouterPush(
+                router,
                 isCurrentBoardView ? `/app/boards/${currentBoard.id}` : `/app/boards/${currentBoard.id}/view`,
               ),
           },
@@ -177,7 +179,7 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
             onSelect: () => {
               const copy = duplicateBoardById(currentBoard.id);
               if (copy) {
-                router.push(`/app/boards/${copy.id}`);
+                guardedRouterPush(router, `/app/boards/${copy.id}`);
               }
             },
           },
@@ -418,14 +420,14 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
               <div className="mt-5 flex flex-wrap justify-center gap-3">
                 <button
                   type="button"
-                  onClick={() => router.push('/app/new')}
+                  onClick={() => guardedRouterPush(router, '/app/new')}
                   className="inline-flex h-10 items-center justify-center rounded-full bg-(--text-strong) px-4 text-sm font-medium text-(--background) shadow-sm transition hover:opacity-90"
                 >
                   Create board
                 </button>
                 <button
                   type="button"
-                  onClick={() => router.push('/app')}
+                  onClick={() => guardedRouterPush(router, '/app')}
                   className="inline-flex h-10 items-center justify-center rounded-full border border-(--border) bg-(--surface) px-4 text-sm font-medium text-(--text-strong) transition hover:bg-(--surface-subtle)"
                 >
                   Open dashboard

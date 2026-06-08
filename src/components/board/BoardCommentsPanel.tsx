@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import Link from 'next/link';
+import { GuardedLink } from '@/components/shared/GuardedLink';
 import { Archive, Eye, EyeOff, MessageSquare, Pencil, Trash2, X } from 'lucide-react';
 import type { BoardComment } from '@/types/board';
 import { formatDateTime } from '@/lib/utils';
@@ -15,6 +15,7 @@ import {
   editorUnreadItemBorderClass,
 } from '@/components/board/board-editor-styles';
 import { showToast } from '@/components/shared/toast-store';
+import { lockBodyScroll } from '@/lib/body-scroll-lock';
 
 type PanelFilter = 'all' | 'unread' | 'hidden';
 
@@ -91,14 +92,21 @@ export function BoardCommentsPanel({
       return;
     }
 
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const unlockBodyScroll = lockBodyScroll();
     textareaRef.current?.focus();
 
     if (onMarkAllRead && !markedReadRef.current) {
       markedReadRef.current = true;
       void onMarkAllRead();
     }
+
+    return () => {
+      unlockBodyScroll();
+    };
+  }, [onMarkAllRead, open]);
+
+  useEffect(() => {
+    if (!open) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !pendingDelete) {
@@ -109,10 +117,9 @@ export function BoardCommentsPanel({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [onClose, onMarkAllRead, open, pendingDelete]);
+  }, [onClose, open, pendingDelete]);
 
   const handleClose = () => {
     setPendingDelete(null);
@@ -322,9 +329,9 @@ export function BoardCommentsPanel({
                       : 'No comments yet. Start the thread.'}
                 </p>
                 {filter === 'unread' ? (
-                  <Link href="/settings#collaboration" className="text-sm text-(--text-strong) underline">
+                  <GuardedLink href="/settings#collaboration" className="text-sm text-(--text-strong) underline">
                     Adjust retention in settings
-                  </Link>
+                  </GuardedLink>
                 ) : null}
               </div>
             ) : (

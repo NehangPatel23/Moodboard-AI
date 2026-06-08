@@ -65,8 +65,11 @@ After deploying collaboration features, run these in the **production** Supabase
 8. [`supabase/migrations/013_activity_owner_delete.sql`](../supabase/migrations/013_activity_owner_delete.sql) — owner-only activity delete (non-owners use Hide)
 9. [`supabase/migrations/014_reference_uploads_storage.sql`](../supabase/migrations/014_reference_uploads_storage.sql) — public `reference-uploads` bucket for manual reference image uploads
 10. [`supabase/migrations/015_board_snapshots.sql`](../supabase/migrations/015_board_snapshots.sql) — `board_snapshots` table for manual save and restore
+11. [`supabase/migrations/016_board_realtime_presence.sql`](../supabase/migrations/016_board_realtime_presence.sql) — RLS on `realtime.messages` for board presence channels (required when Realtime **Allow public access** is disabled)
 
 If collaboration was already live, confirm migrations `004` and `005` are applied before `006`.
+
+> **Presence:** By default the app uses a public Realtime presence channel so collaborators show up without extra setup. If you disable **Allow public access** under Supabase **Project Settings → Realtime**, run migration `016` and set `NEXT_PUBLIC_SUPABASE_REALTIME_PRIVATE=true` in Vercel.
 
 > `alter publication supabase_realtime add table` is not idempotent. If `006` was partially applied, check **Database → Publications → supabase_realtime** before re-running.
 

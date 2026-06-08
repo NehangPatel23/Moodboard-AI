@@ -1,9 +1,9 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSyncExternalStore } from 'react';
 import { cn } from '@/lib/utils';
+import { GuardedLink } from '@/components/shared/GuardedLink';
 import {
   LayoutDashboard,
   PanelLeftClose,
@@ -60,7 +60,7 @@ export function Sidebar() {
         collapsed ? 'w-20 px-3' : 'w-72 px-5',
       )}
     >
-      <Link
+      <GuardedLink
         href="/"
         title={collapsed ? settings.workspaceName : undefined}
         className={cn(
@@ -77,7 +77,7 @@ export function Sidebar() {
             <div className="truncate text-xs text-[var(--text-muted)]">{settings.workspaceTagline}</div>
           </div>
         ) : null}
-      </Link>
+      </GuardedLink>
 
       <div className="mt-8">
         {!collapsed ? (
@@ -95,7 +95,7 @@ export function Sidebar() {
           const active = isActivePath(pathname, item.href);
 
           return (
-            <Link
+            <GuardedLink
               key={item.href}
               href={item.href}
               aria-current={active ? 'page' : undefined}
@@ -111,7 +111,7 @@ export function Sidebar() {
             >
               <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-[var(--text-strong)]' : 'text-[var(--text-muted)]')} />
               {!collapsed ? <span>{item.label}</span> : null}
-            </Link>
+            </GuardedLink>
           );
         })}
       </nav>

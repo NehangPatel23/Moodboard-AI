@@ -1,7 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+import type {
+  RealtimeChannel,
+  RealtimePostgresDeletePayload,
+  RealtimePostgresInsertPayload,
+} from '@supabase/supabase-js';
 import type { BoardActivityEvent } from '@/types/board';
 import { rowToActivity } from '@/lib/db/board-activity';
 import { apiFetch } from '@/lib/api-client';
@@ -96,8 +100,8 @@ export function useBoardActivity({
           table: 'board_activity',
           filter: `board_id=eq.${boardId}`,
         },
-        (payload) => {
-          const row = payload.new as Parameters<typeof rowToActivity>[0];
+        (payload: RealtimePostgresInsertPayload<Parameters<typeof rowToActivity>[0]>) => {
+          const row = payload.new;
           setActivity((current) => {
             if (current.some((event) => event.id === row.id)) {
               return current;
@@ -126,9 +130,9 @@ export function useBoardActivity({
           table: 'board_activity',
           filter: `board_id=eq.${boardId}`,
         },
-        (payload) => {
-          const row = payload.old as { id?: string };
-          if (!row.id) return;
+        (payload: RealtimePostgresDeletePayload<{ id?: string }>) => {
+          const row = payload.old;
+          if (!row?.id) return;
           setActivity((current) => current.filter((event) => event.id !== row.id));
         },
       )

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { diffBoards, summarizeBoardChanges } from '@/lib/board-diff';
+import { diffBoards } from '@/lib/board-diff';
 import { recordBoardActivity } from '@/lib/db/board-activity';
 import { getBoardAccess } from '@/lib/db/board-access';
 import { boardToRow, rowToBoard } from '@/lib/db/board-mappers';
@@ -100,7 +100,7 @@ export async function POST(_request: Request, context: RouteContext) {
       userId: user.id,
       actorName: savedByName,
       changes,
-      summary: `Restored snapshot: ${snapshotLabel}`,
+      summary: `Switched to Snapshot ${snapshotLabel}`,
     });
   } catch {
     // Activity logging is best-effort.

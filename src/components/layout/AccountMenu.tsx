@@ -5,6 +5,7 @@ import { useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { requestBoardEditorNavigation } from '@/lib/board-editor-navigation-guard';
 import { WorkspaceAvatar } from '@/components/layout/WorkspaceAvatar';
 import { showToast } from '@/components/shared/toast-store';
 import {
@@ -57,9 +58,16 @@ export function AccountMenu() {
 
   async function handleSignOut() {
     setOpen(false);
-    await signOut();
-    showToast('Signed out.', 'success');
-    router.push('/');
+
+    const completeSignOut = async () => {
+      await signOut();
+      showToast('Signed out.', 'success');
+      router.push('/');
+    };
+
+    requestBoardEditorNavigation({ type: 'run', run: () => void completeSignOut() }, () =>
+      void completeSignOut(),
+    );
   }
 
   return (

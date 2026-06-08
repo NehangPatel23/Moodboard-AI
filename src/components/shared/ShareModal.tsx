@@ -84,7 +84,7 @@ export function ShareModal({
 
         <div className="mt-6 flex flex-wrap justify-end gap-3">
           <Button
-            variant="outline"
+            variant="default"
             type="button"
             onClick={onClose}
             className="rounded-full"
@@ -94,6 +94,7 @@ export function ShareModal({
 
           <Button
             type="button"
+            variant="outline"
             onClick={handleCopy}
             className="rounded-full"
           >

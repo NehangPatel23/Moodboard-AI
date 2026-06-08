@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+import type { AuthChangeEvent, RealtimeChannel, RealtimePostgresUpdatePayload, Session } from '@supabase/supabase-js';
 import type { Board, BoardRole } from '@/types/board';
 import { rowToBoard, type BoardRow } from '@/lib/db/board-mappers';
 import { getLastLocalSaveAt } from '@/lib/board-store';
-import { createClient } from '@/lib/supabase/client';
+import { createClient, ensureSupabaseRealtimeAuth } from '@/lib/supabase/client';
+import { usePrivateRealtimePresence } from '@/lib/realtime/config';
 
 export type BoardPresenceStatus = 'editing' | 'viewing';
 
@@ -26,9 +27,12 @@ type UseBoardRealtimeOptions = {
   localUpdatedAt: string | null;
   isDirty: boolean;
   enabled: boolean;
-  activeSection?: { index: number; label: string };
+  activeSectionIndex: number;
+  activeSectionLabel: string;
   onRemoteBoard: (board: Board, savedByName: string | null) => void;
 };
+
+const PRESENCE_HEARTBEAT_MS = 15_000;
 
 function parseBoardRow(payload: Record<string, unknown>): Board | null {
   try {
@@ -54,15 +58,11 @@ function isNewerRemoteUpdate(boardId: string, remoteUpdatedAt: string, localUpda
   return false;
 }
 
-function collectPresenceUsers(
-  state: Record<string, BoardPresenceUser[]>,
-  currentUserId: string | null,
-): BoardPresenceUser[] {
+function collectPresenceUsers(state: Record<string, BoardPresenceUser[]>): BoardPresenceUser[] {
   const byUser = new Map<string, BoardPresenceUser>();
 
   Object.values(state).forEach((presences) => {
     presences.forEach((presence) => {
-      if (currentUserId && presence.userId === currentUserId) return;
       byUser.set(presence.userId, presence);
     });
   });
@@ -70,20 +70,28 @@ function collectPresenceUsers(
   return Array.from(byUser.values());
 }
 
+function syncPresenceFromChannel(
+  channel: RealtimeChannel,
+  setOnlineUsers: (users: BoardPresenceUser[]) => void,
+) {
+  setOnlineUsers(collectPresenceUsers(channel.presenceState<BoardPresenceUser>()));
+}
+
 function buildPresencePayload(
   userId: string,
   userName: string,
   boardRole: BoardRole,
   isDirty: boolean,
-  activeSection?: { index: number; label: string },
+  activeSectionIndex: number,
+  activeSectionLabel: string,
 ): BoardPresenceUser {
   return {
     userId,
     name: userName,
     role: boardRole,
     status: isDirty ? 'editing' : 'viewing',
-    sectionIndex: activeSection?.index,
-    sectionLabel: activeSection?.label,
+    sectionIndex: activeSectionIndex,
+    sectionLabel: activeSectionLabel,
   };
 }
 
@@ -95,117 +103,322 @@ export function useBoardRealtime({
   localUpdatedAt,
   isDirty,
   enabled,
-  activeSection,
+  activeSectionIndex,
+  activeSectionLabel,
   onRemoteBoard,
 }: UseBoardRealtimeOptions) {
-  const [presenceUsers, setPresenceUsers] = useState<BoardPresenceUser[]>([]);
+  const [onlineUsers, setOnlineUsers] = useState<BoardPresenceUser[]>([]);
+  const [presenceReady, setPresenceReady] = useState(false);
   const onRemoteBoardRef = useRef(onRemoteBoard);
   const localUpdatedAtRef = useRef(localUpdatedAt);
   const isDirtyRef = useRef(isDirty);
-  const activeSectionRef = useRef(activeSection);
-  const channelRef = useRef<RealtimeChannel | null>(null);
+  const activeSectionIndexRef = useRef(activeSectionIndex);
+  const activeSectionLabelRef = useRef(activeSectionLabel);
+  const syncChannelRef = useRef<RealtimeChannel | null>(null);
+  const presenceChannelRef = useRef<RealtimeChannel | null>(null);
+  const presenceSubscribedRef = useRef(false);
   const trackTimerRef = useRef<number | null>(null);
+  const heartbeatTimerRef = useRef<number | null>(null);
+  const privatePresence = usePrivateRealtimePresence();
 
   useEffect(() => {
     onRemoteBoardRef.current = onRemoteBoard;
     localUpdatedAtRef.current = localUpdatedAt;
     isDirtyRef.current = isDirty;
-    activeSectionRef.current = activeSection;
-  }, [activeSection, isDirty, localUpdatedAt, onRemoteBoard]);
+    activeSectionIndexRef.current = activeSectionIndex;
+    activeSectionLabelRef.current = activeSectionLabel;
+  }, [activeSectionIndex, activeSectionLabel, isDirty, localUpdatedAt, onRemoteBoard]);
 
   useEffect(() => {
     if (!enabled || !userId || !boardRole) {
+      presenceSubscribedRef.current = false;
+      setPresenceReady(false);
+      setOnlineUsers([]);
       return;
     }
 
+    let cancelled = false;
     const supabase = createClient();
-    const channelName = `board:${boardId}`;
+    const syncChannelName = `board-sync:${boardId}`;
+    const presenceChannelName = `board:${boardId}`;
 
-    const channel = supabase.channel(channelName, {
-      config: { presence: { key: userId } },
-    });
+    async function pushPresenceUpdate(channel = presenceChannelRef.current) {
+      if (!channel || !presenceSubscribedRef.current || cancelled || !userId || !boardRole) {
+        return;
+      }
 
-    channelRef.current = channel;
+      const trackStatus = await channel.track(
+        buildPresencePayload(
+          userId!,
+          userName,
+          boardRole!,
+          isDirtyRef.current,
+          activeSectionIndexRef.current,
+          activeSectionLabelRef.current,
+        ),
+      );
 
-    channel
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'boards',
-          filter: `id=eq.${boardId}`,
+      if (trackStatus !== 'ok') {
+        console.error('[board-realtime] presence track failed', {
+          trackStatus,
+          presenceChannelName,
+          privatePresence,
+        });
+        return;
+      }
+
+      syncPresenceFromChannel(channel, setOnlineUsers);
+    }
+
+    function clearHeartbeat() {
+      if (heartbeatTimerRef.current !== null) {
+        window.clearInterval(heartbeatTimerRef.current);
+        heartbeatTimerRef.current = null;
+      }
+    }
+
+    function startHeartbeat(channel: RealtimeChannel) {
+      clearHeartbeat();
+      heartbeatTimerRef.current = window.setInterval(() => {
+        syncPresenceFromChannel(channel, setOnlineUsers);
+        void pushPresenceUpdate(channel);
+      }, PRESENCE_HEARTBEAT_MS);
+    }
+
+    async function connectPresence() {
+      await ensureSupabaseRealtimeAuth(supabase);
+      if (cancelled) return;
+
+      const existing = presenceChannelRef.current;
+      if (existing) {
+        presenceSubscribedRef.current = false;
+        void existing.untrack();
+        void supabase.removeChannel(existing);
+        presenceChannelRef.current = null;
+      }
+
+      const presenceChannel = supabase.channel(presenceChannelName, {
+        config: {
+          private: privatePresence,
+          presence: { key: userId! },
         },
-        (payload) => {
-          const row = payload.new as Record<string, unknown>;
-          const board = parseBoardRow(row);
-          if (!board) return;
+      });
 
-          if (!isNewerRemoteUpdate(boardId, board.updatedAt, localUpdatedAtRef.current)) {
+      presenceChannel
+        .on('presence', { event: 'sync' }, () => {
+          syncPresenceFromChannel(presenceChannel, setOnlineUsers);
+        })
+        .on('presence', { event: 'join' }, () => {
+          syncPresenceFromChannel(presenceChannel, setOnlineUsers);
+        })
+        .on('presence', { event: 'leave' }, () => {
+          syncPresenceFromChannel(presenceChannel, setOnlineUsers);
+        })
+        .subscribe(async (status: string, error?: Error) => {
+          if (cancelled) {
+            void supabase.removeChannel(presenceChannel);
             return;
           }
 
-          onRemoteBoardRef.current(board, (row.last_saved_by_name as string | null) ?? null);
-        },
-      )
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState<BoardPresenceUser>();
-        setPresenceUsers(collectPresenceUsers(state, userId));
-      })
-      .on('presence', { event: 'join' }, () => {
-        const state = channel.presenceState<BoardPresenceUser>();
-        setPresenceUsers(collectPresenceUsers(state, userId));
-      })
-      .on('presence', { event: 'leave' }, () => {
-        const state = channel.presenceState<BoardPresenceUser>();
-        setPresenceUsers(collectPresenceUsers(state, userId));
-      })
-      .subscribe(async (status) => {
-        if (status !== 'SUBSCRIBED') return;
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            presenceSubscribedRef.current = false;
+            setPresenceReady(false);
+            console.error('[board-realtime] presence channel error', {
+              status,
+              error,
+              presenceChannelName,
+              privatePresence,
+            });
+            return;
+          }
 
-        await channel.track(
-          buildPresencePayload(
-            userId,
-            userName,
-            boardRole,
-            isDirtyRef.current,
-            activeSectionRef.current,
-          ),
-        );
-      });
+          if (status === 'CLOSED') {
+            presenceSubscribedRef.current = false;
+            setPresenceReady(false);
+            clearHeartbeat();
+            return;
+          }
+
+          if (status !== 'SUBSCRIBED') return;
+
+          presenceChannelRef.current = presenceChannel;
+          presenceSubscribedRef.current = true;
+          setPresenceReady(true);
+          await pushPresenceUpdate(presenceChannel);
+          if (!cancelled) {
+            startHeartbeat(presenceChannel);
+          }
+        });
+    }
+
+    async function connect() {
+      await ensureSupabaseRealtimeAuth(supabase);
+      if (cancelled) return;
+
+      const syncChannel = supabase
+        .channel(syncChannelName)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'boards',
+            filter: `id=eq.${boardId}`,
+          },
+          (payload: RealtimePostgresUpdatePayload<Record<string, unknown>>) => {
+            const row = payload.new as Record<string, unknown>;
+            const board = parseBoardRow(row);
+            if (!board) return;
+
+            if (!isNewerRemoteUpdate(boardId, board.updatedAt, localUpdatedAtRef.current)) {
+              return;
+            }
+
+            onRemoteBoardRef.current(board, (row.last_saved_by_name as string | null) ?? null);
+          },
+        )
+        .subscribe((status: string, error?: Error) => {
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.error('[board-realtime] sync channel error', { status, error, syncChannelName });
+          }
+        });
+
+      if (cancelled) {
+        void supabase.removeChannel(syncChannel);
+        return;
+      }
+
+      syncChannelRef.current = syncChannel;
+      await connectPresence();
+    }
+
+    const {
+      data: { subscription: authSubscription },
+    } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
+      if (session?.access_token) {
+        void supabase.realtime.setAuth(session.access_token);
+      }
+    });
+
+    function handleVisibilityChange() {
+      if (document.visibilityState !== 'visible' || cancelled) return;
+
+      void (async () => {
+        await ensureSupabaseRealtimeAuth(supabase);
+        if (cancelled) return;
+
+        const channel = presenceChannelRef.current;
+        if (!channel || !presenceSubscribedRef.current) {
+          await connectPresence();
+          return;
+        }
+
+        syncPresenceFromChannel(channel, setOnlineUsers);
+        await pushPresenceUpdate(channel);
+      })();
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    void connect();
 
     return () => {
-      channelRef.current = null;
+      cancelled = true;
+      presenceSubscribedRef.current = false;
+      setPresenceReady(false);
+      authSubscription.unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearHeartbeat();
+
       if (trackTimerRef.current !== null) {
         window.clearTimeout(trackTimerRef.current);
+        trackTimerRef.current = null;
       }
-      void channel.untrack();
-      void supabase.removeChannel(channel);
+
+      const syncChannel = syncChannelRef.current;
+      const presenceChannel = presenceChannelRef.current;
+      syncChannelRef.current = null;
+      presenceChannelRef.current = null;
+
+      if (syncChannel) {
+        void supabase.removeChannel(syncChannel);
+      }
+      if (presenceChannel) {
+        void presenceChannel.untrack();
+        void supabase.removeChannel(presenceChannel);
+      }
+
+      setOnlineUsers([]);
     };
-  }, [boardId, boardRole, enabled, userId, userName]);
+  }, [boardId, boardRole, enabled, privatePresence, userId, userName]);
 
   useEffect(() => {
-    const channel = channelRef.current;
-    if (!channel || !enabled || !userId || !boardRole) return;
+    if (!enabled || !userId || !boardRole || !presenceReady) return;
+
+    const channel = presenceChannelRef.current;
+    if (!channel) return;
+
+    void channel
+      .track(
+        buildPresencePayload(
+          userId,
+          userName,
+          boardRole,
+          isDirtyRef.current,
+          activeSectionIndex,
+          activeSectionLabel,
+        ),
+      )
+      .then((trackStatus) => {
+        if (trackStatus !== 'ok') {
+          console.error('[board-realtime] presence section update failed', trackStatus);
+          return;
+        }
+        syncPresenceFromChannel(channel, setOnlineUsers);
+      });
+  }, [activeSectionIndex, activeSectionLabel, boardRole, enabled, presenceReady, userId, userName]);
+
+  useEffect(() => {
+    if (!enabled || !userId || !boardRole || !presenceReady) return;
 
     if (trackTimerRef.current !== null) {
       window.clearTimeout(trackTimerRef.current);
     }
 
     trackTimerRef.current = window.setTimeout(() => {
-      void channel.track(
-        buildPresencePayload(userId, userName, boardRole, isDirty, activeSection),
-      );
-    }, 80);
+      const channel = presenceChannelRef.current;
+      if (!channel) return;
+
+      void channel
+        .track(
+          buildPresencePayload(
+            userId,
+            userName,
+            boardRole,
+            isDirty,
+            activeSectionIndexRef.current,
+            activeSectionLabelRef.current,
+          ),
+        )
+        .then((trackStatus) => {
+          if (trackStatus !== 'ok') {
+            console.error('[board-realtime] presence dirty update failed', trackStatus);
+            return;
+          }
+          syncPresenceFromChannel(channel, setOnlineUsers);
+        });
+    }, 250);
 
     return () => {
       if (trackTimerRef.current !== null) {
         window.clearTimeout(trackTimerRef.current);
       }
     };
-  }, [activeSection, boardRole, enabled, isDirty, userId, userName]);
+  }, [boardRole, enabled, isDirty, presenceReady, userId, userName]);
 
-  const activePresence = enabled && userId && boardRole ? presenceUsers : [];
+  const activeOnlineUsers = enabled && userId && boardRole ? onlineUsers : [];
+  const presenceUsers = userId
+    ? activeOnlineUsers.filter((user) => user.userId !== userId)
+    : activeOnlineUsers;
 
-  return { presenceUsers: activePresence };
+  return { presenceUsers, onlineUsers: activeOnlineUsers };
 }
