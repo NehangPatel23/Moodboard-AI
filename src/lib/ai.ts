@@ -32,6 +32,7 @@ export async function fetchReferenceImageSearch(input: {
   palette?: Array<{ hex: string; label?: string }>;
   boardId?: string;
   referenceId?: string;
+  refreshAttempt?: number;
 }): Promise<ReferenceImageSearchResult> {
   return apiFetch<ReferenceImageSearchResult>('/api/reference-images/search', {
     method: 'POST',

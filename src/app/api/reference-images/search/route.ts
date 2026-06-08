@@ -12,6 +12,7 @@ type SearchReferenceImageBody = {
   palette?: Array<{ hex: string; label?: string }>;
   boardId?: string;
   referenceId?: string;
+  refreshAttempt?: number;
 };
 
 export async function POST(request: Request) {
@@ -48,13 +49,19 @@ export async function POST(request: Request) {
     }
   }
 
+  const refreshAttempt =
+    typeof body.refreshAttempt === 'number' && Number.isFinite(body.refreshAttempt)
+      ? Math.max(0, Math.floor(body.refreshAttempt))
+      : 0;
+  const referenceId = body.referenceId?.trim() ?? `${boardId ?? 'board'}-${title}`;
+
   const resolved = await resolveReferenceImage({
     title,
     category: body.category?.trim(),
     mood: body.mood?.trim(),
     prompt: body.prompt?.trim(),
     palette: body.palette,
-    seed: body.referenceId?.trim() ?? `${boardId ?? 'board'}-${title}`,
+    seed: `${referenceId}-refresh-${refreshAttempt}`,
   });
 
   return NextResponse.json({

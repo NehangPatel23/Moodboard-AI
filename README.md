@@ -742,21 +742,13 @@ Restore previous versions.
 
 ## Future Features
 
-### AI Image Generation
+### Reference Search (partial — Pexels done)
 
-Generate:
+Implemented: Pexels stock photo search during board enrich and **Find photo** in the reference editor.
 
-- Moodboard imagery
-- Brand concepts
-- Inspiration visuals
+Planned additions:
 
-### AI Reference Search
-
-Search and collect references from:
-
-- Behance
-- Dribbble
-- Pinterest-like sources
+- Behance, Dribbble, Pinterest-like sources (requires legitimate APIs or manual import UX)
 
 ### AI Typography Suggestions
 
@@ -884,9 +876,9 @@ Incremental polish only; full redesign was attempted and reverted. Current landi
 
 Google Gemini free-tier integration via staged `POST /api/generate/draft` → `POST /api/generate/enrich`, with live progressive preview on `/app/new` and `/templates`. See [AI Generation (Implemented)](#ai-generation-implemented).
 
-### 4. Design System Audit — IN PROGRESS (Phase 2 done)
+### 4. Design System Audit — DONE (Phase 2)
 
-Shadow tokens (`--shadow-card`, `--shadow-elevated`) added. **Phase 1 done:** board editor cluster uses semantic tokens via [`board-editor-styles.ts`](src/components/board/board-editor-styles.ts). **Phase 2 done:** collaboration panels, creation flow, and settings cards tokenized. Remaining: landing polish (deferred).
+Shadow tokens (`--shadow-card`, `--shadow-elevated`) added. Board editor, collaboration panels, creation flow, and settings cards use semantic tokens via [`board-editor-styles.ts`](src/components/board/board-editor-styles.ts). Landing polish remains deferred.
 
 ### 5. Deploy to Production — DONE
 

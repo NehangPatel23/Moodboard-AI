@@ -46,6 +46,7 @@ import { BoardPresenceStrip } from '@/components/board/BoardPresenceStrip';
 import { RemoteUpdateBanner } from '@/components/board/RemoteUpdateBanner';
 import { ReferenceImageDisplay } from '@/components/board/ReferenceImageDisplay';
 import { ReferenceImageSearchButton } from '@/components/board/ReferenceImageSearchButton';
+import { getReferenceSourceLabel, isPexelsReference } from '@/lib/reference-source-label';
 import {
   REFERENCE_IMAGE_SOURCE,
   buildReferenceImageUrl,
@@ -438,7 +439,9 @@ function ReferenceEditorModal({
 
               <div className="flex flex-wrap gap-2">
                 <Badge variant="secondary">{draft.category}</Badge>
-                {draft.source ? <Badge variant="outline">{draft.source}</Badge> : null}
+                <Badge variant={isPexelsReference(draft.source, draft.imageUrl) ? 'default' : 'outline'}>
+                  {getReferenceSourceLabel(draft.source, draft.imageUrl)}
+                </Badge>
               </div>
             </div>
 

@@ -3,6 +3,10 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { ReferenceItem } from '@/types/board';
+import {
+  editorEmptyStateClass,
+  editorSettingsCardClass,
+} from '@/components/board/board-editor-styles';
 import { Plus } from 'lucide-react';
 import { ReferenceCard } from './ReferenceCard';
 
@@ -22,7 +26,7 @@ export function ReferenceGrid({
   onRemove,
 }: ReferenceGridProps) {
   return (
-    <Card className="border-slate-200 bg-white/85">
+    <Card className={editorSettingsCardClass}>
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div>
           <CardTitle>Inspiration grid</CardTitle>
@@ -51,9 +55,7 @@ export function ReferenceGrid({
             ))}
           </div>
         ) : (
-          <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center text-sm text-slate-500">
-            No references yet.
-          </div>
+          <div className={editorEmptyStateClass}>No references yet.</div>
         )}
       </CardContent>
     </Card>

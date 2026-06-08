@@ -1,9 +1,10 @@
 import { Skeleton } from '@/components/ui/skeleton';
+import { editorSectionClass } from '@/components/board/board-editor-styles';
 
 export function BoardEditorSkeleton() {
   return (
     <div className="board-editor-page space-y-6">
-      <section className="rounded-4xl border border-slate-200 bg-white/85 p-6 shadow-sm">
+      <section className={editorSectionClass}>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-2">
             <Skeleton className="h-8 w-28 rounded-full" />

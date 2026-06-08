@@ -69,6 +69,14 @@ If collaboration was already live, confirm migrations `004` and `005` are applie
 
 ## Step 6 — Smoke test production
 
+Before manual testing, verify the connected Supabase project locally:
+
+```bash
+npm run verify:collaboration
+```
+
+Confirm **Production** env vars on Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, optional `GEMINI_API_KEY` (text generation), optional `PEXELS_API_KEY` (reference photos).
+
 | Test | Expected |
 |------|----------|
 | Visit `/` | Landing page loads |
@@ -100,3 +108,19 @@ If collaboration was already live, confirm migrations `004` and `005` are applie
 **Auth redirect loop** — Supabase Site URL / Redirect URLs don't match your Vercel domain.
 
 **Demo generation only** — `GEMINI_API_KEY` not set in Vercel (mock fallback is intentional).
+
+**Pexels photos missing** — `PEXELS_API_KEY` not set in Vercel; references use SVG demo placeholders.
+
+## Portfolio demo script (~3 min)
+
+Use this flow when recording or walking through the project:
+
+1. **Landing** — Open `/`, note gated CTAs; sign in with demo account (`admin@moodboard.ai` / `moodboard123`).
+2. **Create board** — Go to `/app/new`, enter a prompt, click **Generate board**. Point out progressive preview and **Powered by Gemini** badge (or demo fallback).
+3. **References** — Open the new board; show Pexels photos on reference cards (requires `PEXELS_API_KEY`). Edit a reference → **Find photo** → **Refresh photo** for a different result.
+4. **Collaboration** — Set board visibility to **Shared**; open **Collaborate** modal. In a second browser (or incognito), accept invite or open `/share/[id]`.
+5. **Realtime** — Save in one browser; show presence avatars, live sync, or conflict banner in the other.
+6. **Activity** — Open **Activity** panel; save a change; replay a prior save. Show read/hide badges.
+7. **Discover** — Visit `/discover` and search public boards.
+
+**Env checklist for demos:** Supabase (required) · Gemini (AI text) · Pexels (stock photos) · Vercel deploy on `main`.
