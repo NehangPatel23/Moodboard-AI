@@ -18,6 +18,7 @@ let boardsLoading = false;
 let hydratedForUser = false;
 
 let activeUserId: string | null = null;
+const lastLocalSaveAtByBoard = new Map<string, string>();
 
 const BOARD_FETCH_MAX_ATTEMPTS = 4;
 const BOARD_FETCH_RETRY_MS = 350;
@@ -269,6 +270,7 @@ export function updateBoard(boardId: string, updater: (board: Board) => Board): 
   const nextBoards = boards.slice();
   const updated = sanitizeBoardReferences(updater(cloneBoard(boards[index])));
   updated.updatedAt = nowIso();
+  lastLocalSaveAtByBoard.set(boardId, updated.updatedAt);
   nextBoards[index] = updated;
   cachedBoards = nextBoards;
   notifyBoardsChanged();
@@ -285,6 +287,26 @@ export function updateBoard(boardId: string, updater: (board: Board) => Board): 
   });
 
   return updated;
+}
+
+export function getLastLocalSaveAt(boardId: string): string | null {
+  return lastLocalSaveAtByBoard.get(boardId) ?? null;
+}
+
+export function applyRemoteBoard(boardId: string, board: Board): boolean {
+  const boards = loadBoards();
+  const index = boards.findIndex((item) => item.id === boardId);
+  if (index === -1) return false;
+
+  const sanitized = sanitizeBoardReferences(board);
+  const nextBoards = boards.slice();
+  nextBoards[index] = {
+    ...sanitized,
+    role: boards[index].role,
+  };
+  cachedBoards = nextBoards;
+  notifyBoardsChanged();
+  return true;
 }
 
 export async function reloadBoards(): Promise<void> {

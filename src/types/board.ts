@@ -22,6 +22,16 @@ export type BoardInvite = {
   acceptedAt?: string;
 };
 
+export type BoardComment = {
+  id: string;
+  boardId: string;
+  userId: string;
+  authorName: string;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type PaletteItem = {
   id: string;
   label: string;

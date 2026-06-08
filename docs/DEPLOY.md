@@ -50,6 +50,14 @@ Trigger a deploy from the Vercel dashboard or:
 npx vercel --prod
 ```
 
+## Step 5b — Run collaboration migration (production Supabase)
+
+After deploying code that includes real-time co-editing and comments, run [`supabase/migrations/006_board_realtime_comments.sql`](../supabase/migrations/006_board_realtime_comments.sql) in the **production** Supabase SQL Editor.
+
+This enables Realtime on `boards`, creates `board_comments`, and enables live comment sync. If collaboration was already live, also confirm migrations `004` and `005` are applied.
+
+> `alter publication supabase_realtime add table` is not idempotent. If `006` was partially applied, check **Database → Publications → supabase_realtime** before re-running.
+
 ## Step 6 — Smoke test production
 
 | Test | Expected |
@@ -59,6 +67,11 @@ npx vercel --prod
 | Sign in | Dashboard loads |
 | Create board from prompt | Board persists after refresh |
 | Settings change | Persists after sign-out/in |
+| Open board → **Comments** | Panel opens; post succeeds |
+| Two browsers on same board (owner + invited editor) | Presence avatars appear for both |
+| Save in browser A (B has no unsaved edits) | Browser B updates without refresh |
+| Save in browser A while B has unsaved edits | B shows conflict banner (Reload / Keep editing) |
+| `POST /api/boards/[id]/comments` without auth | 401 Unauthorized |
 
 ## Troubleshooting
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { GenerationSourceBadge } from '@/components/creation/GenerationSourceBadge';
@@ -13,6 +13,7 @@ import type {
   TypographyRole,
 } from '@/types/board';
 import {
+  applyRemoteBoard,
   deleteBoardById,
   duplicateBoardById,
   getBoardStoreSnapshot,
@@ -21,12 +22,22 @@ import {
   subscribeBoards,
   updateBoard,
 } from '@/lib/board-store';
+import { useBoardRealtime } from '@/lib/realtime/use-board-realtime';
+import { useBoardComments } from '@/lib/realtime/use-board-comments';
+import {
+  DEFAULT_APP_SETTINGS,
+  readAppSettings,
+  subscribeAppSettings,
+} from '@/lib/settings-store';
 import {
   getServerAuthSnapshot,
   readAuthState,
   subscribeAuth,
 } from '@/lib/auth-store';
+import { BoardCommentsPanel } from '@/components/board/BoardCommentsPanel';
 import { BoardEditorSkeleton } from '@/components/board/BoardEditorSkeleton';
+import { BoardPresenceStrip } from '@/components/board/BoardPresenceStrip';
+import { RemoteUpdateBanner } from '@/components/board/RemoteUpdateBanner';
 import { ReferenceImageDisplay } from '@/components/board/ReferenceImageDisplay';
 import {
   REFERENCE_IMAGE_SOURCE,
@@ -62,6 +73,7 @@ import {
   Image as ImageIcon,
   Globe,
   Lock,
+  MessageSquare,
 } from 'lucide-react';
 import { showToast } from '@/components/shared/toast-store';
 
@@ -511,12 +523,57 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const [isDirty, setIsDirty] = useState(false);
   const [editingReferenceIndex, setEditingReferenceIndex] = useState<number | null>(null);
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [pendingRemoteBoard, setPendingRemoteBoard] = useState<Board | null>(null);
 
-  useEffect(() => {
-    if (savedBoard?.role === 'viewer') {
-      router.replace(`/app/boards/${boardId}/view`);
-    }
-  }, [boardId, router, savedBoard?.role]);
+  const settings = useSyncExternalStore(
+    subscribeAppSettings,
+    readAppSettings,
+    () => DEFAULT_APP_SETTINGS,
+  );
+
+  const boardRole = savedBoard?.role ?? null;
+  const realtimeEnabled = auth.status === 'authenticated' && boardRole !== null;
+  const canComment = boardRole !== null;
+
+  const handleRemoteBoard = useCallback(
+    (board: Board) => {
+      if (isDirty) {
+        setPendingRemoteBoard(board);
+        return;
+      }
+
+      applyRemoteBoard(boardId, board);
+      setDraft(null);
+      setSaveStatus('Saved');
+      setPendingRemoteBoard(null);
+    },
+    [boardId, isDirty],
+  );
+
+  const { presenceUsers } = useBoardRealtime({
+    boardId,
+    userId: auth.user?.id ?? null,
+    userName: auth.user?.name ?? settings.workspaceName,
+    boardRole,
+    localUpdatedAt: editorBoard?.updatedAt ?? null,
+    isDirty,
+    enabled: realtimeEnabled,
+    onRemoteBoard: handleRemoteBoard,
+  });
+
+  const {
+    comments,
+    loading: commentsLoading,
+    posting: commentsPosting,
+    postComment,
+    deleteComment,
+  } = useBoardComments({
+    boardId,
+    enabled: canComment,
+    currentUserId: auth.user?.id ?? null,
+    authorName: auth.user?.name ?? settings.workspaceName,
+  });
 
   useEffect(() => {
     if (generationSource === 'gemini') {
@@ -581,9 +638,10 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
 
   const sharePath = `/share/${editorBoard.id}`;
   const viewPath = `/app/boards/${editorBoard.id}/view`;
-  const boardRole = savedBoard?.role ?? 'owner';
-  const isOwner = boardRole === 'owner';
-  const isEditor = boardRole === 'editor';
+  const resolvedBoardRole = boardRole ?? 'owner';
+  const isOwner = resolvedBoardRole === 'owner';
+  const isEditor = resolvedBoardRole === 'editor';
+  const isViewer = resolvedBoardRole === 'viewer';
   const canManageMembers = isOwner;
   const canEditBoard = isOwner || isEditor;
   const toneText = editorBoard.tone.join(', ');
@@ -814,6 +872,21 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     showToast('Reference added.', 'success');
   };
 
+  const handleReloadRemote = () => {
+    if (!pendingRemoteBoard) return;
+
+    applyRemoteBoard(boardId, pendingRemoteBoard);
+    setDraft(null);
+    setIsDirty(false);
+    setSaveStatus('Saved');
+    setPendingRemoteBoard(null);
+    showToast('Board updated with the latest changes.', 'success');
+  };
+
+  const handleKeepEditingRemote = () => {
+    setPendingRemoteBoard(null);
+  };
+
   const handleSaveReference = (next: ReferenceItem) => {
     if (editingReferenceIndex === null) return;
 
@@ -832,17 +905,42 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
 
   return (
     <div className="space-y-8 pb-10 text-slate-900">
+      {pendingRemoteBoard ? (
+        <RemoteUpdateBanner
+          savedByName={null}
+          onReload={handleReloadRemote}
+          onKeepEditing={handleKeepEditingRemote}
+        />
+      ) : null}
+
       <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)] md:p-8">
         <div className="flex flex-col gap-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
               {generationSource ? <GenerationSourceBadge source={generationSource} /> : null}
               {isEditor ? <Badge variant="outline">Editor access</Badge> : null}
+              {isViewer ? <Badge variant="outline">Viewer access</Badge> : null}
               <Badge variant="secondary">{editorBoard.visibility}</Badge>
               <Badge variant="secondary">{dirtyStatus}</Badge>
+              <BoardPresenceStrip users={presenceUsers} />
             </div>
 
             <div className="flex flex-wrap gap-2">
+              {canComment ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCommentsOpen(true)}
+                  className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  Comments
+                  {comments.length > 0 ? (
+                    <span className="ml-1 text-xs text-slate-500">({comments.length})</span>
+                  ) : null}
+                </Button>
+              ) : null}
+
               <Button
                 type="button"
                 onClick={handleSave}
@@ -1662,6 +1760,19 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
           showToast('Board exported as JSON.', 'success');
         }}
         onClose={() => setExportOpen(false)}
+      />
+
+      <BoardCommentsPanel
+        open={commentsOpen}
+        boardTitle={editorBoard.title}
+        comments={comments}
+        loading={commentsLoading}
+        posting={commentsPosting}
+        currentUserId={auth.user?.id ?? null}
+        isOwner={isOwner}
+        onClose={() => setCommentsOpen(false)}
+        onPost={postComment}
+        onDelete={deleteComment}
       />
     </div>
   );

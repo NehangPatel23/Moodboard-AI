@@ -5,6 +5,7 @@ export type BoardAccess = {
   role: BoardRole | null;
   ownerId: string | null;
   canEdit: boolean;
+  canComment: boolean;
   canManageMembers: boolean;
   canDelete: boolean;
 };
@@ -23,6 +24,7 @@ export async function getBoardAccess(userId: string, boardId: string): Promise<B
       role: null,
       ownerId: null,
       canEdit: false,
+      canComment: false,
       canManageMembers: false,
       canDelete: false,
     };
@@ -33,6 +35,7 @@ export async function getBoardAccess(userId: string, boardId: string): Promise<B
       role: 'owner',
       ownerId: board.user_id,
       canEdit: true,
+      canComment: true,
       canManageMembers: true,
       canDelete: true,
     };
@@ -52,6 +55,7 @@ export async function getBoardAccess(userId: string, boardId: string): Promise<B
       role: 'editor',
       ownerId: board.user_id,
       canEdit: true,
+      canComment: true,
       canManageMembers: false,
       canDelete: false,
     };
@@ -62,6 +66,7 @@ export async function getBoardAccess(userId: string, boardId: string): Promise<B
       role: 'viewer',
       ownerId: board.user_id,
       canEdit: false,
+      canComment: true,
       canManageMembers: false,
       canDelete: false,
     };
@@ -71,6 +76,7 @@ export async function getBoardAccess(userId: string, boardId: string): Promise<B
     role: null,
     ownerId: board.user_id,
     canEdit: false,
+    canComment: false,
     canManageMembers: false,
     canDelete: false,
   };

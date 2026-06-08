@@ -46,6 +46,8 @@ Creates `profiles`, `boards`, and `user_settings` tables with Row Level Security
 
 9. Run [`supabase/migrations/005_backfill_profiles.sql`](../supabase/migrations/005_backfill_profiles.sql) to backfill missing `profiles` rows for existing auth users and enable email-based invite lookups. If invites show **Unauthorized** or stay **Pending** for users who already have accounts, run this migration.
 
+10. Run [`supabase/migrations/006_board_realtime_comments.sql`](../supabase/migrations/006_board_realtime_comments.sql) to enable Realtime on `boards`, add `board_comments`, and enable live comment sync.
+
 ### Option B — Supabase CLI
 
 ```bash

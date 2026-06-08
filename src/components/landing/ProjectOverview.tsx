@@ -42,7 +42,7 @@ const INFO_CARDS: InfoCard[] = [
   {
     title: 'Project status',
     icon: Rocket,
-    body: 'Auth and persistence run on Supabase; AI generation uses Gemini when configured. Public sharing, discover, and team invites are live — next up: real-time co-editing.',
+    body: 'Auth and persistence run on Supabase; AI generation uses Gemini when configured. Public sharing, discover, team invites, real-time co-editing, and board comments are live.',
   },
 ];
 

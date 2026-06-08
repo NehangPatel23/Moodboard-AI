@@ -3,7 +3,7 @@
 > **Status:** Active Development (MVP + Production Deployed)
 > **Purpose:** GitHub README + internal handoff document for future development, AI agents, and new contributors
 > **Live:** Deployed on Vercel with Supabase + Gemini free tier
-> **Next feature:** Real-time co-editing and comments
+> **Next feature:** Design system audit (incremental) and AI enhancements (image gen, streaming)
 
 **Setup guides:** [`docs/MANUAL_SETUP.md`](docs/MANUAL_SETUP.md) · [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md) · [`docs/GEMINI_SETUP.md`](docs/GEMINI_SETUP.md) · [`docs/DEPLOY.md`](docs/DEPLOY.md)
 
@@ -29,7 +29,7 @@ It is currently a working product foundation with:
 - View-only public sharing at `/share/[id]` and discovery at `/discover`
 - Vercel Analytics
 
-The app is not finished. Core UX, persistence, auth, AI generation, public sharing, discovery, and team collaboration are in place; real-time co-editing is next.
+The app is not finished. Core UX, persistence, auth, AI generation, public sharing, discovery, team collaboration, real-time co-editing, and board comments are in place; incremental design polish and AI enhancements are next.
 
 ---
 
@@ -216,7 +216,7 @@ src/
 │   └── supabase/
 docs/                  # setup, deploy, Gemini guides
 scripts/               # setup:supabase, verify:generate, seed-demo
-supabase/migrations/   # 001_initial.sql
+supabase/migrations/   # 001–006 (realtime + comments in 006)
 ```
 
 ---
@@ -631,7 +631,7 @@ Implemented (Supabase Postgres):
 - `user_settings` — per-user workspace preferences
 - Public read of **shared** boards via RLS policy (`002_shared_board_public_read.sql`)
 
-Deferred: template metadata, invite/collaboration tables.
+Deferred: template metadata tables (marketplace).
 
 ### Authentication
 
@@ -677,14 +677,30 @@ Supports:
 
 Requires migration `003_board_collaboration.sql`.
 
+**Real-time co-editing (implemented):**
+
+- Supabase Realtime presence on `board:{id}` — stacked avatars + online count in the board editor header
+- Live board sync via `postgres_changes` on `boards` — remote saves apply when local draft is clean
+- Conflict banner when you have unsaved edits and a collaborator saves — **Reload** or **Keep editing**
+
+**Board comments (implemented):**
+
+```txt
+GET    /api/boards/[id]/comments
+POST   /api/boards/[id]/comments
+DELETE /api/boards/[id]/comments/[commentId]
+```
+
+- Slide-over comments panel in the board editor (owner, editor, viewer)
+- Live comment sync via Realtime on `board_comments`
+- Authors and owners can delete comments
+
+Requires migration `006_board_realtime_comments.sql`.
+
 Planned:
 
-- Real-time co-editing (presence, live cursors)
-- Comments on boards
-
-### Comments
-
-Board commenting system.
+- Live cursors and character-level sync
+- Comment editing
 
 ### Version History
 
@@ -854,7 +870,11 @@ Public browse at `/discover` with search; cards link to `/share/[id]`.
 
 ### 7. Collaboration Features — DONE (MVP)
 
-Invites, roles (owner/editor/viewer), and permission-gated editing. Real-time co-editing deferred.
+Invites, roles (owner/editor/viewer), and permission-gated editing.
+
+### 8. Real-Time Co-Editing + Comments — DONE
+
+Supabase Realtime presence, live board sync on save, conflict banner, and board comments panel. See [Team Collaboration (Implemented)](#team-collaboration-implemented). Migration `006_board_realtime_comments.sql`.
 
 ---
 
@@ -881,10 +901,10 @@ Implemented:
 - Empty states
 - Public sharing (`/share/[id]`) and discovery (`/discover`)
 
-Database persistence, Supabase Auth, AI generation, theme sync, production deploy, view-only public sharing, discover, and **team collaboration (MVP)** are implemented. Next up: **real-time co-editing** and comments.
+Database persistence, Supabase Auth, AI generation, theme sync, production deploy, view-only public sharing, discover, **team collaboration (MVP)**, **real-time co-editing**, and **board comments** are implemented.
 
-1. Real-time co-editing and comments
-2. Design system standardization (incremental)
+1. Design system standardization (incremental)
+2. AI enhancements (image generation, reference search, streaming)
 3. Landing page — deferred unless targeted polish is requested
 
 ---
@@ -904,11 +924,13 @@ Important context:
 - **View-only sharing** at `/share/[id]` for boards saved with visibility **Shared** (migration `002_shared_board_public_read.sql` applied)
 - **Discover** at `/discover` — browse and search public shared boards
 - **Collaboration** — invite by email with editor/viewer roles; accept at `/invite/[token]`; dashboard **With me** filter (migration `003_board_collaboration.sql`)
-- **Next features:** real-time co-editing and comments
+- **Real-time co-editing** — presence avatars, live board sync on collaborator save, conflict banner for unsaved local edits (migration `006_board_realtime_comments.sql`)
+- **Board comments** — slide-over panel with live sync; `GET/POST/DELETE /api/boards/[id]/comments`
+- **Next features:** design system audit, AI image generation / streaming
 - Board editor handles refresh correctly (loads from Supabase after hydration; no false "not found")
 - Settings controls are all wired to real behavior (theme, reduce motion / focus rings, default visibility, presentation mode, workspace identity)
 
-When resuming work, focus on real-time co-editing and board comments.
+When resuming work, focus on incremental design tokens and AI enhancements (image gen, streaming).
 
 ---
 
