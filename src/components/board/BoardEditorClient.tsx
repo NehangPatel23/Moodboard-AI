@@ -76,6 +76,14 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { showToast } from '@/components/shared/toast-store';
+import {
+  editorFieldClass,
+  editorGhostButtonClass,
+  editorIconButtonClass,
+  editorLabelClass,
+  editorPanelClass,
+  editorSelectClass,
+} from '@/components/board/board-editor-styles';
 
 type BoardEditorClientProps = {
   boardId: string;
@@ -161,11 +169,8 @@ const EDITOR_SECTION_META: Record<
   },
 };
 
-const panelClass =
-  'rounded-[2rem] border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]';
-
-const fieldClass =
-  'border-slate-200 bg-white text-slate-900 shadow-none placeholder:text-slate-400 focus-visible:ring-slate-900';
+const panelClass = editorPanelClass;
+const fieldClass = editorFieldClass;
 
 const noteToneClasses: Record<
   NoteType,
@@ -232,14 +237,14 @@ function EditorTabPill({
         'flex min-w-40 items-start gap-3 rounded-3xl border px-4 py-3 text-left transition',
         'border-(--border) bg-(--surface) text-(--text-strong)',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)',
-        'hover:bg-(--surface-subtle) dark:bg-[rgba(255,255,255,0.03)] dark:hover:bg-[rgba(255,255,255,0.06)]',
-        active ? 'bg-(--surface-subtle) shadow-sm dark:bg-[rgba(255,255,255,0.08)]' : '',
+        'hover:bg-(--surface-subtle)',
+        active ? 'bg-(--surface-subtle) shadow-sm' : '',
       ].join(' ')}
     >
       <div
         className={[
           'mt-0.5 flex h-8 w-8 items-center justify-center rounded-full border',
-          'border-(--border) bg-(--surface-elevated) dark:bg-[rgba(255,255,255,0.05)]',
+          'border-(--border) bg-(--surface-elevated)',
         ].join(' ')}
       >
         <Icon
@@ -355,20 +360,20 @@ function ReferenceEditorModal({
       onMouseDown={onClose}
     >
       <div
-        className="flex w-full max-w-6xl flex-col overflow-hidden rounded-4xl border border-slate-200 bg-white text-slate-900 shadow-[0_40px_120px_rgba(15,23,42,0.18)]"
+        className="flex w-full max-w-6xl flex-col overflow-hidden rounded-4xl border border-(--border) bg-(--surface-elevated) text-(--text) shadow-[var(--shadow-elevated)]"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5 md:px-8 md:py-6">
+        <div className="flex items-start justify-between gap-4 border-b border-(--border) px-6 py-5 md:px-8 md:py-6">
           <div className="space-y-2">
             <h2
               id="reference-editor-title"
-              className="[font-family:var(--font-display),serif] text-[clamp(2.5rem,4vw,4rem)] leading-[0.95] tracking-[-0.04em] text-slate-950"
+              className="[font-family:var(--font-display),serif] text-[clamp(2.5rem,4vw,4rem)] leading-[0.95] tracking-[-0.04em] text-(--text-strong)"
             >
               Edit reference
             </h2>
             <p
               id="reference-editor-description"
-              className="max-w-2xl text-sm leading-6 text-slate-500 md:text-base"
+              className="max-w-2xl text-sm leading-6 text-(--text-muted) md:text-base"
             >
               Update the title, type, source, and image for this inspiration card.
             </p>
@@ -380,7 +385,7 @@ function ReferenceEditorModal({
             size="icon"
             onClick={onClose}
             aria-label="Close reference editor"
-            className="h-11 w-11 rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-950"
+            className="h-11 w-11 rounded-full border border-(--border) bg-(--surface-elevated) text-(--text-muted) hover:bg-(--surface-subtle) hover:text-(--text-strong)"
           >
             <X className="h-5 w-5" />
           </Button>
@@ -389,7 +394,7 @@ function ReferenceEditorModal({
         <div className="max-h-[80vh] overflow-y-auto px-6 py-6 md:px-8">
           <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
             <div className="space-y-4">
-              <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-slate-50 shadow-sm">
+              <div className="overflow-hidden rounded-[1.75rem] border border-(--border) bg-(--surface-subtle) shadow-sm">
                 <div className="relative aspect-16/10 w-full">
                   <ReferenceImageDisplay
                     title={draft.title}
@@ -411,25 +416,25 @@ function ReferenceEditorModal({
 
             <div className="space-y-5">
               <div className="grid gap-2">
-                <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+                <label className={editorLabelClass}>
                   Reference title
                 </label>
                 <Textarea
                   value={draft.title}
                   onChange={(e) => updateDraft({ title: e.target.value })}
                   placeholder="Reference title"
-                  className="min-h-23 rounded-3xl border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus-visible:ring-slate-900"
+                  className="min-h-23 rounded-3xl border-(--border) bg-(--surface-elevated) text-(--text) placeholder:text-(--text-muted) focus-visible:ring-(--ring)"
                 />
               </div>
 
               <div className="grid gap-2">
-                <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+                <label className={editorLabelClass}>
                   Reference type
                 </label>
                 <select
                   value={draft.category}
                   onChange={(e) => updateDraft({ category: e.target.value })}
-                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-slate-900"
+                  className="h-11 w-full rounded-2xl border border-(--border) bg-(--surface-elevated) px-4 text-sm text-(--text) outline-none focus:ring-2 focus:ring-(--ring)"
                 >
                   {referenceCategoryOptions.map((option) => (
                     <option key={option} value={option}>
@@ -440,45 +445,45 @@ function ReferenceEditorModal({
               </div>
 
               <div className="grid gap-2">
-                <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+                <label className={editorLabelClass}>
                   Source
                 </label>
                 <Input
                   value={draft.source ?? ''}
                   onChange={(e) => updateDraft({ source: e.target.value })}
                   placeholder="Generated"
-                  className="border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus-visible:ring-slate-900"
+                  className="border-(--border) bg-(--surface-elevated) text-(--text) placeholder:text-(--text-muted) focus-visible:ring-(--ring)"
                 />
               </div>
 
               <div className="grid gap-2">
-                <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+                <label className={editorLabelClass}>
                   Image URL
                 </label>
                 <Textarea
                   value={draft.imageUrl}
                   onChange={(e) => updateDraft({ imageUrl: e.target.value })}
                   placeholder="https://..."
-                  className="min-h-23 rounded-3xl border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 break-all focus-visible:ring-slate-900"
+                  className="min-h-23 rounded-3xl border-(--border) bg-(--surface-elevated) text-(--text) placeholder:text-(--text-muted) break-all focus-visible:ring-(--ring)"
                 />
               </div>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-wrap justify-end gap-3 border-t border-slate-200 px-6 py-5 md:px-8">
+        <div className="flex flex-wrap justify-end gap-3 border-t border-(--border) px-6 py-5 md:px-8">
           <Button
             type="button"
             variant="outline"
             onClick={onClose}
-            className="rounded-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-950"
+            className="rounded-full border-(--border) bg-(--surface-elevated) text-(--text) hover:bg-(--surface-subtle) hover:text-(--text-strong)"
           >
             Cancel
           </Button>
           <Button
             type="button"
             onClick={() => onSave(draft)}
-            className="rounded-full bg-slate-950 text-white hover:bg-slate-800"
+            className="rounded-full bg-(--text-strong) text-(--background) hover:opacity-90"
           >
             Save reference
           </Button>
@@ -613,21 +618,21 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
 
   if (!editorBoard) {
     return (
-      <section className="rounded-[2.5rem] border border-slate-200 bg-white p-8 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
-        <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+      <section className="rounded-[2.5rem] border border-(--border) bg-(--surface-elevated) p-8 shadow-[var(--shadow-card)]">
+        <p className={editorLabelClass}>
           Board not found
         </p>
-        <h1 className="[font-family:var(--font-display),serif] mt-3 text-4xl tracking-tight text-slate-950">
+        <h1 className="[font-family:var(--font-display),serif] mt-3 text-4xl tracking-tight text-(--text-strong)">
           This board may have been deleted.
         </h1>
-        <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500">
+        <p className="mt-3 max-w-xl text-sm leading-6 text-(--text-muted)">
           The link may be outdated or the board may have been removed from your studio.
         </p>
         <div className="mt-6">
           <Button
             type="button"
             onClick={() => router.push('/app')}
-            className="rounded-full bg-slate-950 text-white"
+            className="rounded-full bg-(--text-strong) text-(--background)"
           >
             Back to boards
           </Button>
@@ -904,7 +909,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   };
 
   return (
-    <div className="space-y-8 pb-10 text-slate-900">
+    <div className="space-y-8 pb-10 text-(--text)">
       {pendingRemoteBoard ? (
         <RemoteUpdateBanner
           savedByName={null}
@@ -913,7 +918,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         />
       ) : null}
 
-      <section className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)] md:p-8">
+      <section className="rounded-[2.5rem] border border-(--border) bg-(--surface-elevated) p-6 shadow-[var(--shadow-card)] md:p-8">
         <div className="flex flex-col gap-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
@@ -931,12 +936,12 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                   type="button"
                   variant="outline"
                   onClick={() => setCommentsOpen(true)}
-                  className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
+                  className={editorGhostButtonClass}
                 >
                   <MessageSquare className="h-4 w-4" />
                   Comments
                   {comments.length > 0 ? (
-                    <span className="ml-1 text-xs text-slate-500">({comments.length})</span>
+                    <span className="ml-1 text-xs text-(--text-muted)">({comments.length})</span>
                   ) : null}
                 </Button>
               ) : null}
@@ -945,7 +950,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 type="button"
                 onClick={handleSave}
                 disabled={!isDirty || !canEditBoard}
-                className="rounded-full border border-transparent bg-(--text-strong) px-4 text-(--background) shadow-sm transition-colors hover:bg-slate-800 dark:border-white/10 dark:bg-[rgba(255,255,255,0.08)] dark:text-white dark:hover:bg-[rgba(255,255,255,0.14)]"
+                className="rounded-full border border-transparent bg-(--text-strong) px-4 text-(--background) shadow-sm transition-colors hover:opacity-90"
               >
                 Save
               </Button>
@@ -955,7 +960,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                   type="button"
                   variant="outline"
                   onClick={handleToggleFavorite}
-                  className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
+                  className={editorGhostButtonClass}
                 >
                   {editorBoard.isFavorite ? <StarOff className="h-4 w-4" /> : <Star className="h-4 w-4" />}
                   {editorBoard.isFavorite ? 'Unfavorite' : 'Favorite'}
@@ -968,7 +973,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                   variant="outline"
                   onClick={handleToggleVisibility}
                   aria-pressed={editorBoard.visibility === 'shared'}
-                  className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
+                  className={editorGhostButtonClass}
                 >
                   {editorBoard.visibility === 'shared' ? (
                     <Globe className="h-4 w-4" />
@@ -984,7 +989,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                   type="button"
                   variant="outline"
                   onClick={() => requireSavedChanges('duplicate')}
-                  className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
+                  className={editorGhostButtonClass}
                 >
                   <Copy className="h-4 w-4" />
                   Duplicate
@@ -996,7 +1001,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                   type="button"
                   variant="outline"
                   onClick={() => requireSavedChanges('share')}
-                  className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
+                  className={editorGhostButtonClass}
                 >
                   <Share2 className="h-4 w-4" />
                   Share
@@ -1007,7 +1012,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 type="button"
                 variant="outline"
                 onClick={() => requireSavedChanges('export')}
-                className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
+                className={editorGhostButtonClass}
               >
                 <Download className="h-4 w-4" />
                 Export
@@ -1017,7 +1022,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 type="button"
                 variant="outline"
                 onClick={() => requireSavedChanges('view')}
-                className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
+                className={editorGhostButtonClass}
               >
                 <ExternalLink className="h-4 w-4" />
                 View
@@ -1042,7 +1047,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
 
           <div className="grid gap-6 xl:grid-cols-[1fr_280px]">
             <div className="space-y-3">
-              <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+              <label className={editorLabelClass}>
                 Board title
               </label>
               <Textarea
@@ -1055,20 +1060,20 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 }
                 rows={2}
                 maxLength={TITLE_LIMIT}
-                className="min-h-24 rounded-[1.75rem] border-slate-200 bg-white px-4 py-4 text-[clamp(2.6rem,5vw,4.8rem)] leading-[0.95] tracking-tight text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:ring-slate-900"
+                className="min-h-24 rounded-[1.75rem] border-(--border) bg-(--surface-elevated) px-4 py-4 text-[clamp(2.6rem,5vw,4.8rem)] leading-[0.95] tracking-tight text-(--text-strong) shadow-none placeholder:text-(--text-muted) focus-visible:ring-(--ring)"
                 placeholder="Untitled board"
               />
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-(--text-muted)">
                 Up to {TITLE_LIMIT} characters • {editorBoard.title.length}/{TITLE_LIMIT}
               </p>
             </div>
 
-            <aside className="rounded-4xl border border-slate-200 bg-slate-50 p-5">
-              <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+            <aside className="rounded-4xl border border-(--border) bg-(--surface-subtle) p-5">
+              <p className={editorLabelClass}>
                 Prompt
               </p>
-              <p className="mt-3 text-sm leading-6 text-slate-700">{editorBoard.prompt}</p>
-              <div className="mt-5 grid gap-3 text-xs text-slate-400">
+              <p className="mt-3 text-sm leading-6 text-(--text)">{editorBoard.prompt}</p>
+              <div className="mt-5 grid gap-3 text-xs text-(--text-muted)">
                 <p>Updated {formatDateTime(editorBoard.updatedAt)}</p>
                 <p>Board ID {editorBoard.id}</p>
                 <p>Creative direction canvas</p>
@@ -1076,7 +1081,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
             </aside>
           </div>
 
-          <div className="flex flex-col gap-3 border-t border-slate-200 pt-5">
+          <div className="flex flex-col gap-3 border-t border-(--border) pt-5">
             <div className="flex flex-wrap gap-2" aria-label="Editor sections">
               {EDITOR_SECTIONS.map((section, index) => {
                 const meta = EDITOR_SECTION_META[section];
@@ -1105,17 +1110,17 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         {activeSection === 'overview' ? (
           <Card className={panelClass}>
             <CardHeader>
-              <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-slate-950">
+              <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)">
                 Direction, tone, and summary
               </CardTitle>
-              <CardDescription className="max-w-2xl text-slate-500">
+              <CardDescription className="max-w-2xl text-(--text-muted)">
                 Adjust the core idea before refining palette, type, and references.
               </CardDescription>
             </CardHeader>
 
             <CardContent className="space-y-5">
               <div className="grid gap-2">
-                <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+                <label className={editorLabelClass}>
                   Mood
                 </label>
                 <Input
@@ -1127,19 +1132,19 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
               </div>
 
               <div className="grid gap-2">
-                <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+                <label className={editorLabelClass}>
                   Creative summary
                 </label>
                 <Textarea
                   value={editorBoard.summary}
                   onChange={(e) => updateDraft((current) => ({ ...current, summary: e.target.value }))}
-                  className="min-h-42.5 rounded-3xl border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus-visible:ring-slate-900"
+                  className="min-h-42.5 rounded-3xl border-(--border) bg-(--surface-elevated) text-(--text) placeholder:text-(--text-muted) focus-visible:ring-(--ring)"
                 />
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="grid gap-2">
-                  <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+                  <label className={editorLabelClass}>
                     Tone descriptors
                   </label>
                   <Input
@@ -1159,7 +1164,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 </div>
 
                 <div className="grid gap-2">
-                  <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+                  <label className={editorLabelClass}>
                     Tags
                   </label>
                   <Input
@@ -1186,10 +1191,10 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
           <Card className={panelClass}>
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <div>
-                <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-slate-950">
+                <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)">
                   Inspiration grid
                 </CardTitle>
-                <CardDescription className="max-w-2xl text-slate-500">
+                <CardDescription className="max-w-2xl text-(--text-muted)">
                   Visual references that support the mood and composition.
                 </CardDescription>
               </div>
@@ -1198,7 +1203,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 type="button"
                 variant="outline"
                 onClick={handleAddReference}
-                className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
+                className={editorGhostButtonClass}
               >
                 <Plus className="h-4 w-4" />
                 Add reference
@@ -1211,13 +1216,13 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                   {editorBoard.references.map((reference, index) => (
                     <article
                       key={reference.id}
-                      className="group relative overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]"
+                      className="group relative overflow-hidden rounded-[1.75rem] border border-(--border) bg-(--surface-elevated) transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)]"
                     >
                       <button
                         type="button"
                         onClick={() => setEditingReferenceIndex(index)}
                         aria-label={`Edit reference ${reference.title}`}
-                        className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                        className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring)"
                       >
                         <div className="relative aspect-4/3 w-full overflow-hidden">
                           <ReferenceImageDisplay
@@ -1235,11 +1240,11 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                           <div className="flex flex-wrap items-center gap-2">
                             <Badge variant="secondary">{reference.category}</Badge>
                             {reference.source ? (
-                              <span className="text-xs text-slate-400">{reference.source}</span>
+                              <span className="text-xs text-(--text-muted)">{reference.source}</span>
                             ) : null}
                           </div>
 
-                          <p className="line-clamp-2 text-sm leading-6 text-slate-700">
+                          <p className="line-clamp-2 text-sm leading-6 text-(--text)">
                             {reference.title}
                           </p>
                         </div>
@@ -1251,7 +1256,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                         size="icon"
                         onClick={() => handleRequestRemoval('reference', index)}
                         aria-label={`Remove reference ${reference.title}`}
-                        className="absolute right-3 top-3 h-9 w-9 rounded-full border border-slate-200 bg-white text-slate-600 opacity-100 transition hover:bg-slate-50 hover:text-slate-900"
+                        className="absolute right-3 top-3 h-9 w-9 rounded-full border border-(--border) bg-(--surface-elevated) text-(--text-muted) opacity-100 transition hover:bg-(--surface-subtle) hover:text-(--text)"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -1259,7 +1264,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                   ))}
                 </div>
               ) : (
-                <div className="rounded-[1.75rem] border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center text-sm text-slate-500">
+                <div className="rounded-[1.75rem] border border-dashed border-(--border) bg-(--surface-subtle) px-5 py-10 text-center text-sm text-(--text-muted)">
                   No references yet.
                 </div>
               )}
@@ -1271,10 +1276,10 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
           <Card className={panelClass}>
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <div>
-                <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-slate-950">
+                <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)">
                   Sticky notes
                 </CardTitle>
-                <CardDescription className="max-w-2xl text-slate-500">
+                <CardDescription className="max-w-2xl text-(--text-muted)">
                   Capture short ideas, instructions, and keywords.
                 </CardDescription>
               </div>
@@ -1283,7 +1288,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 type="button"
                 variant="outline"
                 onClick={handleAddNote}
-                className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
+                className={editorGhostButtonClass}
               >
                 <Plus className="h-4 w-4" />
                 Add note
@@ -1295,7 +1300,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 {editorBoard.notes.map((note, index) => (
                   <Card
                     key={note.id}
-                    className="overflow-hidden rounded-[1.75rem] border border-(--border) bg-(--surface-elevated) shadow-[0_10px_30px_rgba(15,23,42,0.06)] dark:shadow-[0_14px_40px_rgba(0,0,0,0.22)]"
+                    className="overflow-hidden rounded-[1.75rem] border border-(--border) bg-(--surface-elevated) shadow-[var(--shadow-card)]"
                   >
                     <div className={`h-1.5 ${noteToneClasses[note.type].accent}`} />
 
@@ -1303,7 +1308,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                       <div className="space-y-2">
                         <Badge
                           variant="secondary"
-                          className={`gap-1.5 text-slate-900! dark:text-slate-50! ${noteToneClasses[note.type].badge}`}
+                          className={`gap-1.5 text-(--text-strong)! ${noteToneClasses[note.type].badge}`}
                         >
                           <NoteTypeIcon type={note.type} />
                           {note.type}
@@ -1320,7 +1325,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                         size="icon"
                         onClick={() => handleRequestRemoval('note', index)}
                         aria-label={`Remove note ${index + 1}`}
-                        className="h-9 w-9 rounded-full border border-(--border) bg-(--surface) text-(--text-muted) hover:bg-(--surface-subtle) hover:text-(--text-strong) dark:bg-[rgba(255,255,255,0.04)] dark:hover:bg-[rgba(255,255,255,0.08)]"
+                        className={editorIconButtonClass}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -1341,7 +1346,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                               ),
                             }))
                           }
-                          className="h-11 w-full rounded-2xl border border-(--border) bg-(--surface) px-4 text-sm text-(--text-strong) outline-none focus:ring-2 focus:ring-(--ring) dark:bg-[rgba(255,255,255,0.04)]"
+                          className={editorSelectClass}
                         >
                           {noteTypeOptions.map((option) => (
                             <option key={option.value} value={option.value}>
@@ -1365,7 +1370,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                               ),
                             }))
                           }
-                          className="min-h-35 rounded-3xl border border-(--border) bg-(--surface) text-(--text-strong) placeholder:text-(--text-muted) focus-visible:ring-(--ring) dark:bg-[rgba(255,255,255,0.04)] dark:text-(--text-strong)"
+                          className={`min-h-35 rounded-3xl ${fieldClass}`}
                         />
                       </div>
                     </CardContent>
@@ -1374,7 +1379,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
               </div>
 
               {!editorBoard.notes.length ? (
-                <div className="rounded-[1.75rem] border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center text-sm text-slate-500">
+                <div className="rounded-[1.75rem] border border-dashed border-(--border) bg-(--surface-subtle) px-5 py-10 text-center text-sm text-(--text-muted)">
                   No notes yet.
                 </div>
               ) : null}
@@ -1386,10 +1391,10 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
           <Card className={panelClass}>
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <div>
-                <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-slate-950">
+                <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)">
                   Color direction
                 </CardTitle>
-                <CardDescription className="max-w-2xl text-slate-500">
+                <CardDescription className="max-w-2xl text-(--text-muted)">
                   Fine-tune the colors and usage notes for the board.
                 </CardDescription>
               </div>
@@ -1398,7 +1403,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 type="button"
                 variant="outline"
                 onClick={handleAddPalette}
-                className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
+                className={editorGhostButtonClass}
               >
                 <Plus className="h-4 w-4" />
                 Add color
@@ -1409,7 +1414,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
               {editorBoard.palette.map((item: PaletteItem, index) => (
                 <Card
                   key={item.id}
-                  className="relative rounded-[1.75rem] border border-slate-200 bg-slate-50"
+                  className="relative rounded-[1.75rem] border border-(--border) bg-(--surface-subtle)"
                 >
                   <Button
                     type="button"
@@ -1417,20 +1422,20 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                     size="icon"
                     onClick={() => handleRequestRemoval('palette', index)}
                     aria-label={`Remove color ${item.label}`}
-                    className="absolute right-4 top-4 z-10 h-9 w-9 rounded-full border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+                    className="absolute right-4 top-4 z-10 h-9 w-9 rounded-full border border-(--border) bg-(--surface-elevated) text-(--text-muted) transition hover:bg-(--surface-subtle) hover:text-(--text)"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
 
                   <CardContent className="space-y-4 p-4">
                     <div
-                      className="mr-14 h-24 overflow-hidden rounded-3xl border border-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]"
+                      className="mr-14 h-24 overflow-hidden rounded-3xl border border-(--border) shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]"
                       style={{ backgroundColor: item.hex }}
                     />
 
                     <div className="grid gap-4">
                       <div className="grid gap-2">
-                        <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+                        <label className={editorLabelClass}>
                           Color name
                         </label>
                         <Input
@@ -1449,11 +1454,11 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                       </div>
 
                       <div className="grid gap-2">
-                        <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+                        <label className={editorLabelClass}>
                           Color hex
                         </label>
                         <div className="flex items-center gap-3">
-                          <div className="flex h-11 w-14 items-center justify-center rounded-2xl border border-slate-200 bg-white p-1">
+                          <div className="flex h-11 w-14 items-center justify-center rounded-2xl border border-(--border) bg-(--surface-elevated) p-1">
                             <input
                               type="color"
                               value={item.hex}
@@ -1486,7 +1491,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                       </div>
 
                       <div className="grid gap-2">
-                        <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+                        <label className={editorLabelClass}>
                           Usage note
                         </label>
                         <Input
@@ -1515,10 +1520,10 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
           <Card className={panelClass}>
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <div>
-                <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-slate-950">
+                <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)">
                   Type system
                 </CardTitle>
-                <CardDescription className="max-w-2xl text-slate-500">
+                <CardDescription className="max-w-2xl text-(--text-muted)">
                   Pair the fonts with short notes for the design direction.
                 </CardDescription>
               </div>
@@ -1527,7 +1532,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 type="button"
                 variant="outline"
                 onClick={handleAddTypography}
-                className="rounded-full border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-950"
+                className={editorGhostButtonClass}
               >
                 <Plus className="h-4 w-4" />
                 Add row
@@ -1545,7 +1550,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 return (
                   <Card
                     key={item.id}
-                    className="relative rounded-[1.75rem] border border-slate-200 bg-slate-50"
+                    className="relative rounded-[1.75rem] border border-(--border) bg-(--surface-subtle)"
                   >
                     <Button
                       type="button"
@@ -1553,7 +1558,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                       size="icon"
                       onClick={() => handleRequestRemoval('typography', index)}
                       aria-label={`Remove ${item.role} typography`}
-                      className="absolute right-4 top-4 z-10 h-9 w-9 rounded-full border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+                      className="absolute right-4 top-4 z-10 h-9 w-9 rounded-full border border-(--border) bg-(--surface-elevated) text-(--text-muted) transition hover:bg-(--surface-subtle) hover:text-(--text)"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -1564,7 +1569,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                       </div>
 
                       <div className="grid gap-2">
-                        <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+                        <label className={editorLabelClass}>
                           Type badge
                         </label>
                         <select
@@ -1579,7 +1584,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                               ),
                             }))
                           }
-                          className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-slate-900"
+                          className="h-11 w-full rounded-2xl border border-(--border) bg-(--surface-elevated) px-4 text-sm text-(--text) outline-none focus:ring-2 focus:ring-(--ring)"
                         >
                           {typographyRoleOptions.map((option) => (
                             <option key={option.value} value={option.value}>
@@ -1590,7 +1595,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                       </div>
 
                       <div className="grid gap-2">
-                        <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+                        <label className={editorLabelClass}>
                           Font preset
                         </label>
                         <select
@@ -1608,7 +1613,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                               ),
                             }));
                           }}
-                          className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-slate-900"
+                          className="h-11 w-full rounded-2xl border border-(--border) bg-(--surface-elevated) px-4 text-sm text-(--text) outline-none focus:ring-2 focus:ring-(--ring)"
                         >
                           <option value="__custom__">Custom / typed below</option>
                           {fontOptions.map((font) => (
@@ -1620,7 +1625,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                       </div>
 
                       <div className="grid gap-2">
-                        <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+                        <label className={editorLabelClass}>
                           Font name
                         </label>
                         <Input
@@ -1639,7 +1644,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                       </div>
 
                       <div className="grid gap-2">
-                        <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+                        <label className={editorLabelClass}>
                           Usage note
                         </label>
                         <Input
@@ -1657,20 +1662,20 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                         />
                       </div>
 
-                      <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-none">
-                        <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+                      <div className="rounded-3xl border border-(--border) bg-(--surface-elevated) p-4 shadow-none">
+                        <p className={editorLabelClass}>
                           Preview
                         </p>
 
                         <p
-                          className="mt-3 text-3xl leading-tight text-slate-950"
+                          className="mt-3 text-3xl leading-tight text-(--text-strong)"
                           style={{ fontFamily: previewFontFamily }}
                         >
                           The quick brown fox
                         </p>
 
                         <p
-                          className="mt-2 text-sm leading-6 text-slate-600"
+                          className="mt-2 text-sm leading-6 text-(--text-muted)"
                           style={{ fontFamily: previewFontFamily }}
                         >
                           {item.note || 'Usage note preview'}

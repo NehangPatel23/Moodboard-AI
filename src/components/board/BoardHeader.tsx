@@ -2,6 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { BoardActionsMenu } from './BoardActionsMenu';
+import { editorLabelClass } from '@/components/board/board-editor-styles';
 
 type BoardHeaderProps = {
   boardId: string;
@@ -41,11 +42,11 @@ export function BoardHeader({
   onExport,
 }: BoardHeaderProps) {
   return (
-    <section className="space-y-5 rounded-4xl border border-slate-200 bg-white/85 p-6 shadow-sm">
+    <section className="space-y-5 rounded-4xl border border-(--border) bg-(--surface-elevated)/85 p-6 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary">{visibility}</Badge>
-          <span className="text-xs uppercase tracking-[0.3em] text-slate-400">{boardId}</span>
+          <span className="text-xs uppercase tracking-[0.3em] text-(--text-muted)">{boardId}</span>
         </div>
 
         <div className="shrink-0">
@@ -65,9 +66,7 @@ export function BoardHeader({
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">
-          Board title
-        </label>
+        <label className={editorLabelClass}>Board title</label>
 
         <div className="w-full">
           <textarea
@@ -76,22 +75,24 @@ export function BoardHeader({
             rows={1}
             wrap="off"
             maxLength={TITLE_LIMIT}
-            className="block w-full resize-none overflow-x-auto whitespace-nowrap border-0 bg-transparent px-0 py-2 text-4xl font-semibold leading-tight tracking-tight shadow-none outline-none placeholder:text-slate-300 focus:ring-0 md:text-5xl"
+            className="block w-full resize-none overflow-x-auto whitespace-nowrap border-0 bg-transparent px-0 py-2 text-4xl font-semibold leading-tight tracking-tight text-(--text-strong) shadow-none outline-none placeholder:text-(--text-muted) focus:ring-0 md:text-5xl"
             placeholder="Untitled board"
           />
         </div>
 
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-(--text-muted)">
           Up to {TITLE_LIMIT} characters • {title.length}/{TITLE_LIMIT}
         </p>
       </div>
 
       <div className="space-y-2">
-        <p className="max-w-none text-sm leading-6 text-slate-500">
-          Prompt: <span className="font-medium text-slate-700">{prompt}</span>
+        <p className="max-w-none text-sm leading-6 text-(--text-muted)">
+          Prompt: <span className="font-medium text-(--text)">{prompt}</span>
         </p>
 
-        <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Last updated {updatedAt}</p>
+        <p className="text-xs uppercase tracking-[0.24em] text-(--text-muted)">
+          Last updated {updatedAt}
+        </p>
       </div>
     </section>
   );

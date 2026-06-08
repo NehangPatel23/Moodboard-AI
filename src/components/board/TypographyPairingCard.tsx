@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { TypographyItem, TypographyRole } from '@/types/board';
 import { Plus, Trash2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { editorLabelClass, editorNestedCardClass, editorSelectClass } from '@/components/board/board-editor-styles';
 
 type TypographyPairingCardProps = {
   typography: TypographyItem[];
@@ -27,7 +29,7 @@ export function TypographyPairingCard({
   onRemove,
 }: TypographyPairingCardProps) {
   return (
-    <Card className="border-slate-200 bg-white/85">
+    <Card className="border-(--border) bg-(--surface-elevated)/85">
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div>
           <CardTitle>Typography</CardTitle>
@@ -44,7 +46,7 @@ export function TypographyPairingCard({
 
       <CardContent className="space-y-4">
         {typography.map((item, index) => (
-          <div key={item.id} className="rounded-3xl border border-slate-200 bg-slate-50/80 p-4">
+          <div key={item.id} className={cn(editorNestedCardClass, 'p-4')}>
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <Badge variant="secondary">{item.role}</Badge>
@@ -57,11 +59,11 @@ export function TypographyPairingCard({
               </div>
 
               <div className="grid gap-2">
-                <label className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Type badge</label>
+                <label className={editorLabelClass}>Type badge</label>
                 <select
                   value={item.role}
                   onChange={(e) => onChange(index, { ...item, role: e.target.value as TypographyRole })}
-                  className="flex h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-950 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20"
+                  className={editorSelectClass}
                 >
                   {roleOptions.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -72,7 +74,7 @@ export function TypographyPairingCard({
               </div>
 
               <div className="grid gap-2">
-                <label className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Font name</label>
+                <label className={editorLabelClass}>Font name</label>
                 <Input
                   value={item.fontName}
                   onChange={(e) => onChange(index, { ...item, fontName: e.target.value })}
@@ -81,7 +83,7 @@ export function TypographyPairingCard({
               </div>
 
               <div className="grid gap-2">
-                <label className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Usage note</label>
+                <label className={editorLabelClass}>Usage note</label>
                 <Input
                   value={item.note}
                   onChange={(e) => onChange(index, { ...item, note: e.target.value })}

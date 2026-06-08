@@ -5,7 +5,7 @@
 > **Live:** Deployed on Vercel with Supabase + Gemini free tier
 > **Next feature:** Design system audit (incremental) and AI image generation
 
-**Setup guides:** [`docs/MANUAL_SETUP.md`](docs/MANUAL_SETUP.md) · [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md) · [`docs/GEMINI_SETUP.md`](docs/GEMINI_SETUP.md) · [`docs/DEPLOY.md`](docs/DEPLOY.md)
+**Setup guides:** [`docs/MANUAL_SETUP.md`](docs/MANUAL_SETUP.md) · [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md) · [`docs/GEMINI_SETUP.md`](docs/GEMINI_SETUP.md) · [`docs/PEXELS_SETUP.md`](docs/PEXELS_SETUP.md) · [`docs/DEPLOY.md`](docs/DEPLOY.md)
 
 MoodBoard AI is an AI-assisted creative direction and moodboarding platform built to help users turn vague ideas into structured visual direction.
 
@@ -16,9 +16,9 @@ It is currently a working product foundation with:
 - Board creation flow (applies the default-visibility preference)
 - Board editor (tabbed sections)
 - Board presentation/view mode (presentation mode is user-configurable)
-- Templates page (grid + preview modal, live tag filtering, real reference imagery)
+- Templates page (grid + preview modal, live tag filtering, focused inline generation UX)
 - Settings page (workspace identity & avatars, wired preferences, data tools)
-- Theme system (light / dark / system, class-based)
+- Theme system (light / dark / system, class-based) with **TopBar** sun/moon toggle next to search
 - Command palette
 - Toasts, modals, loading states, and empty states
 - Accessibility foundations (app-wide reduce motion + strong focus rings)
@@ -116,9 +116,9 @@ The client shows a live preview as the draft arrives, then fills reference slots
 
 **What was built:**
 
-- **Server** — [`src/lib/ai-generate.ts`](src/lib/ai-generate.ts) draft generation (Gemini JSON + demo fallback); [`src/lib/enrich-board-references.ts`](src/lib/enrich-board-references.ts) sequential Pexels enrichment.
-- **API** — [`src/app/api/generate/draft/route.ts`](src/app/api/generate/draft/route.ts) (rate-limited draft); [`src/app/api/generate/enrich/route.ts`](src/app/api/generate/enrich/route.ts) (NDJSON stream); enrich requires a draft permit issued per generation.
-- **Client** — [`PromptComposer`](src/components/creation/PromptComposer.tsx) and [`templates/page.tsx`](src/app/templates/page.tsx) orchestrate draft → enrich via [`runProgressiveBoardGeneration`](src/lib/ai.ts); **Powered by Gemini** badge when configured.
+- **Server** — [`src/lib/ai-generate.ts`](src/lib/ai-generate.ts) draft generation (Gemini JSON + demo fallback); template drafts use full template context via `buildTemplateGenerationPrompt()`; [`src/lib/enrich-board-references.ts`](src/lib/enrich-board-references.ts) sequential Pexels enrichment.
+- **API** — [`src/app/api/generate/draft/route.ts`](src/app/api/generate/draft/route.ts) (rate-limited draft); [`src/app/api/generate/enrich/route.ts`](src/app/api/generate/enrich/route.ts) (NDJSON stream); enrich requires a draft permit from [`src/lib/generate-enrich-permit.ts`](src/lib/generate-enrich-permit.ts).
+- **Client** — [`PromptComposer`](src/components/creation/PromptComposer.tsx) and [`templates/page.tsx`](src/app/templates/page.tsx) orchestrate draft → enrich via [`runProgressiveBoardGeneration`](src/lib/ai.ts); [`GenerationPreview`](src/components/creation/GenerationPreview.tsx) shows live draft + progressive reference fill; **Powered by Gemini** badge when configured.
 
 **Production:** Add `GEMINI_API_KEY` and `PEXELS_API_KEY` to Vercel. See [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
@@ -203,25 +203,27 @@ Implemented:
 ```txt
 src/
 ├── app/
-│   ├── api/           # boards, settings, generate, migrate
+│   ├── api/           # boards, comments, discover, generate/draft|enrich, migrate, settings
 │   ├── page.tsx       # landing
 │   ├── layout.tsx     # ThemeSync + SettingsBootstrap
 │   ├── (auth)/sign-in/
 │   ├── app/           # dashboard, editor, new board
+│   ├── discover/
 │   ├── settings/
 │   └── templates/
 ├── components/
 │   ├── landing/
-│   ├── layout/        # AppShell, Sidebar, BoardStoreBootstrap
-│   ├── board/
-│   ├── creation/      # PromptComposer, GenerationSourceBadge
+│   ├── layout/        # AppShell, Sidebar, TopBar, BoardStoreBootstrap
+│   ├── board/         # BoardEditorClient, board-editor-styles.ts
+│   ├── creation/      # PromptComposer, GenerationPreview, TemplateGenerationPanel
 │   └── shared/        # ThemeToggle, SettingsBootstrap, Toast
 ├── lib/
 │   ├── ai-generate.ts
+│   ├── ai.ts          # runProgressiveBoardGeneration, streamEnrichedBoard
 │   ├── board-store.ts
 │   ├── settings-store.ts
 │   └── supabase/
-docs/                  # setup, deploy, Gemini guides
+docs/                  # setup, deploy, Gemini, Pexels guides
 scripts/               # setup:supabase, verify:generate, seed-demo
 supabase/migrations/   # 001–006 (realtime + comments in 006)
 ```
@@ -308,6 +310,16 @@ Implemented.
 
 ---
 
+### App Shell
+
+Implemented across authenticated routes (`/app`, `/settings`, `/templates`, board editor):
+
+- **Sidebar** — navigation, workspace avatar, collapse state in `localStorage`
+- **TopBar** — brand link, search / `⌘K` command palette trigger, **sun/moon theme toggle** ([`ThemeToggle`](src/components/shared/ThemeToggle.tsx)), account menu
+- Theme choice persists via settings cookie + `SettingsBootstrap`
+
+---
+
 ### Board Creation Flow
 
 Route:
@@ -324,8 +336,9 @@ Users can:
 
 - Enter a prompt (or pick a suggestion)
 - Generate a board via staged `POST /api/generate/draft` → `POST /api/generate/enrich` (Gemini or demo fallback)
+- Watch a **live progressive preview** ([`GenerationPreview`](src/components/creation/GenerationPreview.tsx)) as the draft arrives and Pexels references fill in one-by-one
 - See **Powered by Gemini** when `GEMINI_API_KEY` is configured
-- Land directly in the board editor after generation
+- Redirect to the board editor shortly after generation completes (~650ms)
 
 ---
 
@@ -427,16 +440,24 @@ Current functionality:
 - Detailed **preview modal** (palette, typography rendered in the actual typefaces, references)
 - **Tag filter dropdown** with selected tags shown as removable pills, an "All" option, and a reset action
 - **Live tags** — tags added while creating/editing boards automatically appear as filter options
-- Real reference imagery wired up via Unsplash URLs
+- Static template card imagery from Unsplash URLs (generated boards enrich references via Pexels)
 
-**Use template** creates a board via the same draft → enrich pipeline as prompt creation (`POST /api/generate/draft` then `POST /api/generate/enrich`).
+#### Template generation UX
+
+**Use template** runs the same draft → enrich pipeline as prompt creation. Gemini receives full template context (palette, typography, notes, references) via `buildTemplateGenerationPrompt()` in [`src/lib/ai-generate.ts`](src/lib/ai-generate.ts).
+
+During creation:
+
+- **Focused grid view** — only the active template card stays visible; others hide
+- **Gemini gradient button** ([`TemplateUseTemplateButton`](src/components/creation/TemplateUseTemplateButton.tsx)) while generating
+- **Inline preview** below the active card ([`TemplateGenerationPanel`](src/components/creation/TemplateGenerationPanel.tsx) + `GenerationPreview`); modal path shows the same preview inside the modal
+- **~4s pause** on the completed preview before redirect to the editor
 
 Template metadata is still curated in-app (not a marketplace yet).
 
 Planned:
 
 - Real template marketplace
-- AI-assisted templates
 - Community templates
 
 ---
@@ -557,7 +578,7 @@ Future work should continue to preserve and expand accessibility support across 
 
 ### Implemented
 
-- Light / dark / system modes via settings and header toggle
+- Light / dark / system modes via settings, auth header, and **TopBar** sun/moon toggle (next to search)
 - Class-based `dark:` utilities on `<html>`
 - Flash-free first paint (`theme-init` script reads cookie before hydration)
 - **Cross-route sync** — `SettingsBootstrap` + cookie/local cache keep landing and app on the same theme (no random flips on navigation)
@@ -566,7 +587,7 @@ Future work should continue to preserve and expand accessibility support across 
 
 - Visual refinement on landing (full redesign deferred — current design preferred)
 - Incremental token standardization (`--shadow-card`, `--shadow-elevated` added; more audit work possible)
-- Some board editor panels still use hardcoded slate colors
+- Board editor cluster migrated to semantic tokens (`board-editor-styles.ts`); remaining board subcomponents (palette, presence, read-only) still use some hardcoded colors
 
 ---
 
@@ -861,11 +882,11 @@ Incremental polish only; full redesign was attempted and reverted. Current landi
 
 ### 3. AI Generation Pipeline — DONE
 
-Google Gemini free-tier integration via staged `POST /api/generate/draft` → `POST /api/generate/enrich`. See [AI Generation (Implemented)](#ai-generation-implemented).
+Google Gemini free-tier integration via staged `POST /api/generate/draft` → `POST /api/generate/enrich`, with live progressive preview on `/app/new` and `/templates`. See [AI Generation (Implemented)](#ai-generation-implemented).
 
 ### 4. Design System Audit — IN PROGRESS
 
-Shadow tokens (`--shadow-card`, `--shadow-elevated`) added. Remaining: broader color/spacing token audit.
+Shadow tokens (`--shadow-card`, `--shadow-elevated`) added. **Phase 1 done:** board editor cluster (`BoardEditorClient`, `ReferenceCard`, `BoardHeader`, `StickyNote`, `TypographyPairingCard`) uses semantic tokens via [`board-editor-styles.ts`](src/components/board/board-editor-styles.ts); ~270 lines of `.board-editor-page` dark-mode CSS overrides removed from `globals.css`. Remaining: other board subcomponents, creation flow, landing polish.
 
 ### 5. Deploy to Production — DONE
 
@@ -896,9 +917,9 @@ Implemented:
 - Board creation flow
 - Board editor
 - Board viewer
-- Templates page
+- Templates page (focused inline generation UX)
 - Settings page
-- Theme system
+- Theme system (TopBar toggle + settings)
 - Analytics
 - Accessibility foundation
 - Command palette
@@ -908,9 +929,9 @@ Implemented:
 - Empty states
 - Public sharing (`/share/[id]`) and discovery (`/discover`)
 
-Database persistence, Supabase Auth, AI generation, theme sync, production deploy, view-only public sharing, discover, **team collaboration (MVP)**, **real-time co-editing**, and **board comments** are implemented.
+Database persistence, Supabase Auth, **progressive AI generation** (draft → enrich + live preview), theme sync (including TopBar toggle), production deploy, view-only public sharing, discover, **team collaboration (MVP)**, **real-time co-editing**, and **board comments** are implemented.
 
-1. Design system standardization (incremental)
+1. Design system standardization (incremental — board editor Phase 1 done)
 2. AI image generation and expanded reference search
 3. Landing page — deferred unless targeted polish is requested
 
@@ -924,7 +945,10 @@ Important context:
 
 - Landing page full redesign was **deferred** (current design preferred)
 - Theme **sync** across landing ↔ app is fixed; incremental visual polish remains
-- AI generation uses **Gemini free tier** (`gemini-2.5-flash` → `gemini-2.5-flash-lite` → demo fallback). Set `GEMINI_API_KEY` locally and on Vercel.
+- AI generation uses **Gemini free tier** (`gemini-2.5-flash` → `gemini-2.5-flash-lite` → demo fallback) via staged **`POST /api/generate/draft` → `POST /api/generate/enrich`**. Set `GEMINI_API_KEY` and `PEXELS_API_KEY` locally and on Vercel.
+- **Progressive preview** — [`GenerationPreview`](src/components/creation/GenerationPreview.tsx) on `/app/new` and `/templates`; templates linger ~4s on completed preview before editor redirect
+- **Template-aware Gemini** — `buildTemplateGenerationPrompt()` sends full template context; no post-generation template overlay on the Gemini path
+- **TopBar theme toggle** — sun/moon control next to search; persists across navigation
 - Boards and settings persist in **Supabase** (per-user, RLS-protected). Sidebar collapse stays in localStorage.
 - **Production is deployed** on Vercel — push to `main` triggers redeploy. See [`docs/DEPLOY.md`](docs/DEPLOY.md).
 - **Authentication uses Supabase Auth** with proxy protection. See [Database & Persistence (Implemented)](#database--persistence-implemented)
@@ -933,7 +957,8 @@ Important context:
 - **Collaboration** — invite by email with editor/viewer roles; accept at `/invite/[token]`; dashboard **With me** filter (migration `003_board_collaboration.sql`)
 - **Real-time co-editing** — presence avatars, live board sync on collaborator save, conflict banner for unsaved local edits (migration `006_board_realtime_comments.sql`)
 - **Board comments** — slide-over panel with live sync; `GET/POST/DELETE /api/boards/[id]/comments`
-- **Next features:** design system audit, AI image generation
+- **Design system Phase 1:** board editor uses semantic tokens; `globals.css` board-editor override hacks removed
+- **Next features:** design system audit Phase 2 (remaining board components), AI image generation
 - Board editor handles refresh correctly (loads from Supabase after hydration; no false "not found")
 - Settings controls are all wired to real behavior (theme, reduce motion / focus rings, default visibility, presentation mode, workspace identity)
 

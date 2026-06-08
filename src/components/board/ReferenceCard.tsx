@@ -13,6 +13,13 @@ import { showToast } from '@/components/shared/toast-store';
 import { ReferenceImageDisplay } from '@/components/board/ReferenceImageDisplay';
 import { sanitizeReferenceItem } from '@/lib/reference-images';
 import type { Board } from '@/types/board';
+import {
+  editorFieldClass,
+  editorIconButtonClass,
+  editorInsetSurfaceClass,
+  editorLabelClass,
+  editorSelectClass,
+} from '@/components/board/board-editor-styles';
 
 type ReferenceCardProps = {
   reference: ReferenceItem;
@@ -50,7 +57,7 @@ function ReferenceEditorModal({
 
   const modal = (
     <div
-      className="fixed inset-0 z-9999 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-9999 flex items-center justify-center bg-(--text-strong)/60 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="reference-editor-title"
@@ -58,7 +65,7 @@ function ReferenceEditorModal({
       onMouseDown={onClose}
     >
       <div
-        className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-4xl border border-slate-200 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.35)]"
+        className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-4xl border border-(--border) bg-(--surface-elevated) text-(--text) shadow-[var(--shadow-elevated)]"
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="shrink-0 px-6 pt-6">
@@ -66,13 +73,13 @@ function ReferenceEditorModal({
             <div className="space-y-2">
               <h2
                 id="reference-editor-title"
-                className="text-3xl font-semibold tracking-tight text-slate-950"
+                className="text-3xl font-semibold tracking-tight text-(--text-strong)"
               >
                 Edit reference
               </h2>
               <p
                 id="reference-editor-description"
-                className="max-w-2xl text-sm leading-6 text-slate-500"
+                className="max-w-2xl text-sm leading-6 text-(--text-muted)"
               >
                 Update the title, type, source, and image for this inspiration card.
               </p>
@@ -96,10 +103,10 @@ function ReferenceEditorModal({
           style={{
             scrollbarGutter: 'stable',
             scrollbarWidth: 'thin',
-            scrollbarColor: '#cbd5e1 transparent',
+            scrollbarColor: 'var(--text-muted) transparent',
           }}
         >
-          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50">
+          <div className={editorInsetSurfaceClass}>
             <div className="relative aspect-16/10 w-full">
               <ReferenceImageDisplay
                 title={draft.title}
@@ -113,9 +120,7 @@ function ReferenceEditorModal({
 
           <div className="mt-6 grid gap-5">
             <div className="grid gap-2">
-              <label className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">
-                Reference title
-              </label>
+              <label className={editorLabelClass}>Reference title</label>
               <Textarea
                 value={draft.title}
                 onChange={(e) => updateDraft({ title: e.target.value })}
@@ -125,13 +130,11 @@ function ReferenceEditorModal({
             </div>
 
             <div className="grid gap-2">
-              <label className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">
-                Reference type
-              </label>
+              <label className={editorLabelClass}>Reference type</label>
               <select
                 value={draft.category}
                 onChange={(e) => updateDraft({ category: e.target.value })}
-                className="flex h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-950 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20"
+                className={editorSelectClass}
               >
                 {referenceTypeOptions.map((option) => (
                   <option key={option} value={option}>
@@ -142,31 +145,28 @@ function ReferenceEditorModal({
             </div>
 
             <div className="grid gap-2">
-              <label className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">
-                Source
-              </label>
+              <label className={editorLabelClass}>Source</label>
               <Input
                 value={draft.source ?? ''}
                 onChange={(e) => updateDraft({ source: e.target.value })}
                 placeholder="Generated"
+                className={editorFieldClass}
               />
             </div>
 
             <div className="grid gap-2">
-              <label className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">
-                Image URL
-              </label>
+              <label className={editorLabelClass}>Image URL</label>
               <Textarea
                 value={draft.imageUrl}
                 onChange={(e) => updateDraft({ imageUrl: e.target.value })}
                 placeholder="https://..."
-                className="min-h-14 resize-y break-all whitespace-pre-wrap"
+                className={cn('min-h-14 resize-y break-all whitespace-pre-wrap', editorFieldClass)}
               />
             </div>
           </div>
         </div>
 
-        <div className="shrink-0 border-t border-slate-200 bg-white/95 px-6 py-5">
+        <div className="shrink-0 border-t border-(--border) bg-(--surface-elevated)/95 px-6 py-5">
           <div className="flex flex-wrap justify-end gap-3">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
@@ -185,13 +185,13 @@ function ReferenceEditorModal({
             background: transparent;
           }
           .reference-modal-scroll::-webkit-scrollbar-thumb {
-            background-color: rgba(148, 163, 184, 0.7);
+            background-color: color-mix(in srgb, var(--text-muted) 70%, transparent);
             border-radius: 9999px;
             border: 2px solid transparent;
             background-clip: padding-box;
           }
           .reference-modal-scroll::-webkit-scrollbar-thumb:hover {
-            background-color: rgba(100, 116, 139, 0.8);
+            background-color: color-mix(in srgb, var(--text-muted) 85%, transparent);
             border: 2px solid transparent;
             background-clip: padding-box;
           }
@@ -228,7 +228,7 @@ export function ReferenceCard({
     <>
       <article
         className={cn(
-          'group relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_16px_30px_rgba(15,23,42,0.08)]',
+          'group relative overflow-hidden rounded-3xl border border-(--border) bg-(--surface-elevated) shadow-sm transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)]',
           className,
         )}
       >
@@ -236,7 +236,7 @@ export function ReferenceCard({
           type="button"
           onClick={openEditor}
           className={cn(
-            'relative block w-full overflow-hidden bg-slate-100 text-left',
+            'relative block w-full overflow-hidden bg-(--surface-muted) text-left',
             readOnly ? 'cursor-default' : 'cursor-pointer',
           )}
           aria-label={readOnly ? reference.title : `Edit ${reference.title}`}
@@ -252,7 +252,7 @@ export function ReferenceCard({
           </div>
 
           {!readOnly ? (
-            <div className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-white/70 bg-white/90 px-3 py-1 text-xs font-medium text-slate-900 shadow-sm opacity-0 transition group-hover:opacity-100">
+            <div className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-(--border) bg-(--surface-elevated)/90 px-3 py-1 text-xs font-medium text-(--text) shadow-sm opacity-0 transition group-hover:opacity-100">
               <Pencil className="h-3.5 w-3.5" />
               Edit
             </div>
@@ -266,10 +266,10 @@ export function ReferenceCard({
               onRemove();
               showToast('Reference removed.', 'success');
             }}
-            className="absolute right-3 top-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm transition hover:bg-slate-50"
+            className={cn('absolute right-3 top-3 z-20 shadow-sm', editorIconButtonClass)}
             aria-label={`Remove ${reference.title}`}
           >
-            <Trash2 className="h-4 w-4 text-slate-700" />
+            <Trash2 className="h-4 w-4 text-(--text)" />
           </button>
         ) : null}
 
@@ -280,11 +280,13 @@ export function ReferenceCard({
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="secondary">{reference.category}</Badge>
                   {reference.source ? (
-                    <span className="min-w-0 text-xs text-slate-400 wrap-break-word">{reference.source}</span>
+                    <span className="min-w-0 text-xs text-(--text-muted) wrap-break-word">
+                      {reference.source}
+                    </span>
                   ) : null}
                 </div>
 
-                <h3 className="text-base font-semibold tracking-tight text-slate-950 wrap-break-word">
+                <h3 className="text-base font-semibold tracking-tight text-(--text-strong) wrap-break-word">
                   {reference.title}
                 </h3>
               </div>
