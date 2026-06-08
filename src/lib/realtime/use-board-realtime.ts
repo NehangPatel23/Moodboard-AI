@@ -80,14 +80,17 @@ export function useBoardRealtime({
   const [presenceUsers, setPresenceUsers] = useState<BoardPresenceUser[]>([]);
   const onRemoteBoardRef = useRef(onRemoteBoard);
   const localUpdatedAtRef = useRef(localUpdatedAt);
+  const isDirtyRef = useRef(isDirty);
   const channelRef = useRef<RealtimeChannel | null>(null);
 
-  onRemoteBoardRef.current = onRemoteBoard;
-  localUpdatedAtRef.current = localUpdatedAt;
+  useEffect(() => {
+    onRemoteBoardRef.current = onRemoteBoard;
+    localUpdatedAtRef.current = localUpdatedAt;
+    isDirtyRef.current = isDirty;
+  }, [isDirty, localUpdatedAt, onRemoteBoard]);
 
   useEffect(() => {
     if (!enabled || !userId || !boardRole) {
-      setPresenceUsers([]);
       return;
     }
 
@@ -140,7 +143,7 @@ export function useBoardRealtime({
           userId,
           name: userName,
           role: boardRole,
-          status: isDirty ? 'editing' : 'viewing',
+          status: isDirtyRef.current ? 'editing' : 'viewing',
         });
       });
 
@@ -148,7 +151,6 @@ export function useBoardRealtime({
       channelRef.current = null;
       void channel.untrack();
       void supabase.removeChannel(channel);
-      setPresenceUsers([]);
     };
   }, [boardId, boardRole, enabled, userId, userName]);
 
@@ -164,5 +166,8 @@ export function useBoardRealtime({
     });
   }, [boardRole, enabled, isDirty, userId, userName]);
 
-  return { presenceUsers };
+  const activePresence =
+    enabled && userId && boardRole ? presenceUsers : [];
+
+  return { presenceUsers: activePresence };
 }

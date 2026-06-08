@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge';
+import { GEMINI_GRADIENT } from '@/lib/gemini-brand';
 import { cn } from '@/lib/utils';
 
 type GenerationSource = 'gemini' | 'mock';
@@ -7,9 +8,6 @@ type GenerationSourceBadgeProps = {
   source: GenerationSource;
   className?: string;
 };
-
-const GEMINI_GRADIENT =
-  'linear-gradient(135deg, #b8d8fc 0%, #d4c8f5 24%, #f5c8d8 48%, #fde8b8 72%, #c8f0d8 100%)';
 
 export function GenerationSourceBadge({ source, className }: GenerationSourceBadgeProps) {
   if (source === 'gemini') {

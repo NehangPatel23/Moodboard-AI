@@ -10,7 +10,7 @@ const models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite'];
 
 if (!apiKey) {
   console.log('GEMINI_API_KEY is not set.');
-  console.log('Board generation will use the demo/mock fallback via POST /api/generate.');
+  console.log('Board generation will use the demo/mock fallback via POST /api/generate/draft.');
   console.log('');
   console.log('To enable Gemini: add GEMINI_API_KEY to .env.local and restart npm run dev.');
   console.log('Get a free key: https://aistudio.google.com/apikey');
@@ -46,10 +46,10 @@ for (const model of models) {
 if (!workingModel) {
   console.error('');
   console.error('No Gemini free-tier models are reachable right now.');
-  console.error('POST /api/generate will fall back to demo generation until one recovers.');
+  console.error('POST /api/generate/draft will fall back to demo generation until one recovers.');
   process.exit(1);
 }
 
 console.log('');
-console.log(`Gemini API reachable (${workingModel}). POST /api/generate will return source: "gemini".`);
+console.log(`Gemini API reachable (${workingModel}). POST /api/generate/draft will return source: "gemini".`);
 console.log('Fallback chain: gemini-2.5-flash → gemini-2.5-flash-lite → demo generation');

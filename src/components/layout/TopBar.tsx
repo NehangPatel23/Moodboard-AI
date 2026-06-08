@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Search } from 'lucide-react';
 import { openCommandPalette } from '@/components/shared/command-palette-store';
+import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import { AccountMenu } from '@/components/layout/AccountMenu';
 import { AppIcon } from '@/components/shared/AppIcon';
 
@@ -41,6 +42,8 @@ export function TopBar() {
                 ⌘K
               </span>
             </button>
+
+            <ThemeToggle />
 
             <AccountMenu />
           </div>

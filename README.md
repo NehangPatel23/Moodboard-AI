@@ -3,7 +3,7 @@
 > **Status:** Active Development (MVP + Production Deployed)
 > **Purpose:** GitHub README + internal handoff document for future development, AI agents, and new contributors
 > **Live:** Deployed on Vercel with Supabase + Gemini free tier
-> **Next feature:** Design system audit (incremental) and AI enhancements (image gen, streaming)
+> **Next feature:** Design system audit (incremental) and AI image generation
 
 **Setup guides:** [`docs/MANUAL_SETUP.md`](docs/MANUAL_SETUP.md) · [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md) · [`docs/GEMINI_SETUP.md`](docs/GEMINI_SETUP.md) · [`docs/DEPLOY.md`](docs/DEPLOY.md)
 
@@ -24,7 +24,7 @@ It is currently a working product foundation with:
 - Accessibility foundations (app-wide reduce motion + strong focus rings)
 - Supabase-backed persistence (boards + per-user settings) with custom `useSyncExternalStore` stores
 - Supabase Auth with gated app routes, proxy protection, and landing CTAs
-- AI board generation via `/api/generate` (Google Gemini free tier with model fallback; demo generation when all models fail)
+- AI board generation via staged `POST /api/generate/draft` → `POST /api/generate/enrich` (Google Gemini free tier with model fallback; demo generation when all models fail)
 - Unified theme sync across landing, auth, and app (cookie + `SettingsBootstrap`)
 - View-only public sharing at `/share/[id]` and discovery at `/discover`
 - Vercel Analytics
@@ -91,13 +91,20 @@ User-scoped data is stored in **Supabase (Postgres + Auth)** with Row Level Secu
 
 ## AI Generation (Implemented)
 
-Prompt and template board creation use **`POST /api/generate`** with authenticated sessions.
+Prompt and template board creation use a **staged progressive pipeline** with authenticated sessions:
+
+1. **`POST /api/generate/draft`** — Gemini (or demo) returns creative direction with SVG placeholder references.
+2. **`POST /api/generate/enrich`** — streams NDJSON events as Pexels photos resolve one-by-one.
+3. **`GET /api/generate`** — returns configured provider (`gemini` vs `mock`).
+
+The client shows a live preview as the draft arrives, then fills reference slots progressively ([`GenerationPreview`](src/components/creation/GenerationPreview.tsx)).
 
 **Setup:**
 
 1. Optionally add `GEMINI_API_KEY` to `.env.local` (see [`.env.local.example`](.env.local.example) and [`docs/GEMINI_SETUP.md`](docs/GEMINI_SETUP.md)).
-2. Run `npm run verify:generate` to confirm Gemini connectivity or mock fallback.
-3. Create a board at `/app/new` or from `/templates`.
+2. Optionally add `PEXELS_API_KEY` for real reference photos ([`docs/PEXELS_SETUP.md`](docs/PEXELS_SETUP.md)).
+3. Run `npm run verify:generate` to confirm Gemini connectivity or mock fallback.
+4. Create a board at `/app/new` or from `/templates`.
 
 **Model fallback chain** (free tier):
 
@@ -109,11 +116,11 @@ Prompt and template board creation use **`POST /api/generate`** with authenticat
 
 **What was built:**
 
-- **Server** — [`src/lib/ai-generate.ts`](src/lib/ai-generate.ts) calls Gemini with structured JSON output; retries across models on 503/429; demo fallback when no key or all models fail.
-- **API** — [`src/app/api/generate/route.ts`](src/app/api/generate/route.ts) accepts `{ prompt }` or `{ templateId }`, with per-user rate limiting. `GET` returns configured provider (`gemini` vs `mock`).
-- **Client** — [`PromptComposer`](src/components/creation/PromptComposer.tsx) and [`templates/page.tsx`](src/app/templates/page.tsx) call the API; **Powered by Gemini** badge when configured; user-friendly errors (no raw JSON).
+- **Server** — [`src/lib/ai-generate.ts`](src/lib/ai-generate.ts) draft generation (Gemini JSON + demo fallback); [`src/lib/enrich-board-references.ts`](src/lib/enrich-board-references.ts) sequential Pexels enrichment.
+- **API** — [`src/app/api/generate/draft/route.ts`](src/app/api/generate/draft/route.ts) (rate-limited draft); [`src/app/api/generate/enrich/route.ts`](src/app/api/generate/enrich/route.ts) (NDJSON stream); enrich requires a draft permit issued per generation.
+- **Client** — [`PromptComposer`](src/components/creation/PromptComposer.tsx) and [`templates/page.tsx`](src/app/templates/page.tsx) orchestrate draft → enrich via [`runProgressiveBoardGeneration`](src/lib/ai.ts); **Powered by Gemini** badge when configured.
 
-**Production:** Add `GEMINI_API_KEY` to Vercel (Sensitive). See [`docs/DEPLOY.md`](docs/DEPLOY.md).
+**Production:** Add `GEMINI_API_KEY` and `PEXELS_API_KEY` to Vercel. See [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
 ---
 
@@ -316,7 +323,7 @@ Implemented:
 Users can:
 
 - Enter a prompt (or pick a suggestion)
-- Generate a board via `POST /api/generate` (Gemini or demo fallback)
+- Generate a board via staged `POST /api/generate/draft` → `POST /api/generate/enrich` (Gemini or demo fallback)
 - See **Powered by Gemini** when `GEMINI_API_KEY` is configured
 - Land directly in the board editor after generation
 
@@ -422,7 +429,7 @@ Current functionality:
 - **Live tags** — tags added while creating/editing boards automatically appear as filter options
 - Real reference imagery wired up via Unsplash URLs
 
-**Use template** creates a board via `/api/generate` (same Gemini pipeline as prompt creation).
+**Use template** creates a board via the same draft → enrich pipeline as prompt creation (`POST /api/generate/draft` then `POST /api/generate/enrich`).
 
 Template metadata is still curated in-app (not a marketplace yet).
 
@@ -620,7 +627,7 @@ Goal:
 
 Implemented — see [AI Generation (Implemented)](#ai-generation-implemented). Optional `GEMINI_API_KEY` enables free-tier Gemini generation; otherwise demo/mock fallback.
 
-Remaining enhancements: image generation, reference search APIs, streaming responses.
+Remaining enhancements: AI image generation and expanded reference search APIs.
 
 ### Database
 
@@ -854,7 +861,7 @@ Incremental polish only; full redesign was attempted and reverted. Current landi
 
 ### 3. AI Generation Pipeline — DONE
 
-Google Gemini free-tier integration via `/api/generate`. See [AI Generation (Implemented)](#ai-generation-implemented).
+Google Gemini free-tier integration via staged `POST /api/generate/draft` → `POST /api/generate/enrich`. See [AI Generation (Implemented)](#ai-generation-implemented).
 
 ### 4. Design System Audit — IN PROGRESS
 
@@ -904,7 +911,7 @@ Implemented:
 Database persistence, Supabase Auth, AI generation, theme sync, production deploy, view-only public sharing, discover, **team collaboration (MVP)**, **real-time co-editing**, and **board comments** are implemented.
 
 1. Design system standardization (incremental)
-2. AI enhancements (image generation, reference search, streaming)
+2. AI image generation and expanded reference search
 3. Landing page — deferred unless targeted polish is requested
 
 ---
@@ -926,11 +933,11 @@ Important context:
 - **Collaboration** — invite by email with editor/viewer roles; accept at `/invite/[token]`; dashboard **With me** filter (migration `003_board_collaboration.sql`)
 - **Real-time co-editing** — presence avatars, live board sync on collaborator save, conflict banner for unsaved local edits (migration `006_board_realtime_comments.sql`)
 - **Board comments** — slide-over panel with live sync; `GET/POST/DELETE /api/boards/[id]/comments`
-- **Next features:** design system audit, AI image generation / streaming
+- **Next features:** design system audit, AI image generation
 - Board editor handles refresh correctly (loads from Supabase after hydration; no false "not found")
 - Settings controls are all wired to real behavior (theme, reduce motion / focus rings, default visibility, presentation mode, workspace identity)
 
-When resuming work, focus on incremental design tokens and AI enhancements (image gen, streaming).
+When resuming work, focus on incremental design tokens and AI image generation.
 
 ---
 

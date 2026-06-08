@@ -469,6 +469,32 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   }
 }
 
+@keyframes gemini-gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.gemini-creating-button {
+  background-image: linear-gradient(
+    135deg,
+    #b8d8fc,
+    #d4c8f5,
+    #f5c8d8,
+    #fde8b8,
+    #c8f0d8,
+    #b8d8fc
+  );
+  background-size: 300% 300%;
+  animation: gemini-gradient-shift 2.5s ease infinite;
+}
+
 /* Opt-in reduce motion, toggled from Settings via the `.reduce-motion` class on
    <html> (see ThemeSync.tsx). Mirrors the prefers-reduced-motion reset above. */
 html.reduce-motion {

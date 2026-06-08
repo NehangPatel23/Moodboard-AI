@@ -1,4 +1,4 @@
-import type { Board, BoardTemplate } from '@/types/board';
+import type { Board, BoardTemplate, ReferenceItem } from '@/types/board';
 import { apiFetch } from '@/lib/api-client';
 import {
   REFERENCE_IMAGE_SOURCE,
@@ -19,7 +19,7 @@ export async function fetchGenerationProvider(): Promise<'gemini' | 'mock'> {
 }
 
 export async function fetchGeneratedBoardDraft(prompt: string): Promise<GeneratedBoardDraft> {
-  return apiFetch<GeneratedBoardDraft>('/api/generate', {
+  return apiFetch<GeneratedBoardDraft>('/api/generate/draft', {
     method: 'POST',
     body: JSON.stringify({ prompt }),
   });
@@ -28,10 +28,128 @@ export async function fetchGeneratedBoardDraft(prompt: string): Promise<Generate
 export async function fetchGeneratedBoardDraftFromTemplate(
   templateId: string,
 ): Promise<GeneratedBoardDraft> {
-  return apiFetch<GeneratedBoardDraft>('/api/generate', {
+  return apiFetch<GeneratedBoardDraft>('/api/generate/draft', {
     method: 'POST',
     body: JSON.stringify({ templateId }),
   });
+}
+
+export type EnrichStreamHandlers = {
+  onStart?: (total: number) => void;
+  onReference?: (index: number, reference: ReferenceItem, board: Board) => void;
+  onComplete?: (board: Board) => void;
+  onError?: (message: string) => void;
+};
+
+type EnrichStreamEvent =
+  | { type: 'start'; total: number }
+  | { type: 'reference'; index: number; reference: ReferenceItem }
+  | { type: 'complete'; board: Board }
+  | { type: 'error'; message: string };
+
+export async function streamEnrichedBoard(
+  board: Board,
+  handlers: EnrichStreamHandlers = {},
+): Promise<Board> {
+  const response = await fetch('/api/generate/enrich', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ board }),
+  });
+
+  if (!response.ok) {
+    let message = 'Failed to enrich board references';
+    try {
+      const line = (await response.text()).trim().split('\n')[0];
+      if (line) {
+        const event = JSON.parse(line) as EnrichStreamEvent;
+        if (event.type === 'error') {
+          message = event.message;
+        }
+      }
+    } catch {
+      // Use default message.
+    }
+    throw new Error(message);
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error('Enrichment stream unavailable');
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let currentBoard = board;
+  let finalBoard = board;
+
+  const applyReference = (index: number, reference: ReferenceItem) => {
+    const references = [...currentBoard.references];
+    references[index] = reference;
+    currentBoard = { ...currentBoard, references };
+    handlers.onReference?.(index, reference, currentBoard);
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+
+      const event = JSON.parse(trimmed) as EnrichStreamEvent;
+
+      if (event.type === 'start') {
+        handlers.onStart?.(event.total);
+      } else if (event.type === 'reference') {
+        applyReference(event.index, event.reference);
+      } else if (event.type === 'complete') {
+        finalBoard = event.board;
+        handlers.onComplete?.(event.board);
+      } else if (event.type === 'error') {
+        handlers.onError?.(event.message);
+        throw new Error(event.message);
+      }
+    }
+  }
+
+  return finalBoard;
+}
+
+export type ProgressiveGenerationHandlers = {
+  onDraft: (draft: GeneratedBoardDraft) => void;
+  onEnrichStart?: (total: number) => void;
+  onEnrichProgress?: (done: number, total: number, board: Board) => void;
+};
+
+export async function runProgressiveBoardGeneration(
+  draftPromise: Promise<GeneratedBoardDraft>,
+  handlers: ProgressiveGenerationHandlers,
+): Promise<{ board: Board; draft: GeneratedBoardDraft }> {
+  const draft = await draftPromise;
+  handlers.onDraft(draft);
+
+  let done = 0;
+  let total = draft.board.references.length;
+
+  const board = await streamEnrichedBoard(draft.board, {
+    onStart: (count) => {
+      total = count;
+      handlers.onEnrichStart?.(count);
+    },
+    onReference: (index, _reference, updatedBoard) => {
+      done = index + 1;
+      handlers.onEnrichProgress?.(done, total, updatedBoard);
+    },
+  });
+
+  return { board, draft };
 }
 
 const DEFAULT_TEMPLATES: BoardTemplate[] = [

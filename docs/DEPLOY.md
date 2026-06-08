@@ -65,7 +65,9 @@ This enables Realtime on `boards`, creates `board_comments`, and enables live co
 | Visit `/` | Landing page loads |
 | Visit `/app` logged out | Redirect to `/sign-in` |
 | Sign in | Dashboard loads |
-| Create board from prompt | Board persists after refresh |
+| Create board from `/app/new` | Progressive preview visible during generation; board persists after refresh |
+| Create board from `/templates` | Inline preview on active card; ~4s pause then redirect to editor |
+| TopBar theme toggle | Sun/moon control next to search; theme persists across navigation |
 | Settings change | Persists after sign-out/in |
 | Open board → **Comments** | Panel opens; post succeeds |
 | Two browsers on same board (owner + invited editor) | Presence avatars appear for both |

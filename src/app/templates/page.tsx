@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, ChevronDown, Search, Sparkles, X } from 'lucide-react';
+import { Check, ChevronDown, Search, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,7 +12,14 @@ import { PageLabel } from '@/components/shared/PageLabel';
 import { cn } from '@/lib/utils';
 import { loadBoards, saveBoards, subscribeBoards, upsertBoard } from '@/lib/board-store';
 import { readAppSettings } from '@/lib/settings-store';
-import { fetchGeneratedBoardDraftFromTemplate, getBoardTemplates } from '@/lib/ai';
+import {
+  fetchGeneratedBoardDraftFromTemplate,
+  getBoardTemplates,
+  runProgressiveBoardGeneration,
+} from '@/lib/ai';
+import { type GenerationPhase } from '@/components/creation/GenerationPreview';
+import { TemplateGenerationPanel } from '@/components/creation/TemplateGenerationPanel';
+import { TemplateUseTemplateButton } from '@/components/creation/TemplateUseTemplateButton';
 import {
   hydrateTemplateMetadataStore,
   loadTemplateMetadata,
@@ -20,7 +27,7 @@ import {
   recordTemplateUse,
   subscribeTemplateMetadata,
 } from '@/lib/template-metadata';
-import type { BoardTemplate } from '@/types/board';
+import type { Board, BoardTemplate } from '@/types/board';
 
 const outerPanelClass =
   'rounded-[2.5rem] border border-(--border) bg-(--surface-elevated) shadow-[0_24px_60px_rgba(15,23,42,0.06)] dark:shadow-[0_24px_60px_rgba(0,0,0,0.22)]';
@@ -35,6 +42,9 @@ const softPrimaryButtonClass =
 
 const outlineButtonClass =
   'rounded-full border border-(--border) bg-(--surface) px-4 text-(--text) transition hover:bg-(--surface-subtle) hover:text-(--text-strong) dark:bg-[rgba(255,255,255,0.04)] dark:text-(--text) dark:hover:bg-[rgba(255,255,255,0.08)] dark:hover:text-(--text-strong)';
+
+/** Keep the completed preview visible before navigating to the editor. */
+const BOARD_READY_REDIRECT_MS = 4000;
 
 function normalizeText(value: string): string {
   return value.toLowerCase().trim();
@@ -174,14 +184,21 @@ function TemplateCard({
   onPreview,
   onUseTemplate,
   isCreating,
+  isActive,
 }: {
   template: BoardTemplate;
   onPreview: () => void;
   onUseTemplate: () => void;
   isCreating: boolean;
+  isActive?: boolean;
 }) {
   return (
-    <Card className="relative flex h-full flex-col overflow-hidden rounded-[1.75rem] transition hover:-translate-y-0.5">
+    <Card
+      className={cn(
+        'relative flex h-full flex-col overflow-hidden rounded-[1.75rem] transition hover:-translate-y-0.5',
+        isActive && 'ring-2 ring-(--text-strong) ring-offset-2 ring-offset-(--background)',
+      )}
+    >
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0"
@@ -209,11 +226,15 @@ function TemplateCard({
         </div>
 
         <div className="mt-auto flex items-center gap-2 pt-2">
-          <Button type="button" onClick={onUseTemplate} disabled={isCreating} className={cn(softPrimaryButtonClass, 'flex-1')}>
-            Use template
-            <Sparkles className="h-4 w-4" />
-          </Button>
-          <Button type="button" variant="ghost" onClick={onPreview} className="rounded-full px-4">
+          <TemplateUseTemplateButton
+            isCreating={isCreating}
+            isActive={isActive}
+            onClick={onUseTemplate}
+            className={cn(softPrimaryButtonClass, 'flex-1')}
+          >
+            {isActive && isCreating ? 'Creating board...' : 'Use template'}
+          </TemplateUseTemplateButton>
+          <Button type="button" variant="ghost" onClick={onPreview} disabled={isCreating} className="rounded-full px-4">
             Preview
           </Button>
         </div>
@@ -236,11 +257,21 @@ function TemplatePreviewModal({
   onClose,
   onUseTemplate,
   isCreating,
+  isGeneratingThisTemplate,
+  creationStatus,
+  previewBoard,
+  generationPhase,
+  enrichProgress,
 }: {
   template: BoardTemplate;
   onClose: () => void;
   onUseTemplate: () => void;
   isCreating: boolean;
+  isGeneratingThisTemplate: boolean;
+  creationStatus: string | null;
+  previewBoard: Board | null;
+  generationPhase: GenerationPhase;
+  enrichProgress: { done: number; total: number };
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -248,7 +279,7 @@ function TemplatePreviewModal({
     closeRef.current?.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !isCreating) {
         onClose();
       }
     };
@@ -261,7 +292,7 @@ function TemplatePreviewModal({
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = previousOverflow;
     };
-  }, [onClose]);
+  }, [isCreating, onClose]);
 
   return (
     <div
@@ -273,8 +304,9 @@ function TemplatePreviewModal({
       <button
         type="button"
         aria-label="Close preview"
-        onClick={onClose}
-        className="absolute inset-0 cursor-default bg-black/50 backdrop-blur-sm"
+        onClick={isCreating ? undefined : onClose}
+        disabled={isCreating}
+        className="absolute inset-0 cursor-default bg-black/50 backdrop-blur-sm disabled:cursor-not-allowed"
       />
 
       <div className={cn(outerPanelClass, 'relative z-10 flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden')}>
@@ -296,6 +328,7 @@ function TemplatePreviewModal({
             variant="outline"
             size="icon"
             onClick={onClose}
+            disabled={isCreating}
             aria-label="Close preview"
             className="shrink-0 rounded-full text-(--text) hover:text-(--text-strong)"
           >
@@ -354,12 +387,24 @@ function TemplatePreviewModal({
           ) : null}
         </div>
 
+        {isGeneratingThisTemplate && (creationStatus || previewBoard) ? (
+          <TemplateGenerationPanel
+            status={creationStatus}
+            board={previewBoard}
+            phase={generationPhase}
+            enrichProgress={enrichProgress}
+            className="mt-6"
+          />
+        ) : null}
+
         <div className="mt-8 flex flex-wrap gap-3">
-          <Button type="button" onClick={onUseTemplate} disabled={isCreating} className={primaryButtonClass}>
-            {isCreating ? 'Creating board...' : 'Use template'}
-            <Sparkles className="h-4 w-4" />
-          </Button>
-          <Button type="button" onClick={onClose} className={outlineButtonClass}>
+          <TemplateUseTemplateButton
+            isCreating={isCreating}
+            isActive={isGeneratingThisTemplate}
+            onClick={onUseTemplate}
+            className={primaryButtonClass}
+          />
+          <Button type="button" onClick={onClose} disabled={isCreating} className={outlineButtonClass}>
             Close
           </Button>
         </div>
@@ -476,6 +521,7 @@ function TagFilterDropdown({
 
 export default function TemplatesPage() {
   const router = useRouter();
+  const redirectTimerRef = useRef<number | null>(null);
   const templates = useMemo(() => getBoardTemplates(), []);
   const boards = useSyncExternalStore(subscribeBoards, loadBoards, loadBoards);
   useSyncExternalStore(subscribeTemplateMetadata, loadTemplateMetadata, loadTemplateMetadata);
@@ -483,9 +529,22 @@ export default function TemplatesPage() {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [previewBoard, setPreviewBoard] = useState<Board | null>(null);
+  const [generationPhase, setGenerationPhase] = useState<GenerationPhase>('draft');
+  const [enrichProgress, setEnrichProgress] = useState({ done: 0, total: 0 });
+  const [creationStatus, setCreationStatus] = useState<string | null>(null);
+  const [creatingTemplateId, setCreatingTemplateId] = useState<string | null>(null);
 
   useEffect(() => {
     hydrateTemplateMetadataStore();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimerRef.current !== null) {
+        window.clearTimeout(redirectTimerRef.current);
+      }
+    };
   }, []);
 
   const filterOptions = useMemo(() => {
@@ -540,6 +599,17 @@ export default function TemplatesPage() {
     [previewTemplateId, templates],
   );
 
+  const activeCreatingTemplate = useMemo(
+    () =>
+      creatingTemplateId
+        ? (visibleTemplates.find((template) => template.id === creatingTemplateId) ?? null)
+        : null,
+    [creatingTemplateId, visibleTemplates],
+  );
+
+  const isGridGenerationFocus =
+    creatingTemplateId !== null && previewTemplateId !== creatingTemplateId;
+
   const handlePreviewTemplate = (templateId: string) => {
     recordTemplateOpen(templateId);
     setPreviewTemplateId(templateId);
@@ -549,19 +619,56 @@ export default function TemplatesPage() {
     if (isCreating) return;
 
     setIsCreating(true);
+    setCreatingTemplateId(template.id);
+    setPreviewBoard(null);
+    setGenerationPhase('draft');
+    setEnrichProgress({ done: 0, total: 0 });
+    setCreationStatus(`Creating ${template.name}...`);
 
     try {
       recordTemplateUse(template.id);
-      const generated = await fetchGeneratedBoardDraftFromTemplate(template.id);
-      const board = { ...generated.board, visibility: readAppSettings().defaultVisibility };
 
+      const { board: enrichedBoard } = await runProgressiveBoardGeneration(
+        fetchGeneratedBoardDraftFromTemplate(template.id),
+        {
+          onDraft: (draft) => {
+            setPreviewBoard(draft.board);
+            setCreationStatus('Creative direction ready. Finding reference images...');
+          },
+          onEnrichStart: (total) => {
+            setGenerationPhase('enriching');
+            setEnrichProgress({ done: 0, total });
+          },
+          onEnrichProgress: (done, total, board) => {
+            setPreviewBoard(board);
+            setEnrichProgress({ done, total });
+            setCreationStatus(`Finding reference ${done} of ${total}...`);
+          },
+        },
+      );
+
+      setGenerationPhase('complete');
+
+      const board = { ...enrichedBoard, visibility: readAppSettings().defaultVisibility };
       const existingBoards = loadBoards();
       const nextBoards = upsertBoard(existingBoards, board);
       saveBoards(nextBoards);
 
-      router.push(`/app/boards/${board.id}`);
-    } finally {
+      setCreationStatus('Board ready — opening editor...');
+
+      redirectTimerRef.current = window.setTimeout(() => {
+        redirectTimerRef.current = null;
+        setIsCreating(false);
+        setCreatingTemplateId(null);
+        setPreviewBoard(null);
+        setCreationStatus(null);
+        router.push(`/app/boards/${board.id}`);
+      }, BOARD_READY_REDIRECT_MS);
+    } catch {
+      setCreationStatus('Failed to create board from template.');
       setIsCreating(false);
+      setCreatingTemplateId(null);
+      setPreviewBoard(null);
     }
   };
 
@@ -673,17 +780,38 @@ export default function TemplatesPage() {
       </section>
 
       {visibleTemplates.length ? (
-        <section className="grid gap-6 sm:grid-cols-2 sm:gap-7 lg:grid-cols-3 lg:gap-8" aria-label="Templates">
-          {visibleTemplates.map((template) => (
-            <TemplateCard
-              key={template.id}
-              template={template}
-              onPreview={() => handlePreviewTemplate(template.id)}
-              onUseTemplate={() => void handleUseTemplate(template)}
-              isCreating={isCreating}
+        isGridGenerationFocus && activeCreatingTemplate ? (
+          <section className="space-y-6" aria-label="Creating board from template">
+            <div className="max-w-md">
+              <TemplateCard
+                template={activeCreatingTemplate}
+                onPreview={() => handlePreviewTemplate(activeCreatingTemplate.id)}
+                onUseTemplate={() => void handleUseTemplate(activeCreatingTemplate)}
+                isCreating={isCreating}
+                isActive
+              />
+            </div>
+            <TemplateGenerationPanel
+              status={creationStatus}
+              board={previewBoard}
+              phase={generationPhase}
+              enrichProgress={enrichProgress}
             />
-          ))}
-        </section>
+          </section>
+        ) : (
+          <section className="grid gap-6 sm:grid-cols-2 sm:gap-7 lg:grid-cols-3 lg:gap-8" aria-label="Templates">
+            {visibleTemplates.map((template) => (
+              <TemplateCard
+                key={template.id}
+                template={template}
+                onPreview={() => handlePreviewTemplate(template.id)}
+                onUseTemplate={() => void handleUseTemplate(template)}
+                isCreating={isCreating}
+                isActive={creatingTemplateId === template.id}
+              />
+            ))}
+          </section>
+        )
       ) : (
         <Card className="rounded-4xl">
           <CardContent className="space-y-4 p-6">
@@ -713,6 +841,11 @@ export default function TemplatesPage() {
           onClose={() => setPreviewTemplateId(null)}
           onUseTemplate={() => void handleUseTemplate(previewTemplate)}
           isCreating={isCreating}
+          isGeneratingThisTemplate={creatingTemplateId === previewTemplate.id}
+          creationStatus={creationStatus}
+          previewBoard={previewBoard}
+          generationPhase={generationPhase}
+          enrichProgress={enrichProgress}
         />
       ) : null}
     </div>

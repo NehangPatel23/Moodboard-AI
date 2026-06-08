@@ -34,9 +34,9 @@ Apply to **Production** and **Preview**, then redeploy.
 
 ## How it works
 
-- **New boards** — `/api/generate` searches Pexels per reference title + category + mood
+- **New boards** — after `POST /api/generate/draft` returns creative direction, `POST /api/generate/enrich` streams Pexels lookups one reference at a time (NDJSON). The UI shows progress (“Finding reference 3 of 6…”).
 - **Existing boards** — on load, boards with old Unsplash/SVG images are enriched via `/api/reference-images/enrich` and saved back
-- **Fallback** — if Pexels is unavailable or the key is missing, palette SVG placeholders are used instead
+- **Fallback** — if Pexels is unavailable or the key is missing, palette SVG placeholders are used instead; enrich still completes with generated placeholders
 
 ## Attribution
 

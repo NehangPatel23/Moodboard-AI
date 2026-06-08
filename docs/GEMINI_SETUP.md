@@ -51,7 +51,7 @@ npm run verify:generate
 
 ```
 GEMINI_API_KEY is set. Testing API connectivity...
-Gemini API reachable. POST /api/generate will return source: "gemini".
+Gemini API reachable. POST /api/generate/draft will return source: "gemini".
 ```
 
 ## Step 4 — Test in the app
@@ -59,7 +59,7 @@ Gemini API reachable. POST /api/generate will return source: "gemini".
 1. Open [http://localhost:3000](http://localhost:3000)
 2. Sign in: `admin@moodboard.ai` / `moodboard123`
 3. Go to `/app/new`, enter a prompt, click **Generate board**
-4. You should see **“Powered by Gemini”** (not “Demo generation”)
+4. You should see **“Powered by Gemini”** (not “Demo generation”) and a live preview while references load
 
 ## Step 5 — Add to Vercel (production)
 

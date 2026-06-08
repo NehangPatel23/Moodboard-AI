@@ -50,11 +50,49 @@ export async function enrichReferenceItem(
   };
 }
 
-export async function enrichBoardReferences(board: Board): Promise<Board> {
-  const paddedBoard = {
+function padBoardReferences(board: Board): Board {
+  return {
     ...board,
     references: padReferencesToCount(board.references, board),
   };
+}
+
+export async function enrichReferencesSequentially(
+  board: Board,
+  onReference?: (index: number, reference: ReferenceItem, total: number) => void | Promise<void>,
+): Promise<Board> {
+  const paddedBoard = padBoardReferences(board);
+  const total = paddedBoard.references.length;
+  const references: ReferenceItem[] = [];
+
+  for (let index = 0; index < total; index += 1) {
+    const enriched = await enrichReferenceItem(
+      paddedBoard.references[index],
+      paddedBoard,
+      index,
+    );
+    references.push(enriched);
+    await onReference?.(index, enriched, total);
+  }
+
+  const changed =
+    references.length !== board.references.length ||
+    references.some(
+      (reference, index) =>
+        reference.imageUrl !== board.references[index]?.imageUrl ||
+        reference.source !== board.references[index]?.source ||
+        reference.title !== board.references[index]?.title,
+    );
+
+  if (!changed) {
+    return board;
+  }
+
+  return { ...board, references };
+}
+
+export async function enrichBoardReferences(board: Board): Promise<Board> {
+  const paddedBoard = padBoardReferences(board);
 
   const references = await Promise.all(
     paddedBoard.references.map((reference, index) =>

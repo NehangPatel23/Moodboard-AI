@@ -148,6 +148,78 @@ function parseModelContent(content: string): AIGeneratedDraftPayload {
   return parsed;
 }
 
+function buildTemplateGenerationPrompt(template: BoardTemplate): string {
+  const lines = [
+    `Create a complete moodboard creative direction inspired by the "${template.name}" template.`,
+    '',
+    `Template description: ${template.description}`,
+    `Core creative brief: ${template.prompt}`,
+  ];
+
+  if (template.mood) {
+    lines.push(`Target mood: ${template.mood}`);
+  }
+
+  if (template.summary) {
+    lines.push(`Direction summary: ${template.summary}`);
+  }
+
+  if (template.tone?.length) {
+    lines.push(`Tone adjectives: ${template.tone.join(', ')}`);
+  }
+
+  if (template.tags.length) {
+    lines.push(`Tags: ${template.tags.join(', ')}`);
+  }
+
+  if (template.palette?.length) {
+    lines.push('', 'Palette inspiration (refine into exactly 4 cohesive colors):');
+    template.palette.forEach((color) => {
+      lines.push(`- ${color.label} (${color.hex}): ${color.usage}`);
+    });
+  }
+
+  if (template.typography?.length) {
+    lines.push('', 'Typography inspiration (use these fonts or close alternatives):');
+    template.typography.forEach((item) => {
+      lines.push(`- ${item.role}: ${item.fontName} — ${item.note}`);
+    });
+  }
+
+  if (template.notes?.length) {
+    lines.push('', 'Creative notes to weave into the board:');
+    template.notes.forEach((note) => {
+      lines.push(`- [${note.type}] ${note.text}`);
+    });
+  }
+
+  if (template.references?.length) {
+    lines.push('', 'Reference directions (generate fresh titles in the same spirit):');
+    template.references.forEach((reference) => {
+      lines.push(`- ${reference.title} (${reference.category})`);
+    });
+  }
+
+  lines.push(
+    '',
+    'Honor the template direction but produce specific, premium, original copy.',
+    'Do not copy template text verbatim. The board title should feel distinct while staying on-theme.',
+  );
+
+  return lines.join('\n');
+}
+
+function buildMockDraftFromTemplate(template: BoardTemplate): GeneratedBoardResult {
+  const base = createBoardFromPrompt({ prompt: template.prompt });
+  const board = applyTemplateToBoard(base, template);
+
+  return {
+    board,
+    followUpPrompt: buildFollowUpPromptFromTemplate(template, board),
+    source: 'mock',
+  };
+}
+
 function buildFollowUpPromptFromTemplate(template: BoardTemplate, board: Board): string {
   const tone = board.tone.length ? board.tone.join(', ') : 'balanced';
   const palette = board.palette.length
@@ -221,8 +293,8 @@ function applyTemplateToBoard(board: Board, template: BoardTemplate): Board {
   };
 }
 
-async function buildMockResult(prompt: string): Promise<GeneratedBoardResult> {
-  const board = await enrichBoardReferences(createBoardFromPrompt({ prompt }));
+function buildMockDraftResult(prompt: string): GeneratedBoardResult {
+  const board = createBoardFromPrompt({ prompt });
   const followUpPrompt = `Refine the direction for ${board.title.toLowerCase()} with a ${board.mood} mood and palette centered on ${board.palette
     .map((item) => item.label.toLowerCase())
     .slice(0, 3)
@@ -339,37 +411,25 @@ async function callGeminiWithFallback(prompt: string, apiKey: string): Promise<s
   );
 }
 
-export async function generateBoardFromTemplate(templateId: string): Promise<GeneratedBoardResult> {
+export async function generateBoardDraftFromTemplate(
+  templateId: string,
+): Promise<GeneratedBoardResult> {
   const template = getTemplateById(templateId);
   if (!template) {
     throw new Error('Template not found');
   }
 
-  const result = await generateBoardFromPrompt(template.prompt);
-  const board = await enrichBoardReferences(applyTemplateToBoard(result.board, template));
-
-  return {
-    board,
-    followUpPrompt: buildFollowUpPromptFromTemplate(template, board),
-    source: result.source,
-  };
-}
-
-export async function generateBoardFromPrompt(prompt: string): Promise<GeneratedBoardResult> {
-  const trimmed = prompt.trim();
-  if (!trimmed) {
-    throw new Error('Prompt is required');
-  }
-
+  const generationPrompt = buildTemplateGenerationPrompt(template);
   const apiKey = process.env.GEMINI_API_KEY?.trim();
+
   if (!apiKey) {
-    return buildMockResult(trimmed);
+    return buildMockDraftFromTemplate(template);
   }
 
   try {
-    const content = await callGeminiWithFallback(trimmed, apiKey);
+    const content = await callGeminiWithFallback(generationPrompt, apiKey);
     const payload = parseModelContent(content);
-    const board = await enrichBoardReferences(buildBoardFromPayload(trimmed, payload));
+    const board = buildBoardFromPayload(template.prompt, payload);
 
     return {
       board,
@@ -382,11 +442,57 @@ export async function generateBoardFromPrompt(prompt: string): Promise<Generated
       throw error;
     }
 
-    const mock = await buildMockResult(trimmed);
     return {
-      ...mock,
+      ...buildMockDraftFromTemplate(template),
       notice:
         'Gemini is busy or over quota. Used demo generation for now — try again in a few minutes.',
     };
   }
+}
+
+export async function generateBoardDraftFromPrompt(prompt: string): Promise<GeneratedBoardResult> {
+  const trimmed = prompt.trim();
+  if (!trimmed) {
+    throw new Error('Prompt is required');
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY?.trim();
+  if (!apiKey) {
+    return buildMockDraftResult(trimmed);
+  }
+
+  try {
+    const content = await callGeminiWithFallback(trimmed, apiKey);
+    const payload = parseModelContent(content);
+    const board = buildBoardFromPayload(trimmed, payload);
+
+    return {
+      board,
+      followUpPrompt: payload.followUpPrompt.trim(),
+      source: 'gemini',
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    if (message.includes('API key is invalid')) {
+      throw error;
+    }
+
+    return {
+      ...buildMockDraftResult(trimmed),
+      notice:
+        'Gemini is busy or over quota. Used demo generation for now — try again in a few minutes.',
+    };
+  }
+}
+
+export async function generateBoardFromTemplate(templateId: string): Promise<GeneratedBoardResult> {
+  const draft = await generateBoardDraftFromTemplate(templateId);
+  const board = await enrichBoardReferences(draft.board);
+  return { ...draft, board };
+}
+
+export async function generateBoardFromPrompt(prompt: string): Promise<GeneratedBoardResult> {
+  const draft = await generateBoardDraftFromPrompt(prompt);
+  const board = await enrichBoardReferences(draft.board);
+  return { ...draft, board };
 }

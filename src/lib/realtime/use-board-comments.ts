@@ -50,11 +50,13 @@ export function useBoardComments({
   const [loading, setLoading] = useState(false);
   const [posting, setPosting] = useState(false);
   const authorNameRef = useRef(authorName);
-  authorNameRef.current = authorName;
+
+  useEffect(() => {
+    authorNameRef.current = authorName;
+  }, [authorName]);
 
   const refresh = useCallback(async () => {
     if (!enabled) {
-      setComments([]);
       return;
     }
 
@@ -70,8 +72,36 @@ export function useBoardComments({
   }, [boardId, enabled]);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    if (!enabled) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadComments() {
+      setLoading(true);
+      try {
+        const data = await apiFetch<{ comments: BoardComment[] }>(`/api/boards/${boardId}/comments`);
+        if (!cancelled) {
+          setComments(sortComments(data.comments));
+        }
+      } catch {
+        if (!cancelled) {
+          setComments([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadComments();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [boardId, enabled]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -193,8 +223,8 @@ export function useBoardComments({
   );
 
   return {
-    comments,
-    loading,
+    comments: enabled ? comments : [],
+    loading: enabled ? loading : false,
     posting,
     postComment,
     deleteComment,

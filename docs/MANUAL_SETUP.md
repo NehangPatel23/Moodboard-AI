@@ -10,8 +10,8 @@ Use this as your single source of truth after the Supabase + Gemini + Vercel wor
 
 - Supabase auth, boards, settings API routes
 - Route protection (`/app`, `/settings`)
-- Board generation via `/api/generate` (Gemini or demo fallback)
-- Template generation through the same API
+- Board generation via `POST /api/generate/draft` → `POST /api/generate/enrich` (Gemini or demo fallback)
+- Template generation through the same draft → enrich pipeline
 - Demo user seed script
 - Local → Supabase migration on first login
 

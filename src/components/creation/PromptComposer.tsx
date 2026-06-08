@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import type { BoardTemplate } from '@/types/board';
+import type { Board, BoardTemplate } from '@/types/board';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +15,12 @@ import {
   fetchGenerationProvider,
   getBoardTemplates,
   getQuickPromptSuggestions,
+  runProgressiveBoardGeneration,
 } from '@/lib/ai';
+import {
+  GenerationPreview,
+  type GenerationPhase,
+} from '@/components/creation/GenerationPreview';
 import { GenerationSourceBadge } from '@/components/creation/GenerationSourceBadge';
 import { loadBoards, saveBoards, upsertBoard } from '@/lib/board-store';
 import { readAppSettings } from '@/lib/settings-store';
@@ -179,6 +184,9 @@ export function PromptComposer() {
   const [configuredProvider, setConfiguredProvider] = useState<'gemini' | 'mock' | null>(null);
   const [generationSource, setGenerationSource] = useState<'gemini' | 'mock' | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [previewBoard, setPreviewBoard] = useState<Board | null>(null);
+  const [generationPhase, setGenerationPhase] = useState<GenerationPhase>('draft');
+  const [enrichProgress, setEnrichProgress] = useState({ done: 0, total: 0 });
 
   useEffect(() => {
     let cancelled = false;
@@ -269,15 +277,38 @@ export function PromptComposer() {
     setIsGenerating(true);
     setErrorMessage(null);
     setGenerationSource(null);
-    setStatus('Generating mood, palette, typography, and references...');
+    setPreviewBoard(null);
+    setGenerationPhase('draft');
+    setEnrichProgress({ done: 0, total: 0 });
+    setStatus('Building creative direction...');
 
     try {
-      const { board: generatedBoard, followUpPrompt, source, notice } =
-        await fetchGeneratedBoardDraft(trimmedPrompt);
-      setGenerationSource(source ?? 'mock');
+      const { board: enrichedBoard, draft } = await runProgressiveBoardGeneration(
+        fetchGeneratedBoardDraft(trimmedPrompt),
+        {
+          onDraft: (result) => {
+            setPreviewBoard(result.board);
+            setGenerationSource(result.source ?? 'mock');
+            setGenerationPhase('draft');
+            setStatus('Creative direction ready. Finding reference images...');
+          },
+          onEnrichStart: (total) => {
+            setGenerationPhase('enriching');
+            setEnrichProgress({ done: 0, total });
+          },
+          onEnrichProgress: (done, total, board) => {
+            setPreviewBoard(board);
+            setEnrichProgress({ done, total });
+            setStatus(`Finding reference ${done} of ${total}...`);
+          },
+        },
+      );
+
+      const { followUpPrompt, source, notice } = draft;
+      setGenerationPhase('complete');
       setStatus('Saving your board...');
 
-      const board = { ...generatedBoard, visibility: readAppSettings().defaultVisibility };
+      const board = { ...enrichedBoard, visibility: readAppSettings().defaultVisibility };
       const existingBoards = loadBoards();
       const nextBoards = upsertBoard(existingBoards, board);
       saveBoards(nextBoards);
@@ -286,10 +317,12 @@ export function PromptComposer() {
 
       redirectTimerRef.current = window.setTimeout(() => {
         setIsGenerating(false);
+        setPreviewBoard(null);
         router.push(`/app/boards/${board.id}?source=${source ?? 'mock'}`);
       }, 650);
     } catch (error) {
       setIsGenerating(false);
+      setPreviewBoard(null);
       setErrorMessage(formatGenerationError(error));
       setStatus(null);
     }
@@ -308,15 +341,38 @@ export function PromptComposer() {
     setIsGenerating(true);
     setErrorMessage(null);
     setGenerationSource(null);
+    setPreviewBoard(null);
+    setGenerationPhase('draft');
+    setEnrichProgress({ done: 0, total: 0 });
     setStatus(`Creating ${template.name} from template...`);
 
     try {
-      const generated = await fetchGeneratedBoardDraftFromTemplate(templateId);
-      setGenerationSource(generated.source ?? 'mock');
+      const { board: enrichedBoard, draft: generated } = await runProgressiveBoardGeneration(
+        fetchGeneratedBoardDraftFromTemplate(templateId),
+        {
+          onDraft: (result) => {
+            setPreviewBoard(result.board);
+            setGenerationSource(result.source ?? 'mock');
+            setGenerationPhase('draft');
+            setStatus('Creative direction ready. Finding reference images...');
+          },
+          onEnrichStart: (total) => {
+            setGenerationPhase('enriching');
+            setEnrichProgress({ done: 0, total });
+          },
+          onEnrichProgress: (done, total, board) => {
+            setPreviewBoard(board);
+            setEnrichProgress({ done, total });
+            setStatus(`Finding reference ${done} of ${total}...`);
+          },
+        },
+      );
+
       const { notice } = generated;
+      setGenerationPhase('complete');
       setStatus('Saving your board...');
 
-      const board = { ...generated.board, visibility: readAppSettings().defaultVisibility };
+      const board = { ...enrichedBoard, visibility: readAppSettings().defaultVisibility };
       const existingBoards = loadBoards();
       const nextBoards = upsertBoard(existingBoards, board);
       saveBoards(nextBoards);
@@ -327,10 +383,12 @@ export function PromptComposer() {
 
       redirectTimerRef.current = window.setTimeout(() => {
         setIsGenerating(false);
+        setPreviewBoard(null);
         router.push(`/app/boards/${board.id}?source=${generated.source ?? 'mock'}`);
       }, 500);
     } catch (error) {
       setIsGenerating(false);
+      setPreviewBoard(null);
       setErrorMessage(formatGenerationError(error));
       setStatus(null);
     }
@@ -508,7 +566,14 @@ export function PromptComposer() {
         />
       </section>
 
-      {isGenerating ? <LoadingPreview /> : null}
+      {isGenerating && !previewBoard ? <LoadingPreview /> : null}
+      {previewBoard ? (
+        <GenerationPreview
+          board={previewBoard}
+          phase={generationPhase}
+          enrichProgress={enrichProgress}
+        />
+      ) : null}
     </div>
   );
 }
