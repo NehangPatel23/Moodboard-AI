@@ -6,7 +6,7 @@ Back to [README](../README.md) · Features: [FEATURES](FEATURES.md) · Deploy: [
 
 ## Current status
 
-Waves 1–3 and Sprints A–D are **complete**. The app is a deployed MVP with Supabase persistence, collaboration, AI generation, snapshots, and visual export. Next focus: optional landing/dashboard polish, then Wave 4 growth items.
+Waves 1–3 and Sprints A–D are **complete**, plus **AI design system export** (Sprint E). The app is a deployed MVP with Supabase persistence, collaboration, AI generation, snapshots, visual export, and developer handoff tokens. Next focus: optional landing/dashboard polish, then remaining Wave 4 growth items.
 
 ---
 
@@ -37,6 +37,7 @@ Waves 1–3 and Sprints A–D are **complete**. The app is a deployed MVP with S
 | 20 | Snapshot limits | Owner cap + auto-prune (migration `020`) |
 | 21 | Design system pass | Presence, dashboard, modal scrims, read-only tokens |
 | 22 | AI brand strategy | `POST /api/generate/brand`, persisted on board (migration `021`) |
+| 23 | AI design system export | CSS, Tailwind, tokens JSON, Markdown + `POST /api/generate/design-system` — see [SYSTEMS](SYSTEMS.md#design-system-export) |
 
 ### Sprint summary (completed)
 
@@ -46,13 +47,13 @@ Waves 1–3 and Sprints A–D are **complete**. The app is a deployed MVP with S
 | **B** | Snapshot limits | Migration `020`, cap + auto-prune |
 | **C** | Design system pass | Tokens + presence/read-only/modals |
 | **D** | AI brand strategy | API + Overview + migration `021` |
+| **E** | AI design system export | ExportModal tab + deterministic + AI token naming |
 
 ---
 
 ## Next priorities
 
 1. **Landing & dashboard visual polish** (optional) — hierarchy/contrast on light mode; full redesign remains deferred. See [DEVELOPMENT](DEVELOPMENT.md#current-known-problems).
-2. **AI design system export** — downloadable color + type spec from board (extends visual export).
 
 ---
 
@@ -60,7 +61,6 @@ Waves 1–3 and Sprints A–D are **complete**. The app is a deployed MVP with S
 
 | Feature | Notes |
 |---------|--------|
-| AI design system export | Downloadable color + type spec from board |
 | Template marketplace | DB, payments, moderation |
 | Advanced reference APIs | Behance, Dribbble (need legitimate APIs) |
 | User profiles (`/profile`) | Public creator pages linked from discover |
@@ -93,6 +93,7 @@ Use these for manual QA after changes:
 - Snapshots: preview before restore; owner can delete; limit enforced; auto-prune removes oldest
 - Notifications: remote save toast when draft clean; unread count in tab title + pulsing toolbar badges
 - Brand: **Suggest brand** marks board dirty; Save persists; refresh shows Overview block
+- Design system export: Export modal **Design system** tab shows CSS/Tailwind/JSON/Markdown preview; downloads match preview; **Enhance with AI** works without `GEMINI_API_KEY` (deterministic fallback)
 - Command palette: `⌘K` finds boards; editor actions open Export / Snapshots / Share
 
 ---

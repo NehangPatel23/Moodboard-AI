@@ -65,6 +65,7 @@ flowchart TD
 - **Collaboration notifications** — remote-save toast, unread tab title, toolbar pulse.
 - **Snapshot limits** — migration `020`.
 - **Visual export** — JSON / PNG / PDF with live preview; brand strategy in visual export. See [SYSTEMS](SYSTEMS.md#visual-board-export).
+- **Design system export** — CSS, Tailwind, tokens JSON, Markdown from Export modal; optional AI token naming via `POST /api/generate/design-system`.
 - **Design tokens** — [`board-editor-styles.ts`](../src/components/board/board-editor-styles.ts) (editor, presence, dashboard, modals).
 - Board editor loads from Supabase after hydration (no false "not found").
 - Settings controls are wired to real behavior (theme, reduce motion, focus rings, default visibility, presentation mode, workspace identity).
@@ -73,6 +74,6 @@ flowchart TD
 
 ## When resuming work
 
-Follow [ROADMAP](ROADMAP.md): optional landing/dashboard polish, then Wave 4 growth (design-system export, profiles, billing).
+Follow [ROADMAP](ROADMAP.md): optional landing/dashboard polish, then Wave 4 growth (profiles, billing).
 
 Run migrations through **`021`** in production if not applied — see [DEPLOY](DEPLOY.md#step-5c--apply-latest-migrations-020021).

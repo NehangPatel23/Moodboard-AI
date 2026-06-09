@@ -27,7 +27,7 @@ flowchart TB
 
   edit --> share["View-only /share/id"]
   edit --> collab["Invite collaborators"]
-  edit --> export["Export JSON PNG PDF"]
+  edit --> export["Export JSON PNG PDF design system"]
   edit --> snap["Snapshots"]
 
   discover --> share
@@ -200,7 +200,7 @@ Overview, Palette, Typography, References, and Notes — jump via editor tabs or
 Implemented:
 
 - Share / Collaborate (public link + people management — owner only)
-- Export (JSON, PNG, PDF — with live preview)
+- Export (JSON, PNG, PDF, design system — with live preview)
 - Duplicate
 - Snapshots (save, preview, restore, auto-backup before restore; cap + auto-prune via migration `020`)
 
@@ -386,7 +386,7 @@ User-configurable toggle that gates the keyboard-driven slideshow on the share/v
 #### Data Tools
 
 - Import boards (JSON)
-- Export boards (JSON backup, PNG moodboard, or PDF printable summary)
+- Export boards (JSON backup, PNG moodboard, PDF printable summary, or design system tokens)
 - **Reset preferences** (restores settings to defaults, keeps boards)
 - **Danger zone** reset (deletes all boards and restores defaults)
 - Cloud sync status indicator

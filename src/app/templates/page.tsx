@@ -230,7 +230,7 @@ function TemplateCard({
             isCreating={isCreating}
             isActive={isActive}
             onClick={onUseTemplate}
-            className={cn(softPrimaryButtonClass, 'flex-1')}
+            className="flex-1"
           >
             {isActive && isCreating ? 'Creating board...' : 'Use template'}
           </TemplateUseTemplateButton>
@@ -402,7 +402,6 @@ function TemplatePreviewModal({
             isCreating={isCreating}
             isActive={isGeneratingThisTemplate}
             onClick={onUseTemplate}
-            className={primaryButtonClass}
           />
           <Button type="button" onClick={onClose} disabled={isCreating} className={outlineButtonClass}>
             Close

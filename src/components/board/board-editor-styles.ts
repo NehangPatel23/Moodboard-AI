@@ -196,10 +196,10 @@ export const creationSuggestionButtonClass =
 export const creationPrimaryButtonClass = editorPrimaryButtonClass;
 
 export const aiGenerateButtonIdleClass =
-  'rounded-full bg-(--text-strong) px-5 text-(--background)! shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60';
+  'gemini-enhance-button min-h-10 border border-slate-900/10 text-sm leading-none text-slate-900 shadow-[0_4px_20px_rgba(147,197,253,0.35)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60';
 
 export const aiGenerateButtonActiveClass =
-  'gemini-creating-button rounded-full border-slate-900/10 px-5 text-slate-900 shadow-[0_4px_20px_rgba(147,197,253,0.35)] hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-90';
+  'gemini-creating-button min-h-10 border border-slate-900/10 text-sm leading-none text-slate-900 shadow-[0_4px_20px_rgba(147,197,253,0.35)] hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-90';
 
 export const creationFocusRingClass =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)';

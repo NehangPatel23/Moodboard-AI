@@ -650,6 +650,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const [saveStatus, setSaveStatus] = useState('Saved');
   const [isDirty, setIsDirty] = useState(false);
   const [editingReferenceIndex, setEditingReferenceIndex] = useState<number | null>(null);
+  const [isNewReference, setIsNewReference] = useState(false);
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const sectionContentRef = useRef<HTMLDivElement>(null);
   const skipInitialSectionScroll = useRef(true);
@@ -1247,7 +1248,19 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
       ],
     }));
     setEditingReferenceIndex(0);
-    showToast('Reference added.', 'success');
+    setIsNewReference(true);
+  };
+
+  const handleCloseReferenceEditor = () => {
+    if (isNewReference && editingReferenceIndex !== null) {
+      updateDraft((current) => ({
+        ...current,
+        references: current.references.filter((_, index) => index !== editingReferenceIndex),
+      }));
+    }
+
+    setEditingReferenceIndex(null);
+    setIsNewReference(false);
   };
 
   const handleReloadRemote = () => {
@@ -1280,6 +1293,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     }));
 
     setEditingReferenceIndex(null);
+    setIsNewReference(false);
     showToast('Reference saved.', 'success');
   };
 
@@ -1707,7 +1721,10 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                       ) : (
                         <button
                           type="button"
-                          onClick={() => setEditingReferenceIndex(index)}
+                          onClick={() => {
+                            setIsNewReference(false);
+                            setEditingReferenceIndex(index);
+                          }}
                           aria-label={`Edit reference ${reference.title}`}
                           className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring)"
                         >
@@ -2272,7 +2289,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
           reference={currentReference}
           board={editorBoard}
           onSave={handleSaveReference}
-          onClose={() => setEditingReferenceIndex(null)}
+          onClose={handleCloseReferenceEditor}
         />
       ) : null}
 
@@ -2291,10 +2308,18 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
       <ExportModal
         open={exportOpen}
         board={editorBoard}
-        onExported={(format) => {
+        onExported={(format, detail) => {
           setExportOpen(false);
           const label =
-            format === 'png' ? 'PNG' : format === 'pdf' ? 'PDF' : 'JSON';
+            format === 'png'
+              ? 'PNG'
+              : format === 'pdf'
+                ? 'PDF'
+                : format === 'design-system'
+                  ? detail
+                    ? `design system (${detail.toUpperCase()})`
+                    : 'design system'
+                  : 'JSON';
           showToast(`Board exported as ${label}.`, 'success');
         }}
         onClose={() => setExportOpen(false)}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal, flushSync } from 'react-dom';
 import type { Board } from '@/types/board';
 import { jsPDF } from 'jspdf';
@@ -8,22 +8,51 @@ import { Button } from '@/components/ui/button';
 import { BoardExportCapture } from '@/components/board/BoardExportCapture';
 import { captureExportBlocks, captureExportPng, EXPORT_CAPTURE_WIDTH } from '@/lib/export-capture';
 import { buildPdfFromExportBlocks } from '@/lib/export-pdf';
+import {
+  buildDeterministicDesignSystemTokens,
+  designSystemDownloadExtension,
+  designSystemMimeType,
+  exportDesignSystemFormat,
+  type DesignSystemFormat,
+  type DesignSystemTokens,
+} from '@/lib/export-design-system';
+import { fetchDesignSystemTokens } from '@/lib/ai';
+import { AiEnhanceButton } from '@/components/shared/AiEnhanceButton';
 import { showToast } from '@/components/shared/toast-store';
 import { editorModalScrimClass } from '@/components/board/board-editor-styles';
 import { cn } from '@/lib/utils';
 
-type ExportFormat = 'json' | 'png' | 'pdf';
-type PreviewFormat = 'visual' | 'json';
+export type ExportFormat = 'json' | 'png' | 'pdf' | 'design-system';
+type PreviewFormat = 'visual' | 'json' | 'design-system';
 
 type ExportModalProps = {
   open: boolean;
   board: Board;
-  onExported: (format: ExportFormat) => void;
+  onExported: (format: ExportFormat, detail?: DesignSystemFormat) => void;
   onClose: () => void;
 };
 
+const DESIGN_SYSTEM_FORMATS: Array<{ id: DesignSystemFormat; label: string }> = [
+  { id: 'css', label: 'CSS' },
+  { id: 'tailwind', label: 'Tailwind' },
+  { id: 'json', label: 'Tokens JSON' },
+  { id: 'markdown', label: 'Markdown' },
+];
+
 function downloadSlug(title: string): string {
   return title.replace(/\s+/g, '-').toLowerCase();
+}
+
+function downloadTextFile(content: string, filename: string, mimeType: string) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
 }
 
 async function waitForNextFrame(): Promise<void> {
@@ -45,22 +74,71 @@ export function ExportModal({
   const [captureBoard, setCaptureBoard] = useState<Board | null>(null);
   const [exportingVisual, setExportingVisual] = useState<'png' | 'pdf' | null>(null);
   const [previewFormat, setPreviewFormat] = useState<PreviewFormat>('visual');
+  const [designSystemFormat, setDesignSystemFormat] = useState<DesignSystemFormat>('css');
+  const [designSystemTokens, setDesignSystemTokens] = useState<DesignSystemTokens | null>(null);
+  const [designSystemSource, setDesignSystemSource] = useState<'deterministic' | 'gemini' | 'mock'>(
+    'deterministic',
+  );
+  const [designSystemEnhancing, setDesignSystemEnhancing] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setDesignSystemTokens(buildDeterministicDesignSystemTokens(board));
+    setDesignSystemSource('deterministic');
+    setPreviewFormat('visual');
+    setDesignSystemFormat('css');
+  }, [open, board]);
 
   if (!open) return null;
 
   const jsonPreview = JSON.stringify(board, null, 2);
+  const designSystemPreview = designSystemTokens
+    ? exportDesignSystemFormat(designSystemTokens, designSystemFormat)
+    : '';
+  const hasDesignSystemContent = board.palette.length > 0 || board.typography.length > 0;
 
   function handleDownloadJson() {
-    const blob = new Blob([jsonPreview], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `${downloadSlug(board.title)}.json`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    URL.revokeObjectURL(url);
+    downloadTextFile(jsonPreview, `${downloadSlug(board.title)}.json`, 'application/json');
     onExported('json');
+  }
+
+  function handleDownloadDesignSystem(format: DesignSystemFormat) {
+    if (!designSystemTokens) return;
+    const content = exportDesignSystemFormat(designSystemTokens, format);
+    downloadTextFile(
+      content,
+      `${downloadSlug(board.title)}-${designSystemDownloadExtension(format)}`,
+      designSystemMimeType(format),
+    );
+    onExported('design-system', format);
+  }
+
+  async function handleEnhanceDesignSystem() {
+    if (!hasDesignSystemContent || designSystemEnhancing) return;
+
+    setDesignSystemEnhancing(true);
+    try {
+      const result = await fetchDesignSystemTokens(board);
+      setDesignSystemTokens(result.tokens);
+      setDesignSystemSource(result.source);
+
+      if (result.notice) {
+        showToast(result.notice, 'default');
+        return;
+      }
+
+      showToast(
+        result.source === 'gemini'
+          ? 'Design system tokens enhanced with AI.'
+          : 'Design system tokens updated.',
+        'success',
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Design system enhancement failed';
+      showToast(message, 'destructive');
+    } finally {
+      setDesignSystemEnhancing(false);
+    }
   }
 
   async function withExportCapture<T>(capture: (container: HTMLDivElement) => Promise<T>): Promise<T> {
@@ -138,6 +216,13 @@ export function ExportModal({
     }
   }
 
+  const designSystemSourceLabel =
+    designSystemSource === 'gemini'
+      ? 'AI-enhanced token names'
+      : designSystemSource === 'mock'
+        ? 'Demo token names'
+        : 'Deterministic token names';
+
   return (
     <>
       <div
@@ -172,11 +257,11 @@ export function ExportModal({
 
           <div className="grid min-h-0 flex-1 lg:grid-cols-[1.15fr_0.85fr]">
             <section className="min-h-0 overflow-hidden border-b border-[var(--border)] lg:border-b-0 lg:border-r">
-              <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-3">
                 <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-[var(--text-muted)]">
                   Preview
                 </p>
-                <div className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-subtle)] p-1">
+                <div className="inline-flex flex-wrap rounded-full border border-[var(--border)] bg-[var(--surface-subtle)] p-1">
                   <button
                     type="button"
                     onClick={() => setPreviewFormat('visual')}
@@ -201,6 +286,18 @@ export function ExportModal({
                   >
                     JSON
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewFormat('design-system')}
+                    aria-pressed={previewFormat === 'design-system'}
+                    className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                      previewFormat === 'design-system'
+                        ? 'bg-[var(--surface)] text-[var(--text-strong)] shadow-sm'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-strong)]'
+                    }`}
+                  >
+                    Design system
+                  </button>
                 </div>
               </div>
 
@@ -214,7 +311,7 @@ export function ExportModal({
                       PNG and PDF exports use this layout. PDF may add page breaks between sections.
                     </p>
                   </div>
-                ) : (
+                ) : previewFormat === 'json' ? (
                   <div className="space-y-3">
                     <pre className="max-h-[min(48vh,520px)] overflow-auto rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface-subtle)] p-4 text-xs leading-6 text-[var(--text)]">
                       {jsonPreview}
@@ -222,6 +319,47 @@ export function ExportModal({
                     <p className="text-xs leading-5 text-[var(--text-muted)]">
                       JSON includes the full board data, including metadata not shown in the visual export.
                     </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {!hasDesignSystemContent ? (
+                      <div className="rounded-[1.5rem] border border-dashed border-[var(--border)] bg-[var(--surface-subtle)] p-6 text-sm leading-6 text-[var(--text-muted)]">
+                        Add palette colors or typography to generate a design system export.
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-subtle)] p-1">
+                            {DESIGN_SYSTEM_FORMATS.map((format) => (
+                              <button
+                                key={format.id}
+                                type="button"
+                                onClick={() => setDesignSystemFormat(format.id)}
+                                aria-pressed={designSystemFormat === format.id}
+                                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                                  designSystemFormat === format.id
+                                    ? 'bg-[var(--surface)] text-[var(--text-strong)] shadow-sm'
+                                    : 'text-[var(--text-muted)] hover:text-[var(--text-strong)]'
+                                }`}
+                              >
+                                {format.label}
+                              </button>
+                            ))}
+                          </div>
+                          <AiEnhanceButton
+                            loading={designSystemEnhancing}
+                            disabled={!hasDesignSystemContent}
+                            onClick={() => void handleEnhanceDesignSystem()}
+                          />
+                        </div>
+                        <pre className="max-h-[min(44vh,480px)] overflow-auto rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface-subtle)] p-4 text-xs leading-6 text-[var(--text)]">
+                          {designSystemPreview}
+                        </pre>
+                        <p className="text-xs leading-5 text-[var(--text-muted)]">
+                          {designSystemSourceLabel}. Downloads match this preview for the selected format.
+                        </p>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
@@ -272,6 +410,26 @@ export function ExportModal({
                   >
                     {exportingVisual === 'pdf' ? 'Exporting…' : 'Download PDF'}
                   </Button>
+                </div>
+                <div className="rounded-[1.75rem] border border-[var(--border)] bg-[var(--surface-subtle)] p-4">
+                  <p className="text-sm leading-6 text-[var(--text-muted)]">
+                    <strong className="font-medium text-[var(--text-strong)]">Design system</strong> — CSS variables,
+                    Tailwind config, tokens JSON, or Markdown spec for developer handoff.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {DESIGN_SYSTEM_FORMATS.map((format) => (
+                      <Button
+                        key={format.id}
+                        type="button"
+                        variant="outline"
+                        disabled={!hasDesignSystemContent}
+                        onClick={() => handleDownloadDesignSystem(format.id)}
+                        className="rounded-full"
+                      >
+                        {format.label}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               </div>
 

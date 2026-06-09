@@ -138,6 +138,45 @@ export async function fetchBrandSuggestions(
   });
 }
 
+export type DesignSystemSuggestionResult = {
+  tokens: import('@/lib/export-design-system').DesignSystemTokens;
+  overrides: import('@/lib/export-design-system').DesignSystemTokenOverrides;
+  source: 'gemini' | 'mock';
+  notice?: string;
+};
+
+export async function fetchDesignSystemTokens(
+  board: Pick<
+    Board,
+    | 'id'
+    | 'title'
+    | 'prompt'
+    | 'mood'
+    | 'summary'
+    | 'tone'
+    | 'tags'
+    | 'palette'
+    | 'typography'
+    | 'brandStrategy'
+  >,
+): Promise<DesignSystemSuggestionResult> {
+  return apiFetch<DesignSystemSuggestionResult>('/api/generate/design-system', {
+    method: 'POST',
+    body: JSON.stringify({
+      boardId: board.id,
+      title: board.title,
+      prompt: board.prompt,
+      mood: board.mood,
+      summary: board.summary,
+      tone: board.tone,
+      tags: board.tags,
+      palette: board.palette,
+      typography: board.typography,
+      brandStrategy: board.brandStrategy,
+    }),
+  });
+}
+
 export async function fetchGeneratedBoardDraft(prompt: string): Promise<GeneratedBoardDraft> {
   return apiFetch<GeneratedBoardDraft>('/api/generate/draft', {
     method: 'POST',

@@ -201,6 +201,8 @@ sequenceDiagram
 
 **On-demand suggestions** (inside editor): `POST /api/generate/palette` · `POST /api/generate/typography` · `POST /api/generate/brand`
 
+**Design system export** (Export modal): deterministic tokens from palette + typography; optional `POST /api/generate/design-system` for AI-enhanced semantic token names (Gemini with mock fallback).
+
 ---
 
 ## Visual board export
@@ -214,17 +216,43 @@ The board editor **Export** action opens [`ExportModal`](../src/components/share
 | **JSON** | Full board object (metadata, notes, tags, prompt, etc.) |
 | **PNG** | Single image moodboard summary |
 | **PDF** | Printable moodboard with smart page breaks between sections |
+| **Design system** | CSS variables, Tailwind config snippet, tokens JSON, or Markdown spec |
 
 **Visual export includes:** title, summary, mood, tone, tags, palette, typography, references, notes, and brand strategy (when saved).
+
+**Design system export includes:** semantic color and typography tokens derived from the board palette and type pairings, plus brand strategy when saved. Deterministic slugification works offline; **Enhance with AI** calls Gemini for semantic names when configured.
 
 **What was built:**
 
 - **Layout** — [`BoardExportCapture`](../src/components/board/BoardExportCapture.tsx) with inline styles for reliable `html-to-image` capture; `fixed` (1200px) for export, `fluid` for in-modal preview
 - **Capture pipeline** — [`export-capture.ts`](../src/lib/export-capture.ts): body-portal mount on export, CORS-safe image inlining, font/image readiness, blank-PNG validation
 - **PDF assembly** — [`export-pdf.ts`](../src/lib/export-pdf.ts): section blocks (`data-export-block`) captured separately; page breaks keep reference rows and note cards intact
-- **Preview UX** — two-panel modal with **Visual / JSON** toggle; PNG/PDF buttons export independently (only the active button shows loading state)
+- **Design system generation** — [`export-design-system.ts`](../src/lib/export-design-system.ts): CSS, Tailwind, tokens JSON, Markdown; [`ai-generate-design-system.ts`](../src/lib/ai-generate-design-system.ts) + `POST /api/generate/design-system` for AI token naming
+- **Preview UX** — two-panel modal with **Visual / JSON / Design system** tabs; PNG/PDF buttons export independently (only the active button shows loading state)
 
-**Touch:** [`ExportModal`](../src/components/shared/ExportModal.tsx), [`BoardExportCapture`](../src/components/board/BoardExportCapture.tsx), [`export-capture.ts`](../src/lib/export-capture.ts), [`export-pdf.ts`](../src/lib/export-pdf.ts).
+**Touch:** [`ExportModal`](../src/components/shared/ExportModal.tsx), [`BoardExportCapture`](../src/components/board/BoardExportCapture.tsx), [`export-capture.ts`](../src/lib/export-capture.ts), [`export-pdf.ts`](../src/lib/export-pdf.ts), [`export-design-system.ts`](../src/lib/export-design-system.ts).
+
+### Design system export
+
+```mermaid
+flowchart TD
+  board["Board palette + typography + brandStrategy"]
+  board --> det["buildDeterministicDesignSystemTokens"]
+  det --> preview["ExportModal Design system tab"]
+  preview --> fmt{"Format?"}
+  fmt --> css["CSS variables"]
+  fmt --> tw["Tailwind theme.extend"]
+  fmt --> json["design-tokens.json"]
+  fmt --> md["design-system.md"]
+  preview --> ai["Enhance with AI"]
+  ai --> api["POST /api/generate/design-system"]
+  api --> gemini{"Gemini configured?"}
+  gemini -->|Yes| names["Semantic token names"]
+  gemini -->|No| fallback["Mock / label slugs"]
+  names --> tokens["applyDesignSystemTokenOverrides"]
+  fallback --> tokens
+  tokens --> preview
+```
 
 ### Export pipeline
 

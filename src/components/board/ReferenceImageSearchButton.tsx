@@ -6,7 +6,6 @@ import { fetchReferenceImageSearch } from '@/lib/ai';
 import { REFERENCE_IMAGE_SOURCE_PEXELS, REFERENCE_IMAGE_SOURCE_UNSPLASH } from '@/lib/reference-images';
 import { showToast } from '@/components/shared/toast-store';
 import { AiGenerateButton } from '@/components/shared/AiGenerateButton';
-import { editorGhostButtonClass } from '@/components/board/board-editor-styles';
 
 type ReferenceImageSearchButtonProps = {
   title: string;
@@ -91,7 +90,6 @@ export function ReferenceImageSearchButton({
           onClick={() => void runSearch(refreshAttempt)}
           idleLabel="Refresh photo"
           loadingLabel="Refreshing…"
-          idleClassName={editorGhostButtonClass}
         />
       ) : null}
     </div>

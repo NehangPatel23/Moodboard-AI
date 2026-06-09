@@ -223,6 +223,17 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   animation: gemini-gradient-shift 2.5s ease infinite;
 }
 
+.gemini-enhance-button {
+  background-image: linear-gradient(
+    135deg,
+    #b8d8fc 0%,
+    #d4c8f5 24%,
+    #f5c8d8 48%,
+    #fde8b8 72%,
+    #c8f0d8 100%
+  );
+}
+
 /* Opt-in reduce motion, toggled from Settings via the `.reduce-motion` class on
    <html> (see ThemeSync.tsx). Mirrors the prefers-reduced-motion reset above. */
 html.reduce-motion {
