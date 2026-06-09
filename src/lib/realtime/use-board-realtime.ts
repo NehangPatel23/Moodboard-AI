@@ -132,8 +132,6 @@ export function useBoardRealtime({
   useEffect(() => {
     if (!enabled || !userId || !boardRole) {
       presenceSubscribedRef.current = false;
-      setPresenceReady(false);
-      setOnlineUsers([]);
       return;
     }
 

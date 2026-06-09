@@ -37,9 +37,6 @@ const softPanelClass = 'rounded-[1.35rem] border border-(--border) bg-(--surface
 const primaryButtonClass =
   'rounded-full bg-(--text-strong) px-5 text-(--background)! shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60';
 
-const softPrimaryButtonClass =
-  'rounded-full bg-[color-mix(in_srgb,var(--text-strong)_88%,var(--surface)_12%)] px-5 text-(--background)! shadow-sm transition hover:bg-(--text-strong) disabled:cursor-not-allowed disabled:opacity-60';
-
 const outlineButtonClass =
   'rounded-full border border-(--border) bg-(--surface) px-4 text-(--text) transition hover:bg-(--surface-subtle) hover:text-(--text-strong) dark:bg-[rgba(255,255,255,0.04)] dark:text-(--text) dark:hover:bg-[rgba(255,255,255,0.08)] dark:hover:text-(--text-strong)';
 
@@ -330,6 +327,7 @@ function TemplatePreviewModal({
             onClick={onClose}
             disabled={isCreating}
             aria-label="Close preview"
+            tooltip="Close preview"
             className="shrink-0 rounded-full text-(--text) hover:text-(--text-strong)"
           >
             <X className="h-4 w-4" />

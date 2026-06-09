@@ -64,6 +64,12 @@ export const editorPanelScrimClass =
 export const editorUnreadBadgeClass =
   'rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-900 dark:bg-amber-900/40 dark:text-amber-100';
 
+export const editorUnreadDotClass =
+  'inline-block h-2 w-2 shrink-0 rounded-full bg-amber-500 shadow-[0_0_0_3px_rgba(245,158,11,0.22)] dark:shadow-[0_0_0_3px_rgba(245,158,11,0.18)]';
+
+export const editorUnreadItemSurfaceClass =
+  'bg-amber-50/95 ring-1 ring-inset ring-amber-200/70 dark:bg-amber-950/30 dark:ring-amber-800/50';
+
 export const editorToolbarUnreadBadgeClass =
   'inline-flex min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-semibold text-white sm:ml-0.5';
 
@@ -90,6 +96,14 @@ export const presenceAccentColors = [
   '#f9a8d4',
   '#c4b5fd',
 ] as const;
+
+export function presenceAccentForUser(userId: string): string {
+  let hash = 0;
+  for (let i = 0; i < userId.length; i += 1) {
+    hash = (hash + userId.charCodeAt(i) * (i + 1)) % presenceAccentColors.length;
+  }
+  return presenceAccentColors[hash] ?? presenceAccentColors[0];
+}
 
 export const dashboardCardClass =
   'group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-4xl border border-(--border) bg-(--surface) shadow-[var(--shadow-card)] transition duration-300 hover:-translate-y-1.5 hover:shadow-[var(--shadow-elevated)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)';

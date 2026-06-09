@@ -17,7 +17,9 @@ import {
   Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useMinSm } from '@/lib/use-media-query';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TOOLTIP_DELAY_SUPPLEMENTARY } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { GenerationSourceBadge } from '@/components/creation/GenerationSourceBadge';
 import { BoardPresenceStrip } from '@/components/board/BoardPresenceStrip';
@@ -39,6 +41,7 @@ type BoardEditorToolbarProps = {
   isDirty: boolean;
   unreadCommentsCount: number;
   unreadActivityCount: number;
+  unreadSnapshotsCount: number;
   reduceMotionEnabled?: boolean;
   onlineUsers: BoardPresenceUser[];
   currentUserId: string | null;
@@ -88,7 +91,10 @@ function ToolbarAction({
   React.ButtonHTMLAttributes<HTMLButtonElement>,
   'aria-haspopup' | 'aria-expanded' | 'aria-controls'
 >) {
-  return (
+  const labelVisible = useMinSm();
+  const tooltipContent = badgeCount > 0 ? `${label} (${badgeCount} unread)` : label;
+
+  const button = (
     <button
       ref={buttonRef}
       type="button"
@@ -114,6 +120,16 @@ function ToolbarAction({
         </span>
       ) : null}
     </button>
+  );
+
+  if (labelVisible) {
+    return button;
+  }
+
+  return (
+    <Tooltip content={tooltipContent} side="bottom">
+      {button}
+    </Tooltip>
   );
 }
 
@@ -160,6 +176,7 @@ export function BoardEditorToolbar({
   isDirty,
   unreadCommentsCount,
   unreadActivityCount,
+  unreadSnapshotsCount,
   reduceMotionEnabled = false,
   onlineUsers,
   currentUserId,
@@ -231,7 +248,10 @@ export function BoardEditorToolbar({
             ? `${unreadCommentsCount} unread comment${unreadCommentsCount === 1 ? '' : 's'}. `
             : ''}
           {unreadActivityCount > 0
-            ? `${unreadActivityCount} unread activity update${unreadActivityCount === 1 ? '' : 's'}.`
+            ? `${unreadActivityCount} unread activity update${unreadActivityCount === 1 ? '' : 's'}. `
+            : ''}
+          {unreadSnapshotsCount > 0
+            ? `${unreadSnapshotsCount} new snapshot${unreadSnapshotsCount === 1 ? '' : 's'}.`
             : ''}
         </p>
       </div>
@@ -279,6 +299,8 @@ export function BoardEditorToolbar({
                       label="Snapshots"
                       icon={<Camera className="h-4 w-4 shrink-0" />}
                       active={snapshotsOpen}
+                      badgeCount={unreadSnapshotsCount}
+                      badgePulse={!reduceMotionEnabled && !snapshotsOpen && unreadSnapshotsCount > 0}
                       onClick={onOpenSnapshots}
                       buttonRef={snapshotsButtonRef}
                     />
@@ -388,6 +410,9 @@ export function BoardEditorToolbar({
               type="button"
               onClick={onSave}
               disabled={!isDirty}
+              tooltip={isDirty ? 'Save your changes to this board' : 'All changes saved'}
+              tooltipSide="bottom"
+              tooltipDelayMs={TOOLTIP_DELAY_SUPPLEMENTARY}
               className={cn(
                 'h-10 min-w-[7.5rem] shrink-0 rounded-xl px-5 text-sm font-medium transition',
                 isDirty

@@ -4,6 +4,7 @@ import { getBoardAccess } from '@/lib/db/board-access';
 import { getAuthenticatedUser } from '@/lib/db/auth';
 import { isMissingColumnError } from '@/lib/db/schema-errors';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { normalizeEditorSection } from '@/lib/editor-sections';
 import type { BoardComment } from '@/types/board';
 
 type RouteContext = {
@@ -16,6 +17,7 @@ type CommentRow = {
   user_id: string;
   body: string;
   author_name?: string | null;
+  section?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -27,6 +29,7 @@ function rowToComment(row: CommentRow, authorName: string): BoardComment {
     userId: row.user_id,
     authorName,
     body: row.body,
+    section: normalizeEditorSection(row.section),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -87,17 +90,27 @@ export async function PATCH(request: Request, context: RouteContext) {
     .update({ body: text, updated_at: now })
     .eq('id', commentId)
     .eq('board_id', id)
-    .select('id, board_id, user_id, body, author_name, created_at, updated_at')
+    .select('id, board_id, user_id, body, author_name, section, created_at, updated_at')
     .single();
 
-  if (error && isMissingColumnError(error, 'author_name')) {
+  if (error && (isMissingColumnError(error, 'author_name') || isMissingColumnError(error, 'section'))) {
     ({ data, error } = await admin
       .from('board_comments')
       .update({ body: text, updated_at: now })
       .eq('id', commentId)
       .eq('board_id', id)
-      .select('id, board_id, user_id, body, created_at, updated_at')
+      .select('id, board_id, user_id, body, author_name, created_at, updated_at')
       .single());
+
+    if (error && isMissingColumnError(error, 'author_name')) {
+      ({ data, error } = await admin
+        .from('board_comments')
+        .update({ body: text, updated_at: now })
+        .eq('id', commentId)
+        .eq('board_id', id)
+        .select('id, board_id, user_id, body, created_at, updated_at')
+        .single());
+    }
   }
 
   if (error) {

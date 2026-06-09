@@ -38,6 +38,7 @@ Implemented:
 - Accessible loading states
 - ARIA support
 - Reduced-motion support
+- Custom frosted tooltips on icon-only controls ([`tooltip.tsx`](../src/components/ui/tooltip.tsx)); use `triggerClassName="block w-full"` for full-width triggers in grids or vertical lists
 
 Future work should continue to preserve and expand accessibility support across every page and interaction.
 

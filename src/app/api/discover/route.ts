@@ -33,8 +33,11 @@ export async function GET() {
 
   const boards: Board[] = rows.map((row) => {
     const board = rowToBoard(row);
-    const creatorName = profileMap.get((row as BoardRow).user_id);
-    return creatorName ? { ...board, creatorName } : board;
+    const userId = (row as BoardRow).user_id;
+    const creatorName = profileMap.get(userId);
+    return creatorName
+      ? { ...board, creatorId: userId, creatorName }
+      : { ...board, creatorId: userId };
   });
 
   return NextResponse.json({ boards });

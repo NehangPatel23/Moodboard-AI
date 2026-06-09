@@ -3,7 +3,7 @@ import { getBoardAccess } from '@/lib/db/board-access';
 import { rowToActivity } from '@/lib/db/board-activity';
 import {
   getItemOverrideKey,
-  isCollaborationItemRead,
+  isCollaborationItemReadForViewer,
   prepareCollaborationFetch,
 } from '@/lib/db/board-collaboration-state';
 import { getCutoffIso } from '@/lib/retention-duration';
@@ -82,7 +82,13 @@ export async function GET(_request: Request, context: RouteContext) {
     const override = itemOverrides.get(getItemOverrideKey('activity', event.id));
     return {
       ...event,
-      isRead: isCollaborationItemRead(event.createdAt, readState.activityLastReadAt, override?.isRead),
+      isRead: isCollaborationItemReadForViewer(
+        user.id,
+        event.userId,
+        event.createdAt,
+        readState.activityLastReadAt,
+        override?.isRead,
+      ),
       isHidden: override?.isHidden ?? false,
     };
   });

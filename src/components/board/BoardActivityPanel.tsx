@@ -1,22 +1,99 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { GuardedLink } from '@/components/shared/GuardedLink';
-import { Archive, Eye, EyeOff, History, Play, Trash2, X } from 'lucide-react';
+import { Archive, Eye, EyeOff, History, Play, Tags, Trash2, X } from 'lucide-react';
 import type { BoardActivityEvent } from '@/types/board';
-import { formatDateTime } from '@/lib/utils';
+import { EditorSectionBadge } from '@/components/board/EditorSectionBadge';
+import { getActivityEventSections } from '@/lib/board-replay';
+import type { EditorSectionName } from '@/lib/editor-sections';
+import { formatDateTime, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { TOOLTIP_DELAY_SUPPLEMENTARY } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ConfirmationModal } from '@/components/shared/ConfirmationModal';
 import { showToast } from '@/components/shared/toast-store';
 import {
-  editorReplayActiveBorderClass,
-  editorUnreadBadgeClass,
-  editorUnreadItemBorderClass,
-} from '@/components/board/board-editor-styles';
+  collaborationListItemClassName,
+  CollaborationUnseenIndicator,
+} from '@/components/board/CollaborationUnseenIndicator';
+import { editorReplayActiveBorderClass } from '@/components/board/board-editor-styles';
 
 function isSnapshotRestoreSummary(summary: string | null | undefined): boolean {
   return Boolean(summary?.startsWith('Switched to Snapshot '));
+}
+
+function ActivitySectionsInfo({ sections }: { sections: EditorSectionName[] }) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const popoverId = useId();
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handlePointerDown(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [open]);
+
+  if (sections.length === 0) return null;
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        onClick={() => setOpen((value) => !value)}
+        tooltip="Updated sections"
+        tooltipSide="bottom"
+        aria-expanded={open}
+        aria-controls={open ? popoverId : undefined}
+        aria-haspopup="dialog"
+        aria-label={`${sections.length} updated section${sections.length === 1 ? '' : 's'}. Show details.`}
+        className={cn(
+          'h-8 w-8 rounded-full text-(--text-muted) hover:text-(--text-strong)',
+          open && 'text-(--text-strong)',
+        )}
+      >
+        <Tags className="h-4 w-4" aria-hidden="true" />
+      </Button>
+
+      {open ? (
+        <div
+          id={popoverId}
+          role="dialog"
+          aria-label="Updated sections"
+          className="absolute right-0 top-full z-50 mt-1.5 min-w-44 rounded-xl border border-(--border) bg-(--background) p-3 shadow-[var(--shadow-elevated)]"
+        >
+          <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-(--text-muted)">
+            Updated sections
+          </p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {sections.map((section) => (
+              <EditorSectionBadge key={section} section={section} showIcon />
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 type PanelFilter = 'all' | 'unread' | 'hidden';
@@ -27,6 +104,7 @@ type BoardActivityPanelProps = {
   activity: BoardActivityEvent[];
   loading: boolean;
   isOwner: boolean;
+  currentUserId?: string | null;
   activeReplayId?: string | null;
   onClose: () => void;
   onReplayOnBoard: (event: BoardActivityEvent) => void;
@@ -40,6 +118,7 @@ type BoardActivityPanelProps = {
 
 function ActivityItem({
   event,
+  isUnread,
   isActiveReplay,
   canDelete,
   showHiddenActions,
@@ -50,6 +129,7 @@ function ActivityItem({
   onUnhide,
 }: {
   event: BoardActivityEvent;
+  isUnread: boolean;
   isActiveReplay: boolean;
   canDelete: boolean;
   showHiddenActions: boolean;
@@ -60,6 +140,7 @@ function ActivityItem({
   onUnhide?: (activityId: string) => Promise<boolean>;
 }) {
   const changes = event.changes.length > 0 ? event.changes : [];
+  const affectedSections = getActivityEventSections(changes);
   const showSummaryLine = Boolean(
     event.summary && (changes.length === 0 || isSnapshotRestoreSummary(event.summary)),
   );
@@ -92,16 +173,24 @@ function ActivityItem({
     }
   };
 
+  const handleShowOnBoard = async () => {
+    if (isUnread && onToggleRead) {
+      const ok = await onToggleRead(event.id, true);
+      if (!ok) {
+        showToast('Failed to update read state.', 'destructive');
+      }
+    }
+
+    onReplayOnBoard(event);
+  };
+
   return (
     <li
-      className={[
-        'rounded-2xl border bg-(--surface-muted) px-4 py-3',
-        isActiveReplay
-          ? editorReplayActiveBorderClass
-          : event.isRead
-            ? 'border-(--border)'
-            : editorUnreadItemBorderClass,
-      ].join(' ')}
+      className={cn(
+        collaborationListItemClassName(),
+        isActiveReplay && editorReplayActiveBorderClass,
+      )}
+      aria-label={isUnread ? `Unseen activity by ${event.actorName}` : undefined}
     >
       <div className="flex items-start gap-3">
         <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-(--border) bg-(--surface-elevated)">
@@ -111,37 +200,41 @@ function ActivityItem({
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <p className="text-sm font-medium text-(--text-strong)">{event.actorName}</p>
-                {!event.isRead ? (
-                  <span className={editorUnreadBadgeClass}>
-                    New
-                  </span>
-                ) : null}
+                {isUnread ? <CollaborationUnseenIndicator /> : null}
               </div>
               <p className="text-xs text-(--text-muted)">{formatDateTime(event.createdAt)}</p>
             </div>
             <div className="flex items-center gap-1">
               {showHiddenActions ? (
-                onUnhide ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => void handleUnhide()}
-                    className="h-8 rounded-full px-2 text-xs"
-                  >
-                    Restore
-                  </Button>
-                ) : null
+                <>
+                  <ActivitySectionsInfo sections={affectedSections} />
+                  {onUnhide ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => void handleUnhide()}
+                      tooltip="Restore activity to your feed"
+                      tooltipSide="bottom"
+                      className="h-8 rounded-full px-2 text-xs"
+                    >
+                      Restore
+                    </Button>
+                  ) : null}
+                </>
               ) : (
                 <>
+                  <ActivitySectionsInfo sections={affectedSections} />
                   {onToggleRead ? (
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       onClick={() => void handleToggleRead()}
+                      tooltip={event.isRead ? 'Mark as unread' : 'Mark as read'}
+                      tooltipSide="bottom"
                       className="h-8 w-8 rounded-full text-(--text-muted) hover:text-(--text-strong)"
                       aria-label={
                         event.isRead
@@ -162,6 +255,8 @@ function ActivityItem({
                       variant="ghost"
                       size="icon"
                       onClick={() => void handleHide()}
+                      tooltip="Hide from your view"
+                      tooltipSide="bottom"
                       className="h-8 w-8 rounded-full text-(--text-muted) hover:text-(--text-strong)"
                       aria-label={`Hide activity by ${event.actorName} from your view`}
                     >
@@ -174,6 +269,8 @@ function ActivityItem({
                       variant="ghost"
                       size="icon"
                       onClick={() => onDeleteRequest(event)}
+                      tooltip="Delete activity"
+                      tooltipSide="bottom"
                       className="h-8 w-8 rounded-full text-(--text-muted) hover:text-red-600"
                       aria-label={`Delete activity by ${event.actorName}`}
                     >
@@ -212,7 +309,16 @@ function ActivityItem({
               size="sm"
               variant={isActiveReplay ? 'default' : 'outline'}
               disabled={changes.length === 0}
-              onClick={() => onReplayOnBoard(event)}
+              onClick={() => void handleShowOnBoard()}
+              tooltip={
+                changes.length === 0
+                  ? undefined
+                  : isActiveReplay
+                    ? 'Currently replaying on the board'
+                    : 'Show these changes on the board'
+              }
+              tooltipSide="bottom"
+              tooltipDelayMs={TOOLTIP_DELAY_SUPPLEMENTARY}
               className="mt-3 rounded-full"
             >
               <Play className="h-4 w-4" />
@@ -231,6 +337,7 @@ export function BoardActivityPanel({
   activity,
   loading,
   isOwner,
+  currentUserId = null,
   activeReplayId = null,
   onClose,
   onReplayOnBoard,
@@ -243,21 +350,26 @@ export function BoardActivityPanel({
 }: BoardActivityPanelProps) {
   const [filter, setFilter] = useState<PanelFilter>('all');
   const [pendingDelete, setPendingDelete] = useState<BoardActivityEvent | null>(null);
-  const markedReadRef = useRef(false);
+
+  const isUnreadEvent = useCallback(
+    (event: BoardActivityEvent) =>
+      !event.isHidden && event.userId !== currentUserId && !event.isRead,
+    [currentUserId],
+  );
 
   const visibleActivity = useMemo(() => {
     if (filter === 'hidden') {
       return activity.filter((event) => event.isHidden);
     }
     if (filter === 'unread') {
-      return activity.filter((event) => !event.isHidden && !event.isRead);
+      return activity.filter((event) => isUnreadEvent(event));
     }
     return activity.filter((event) => !event.isHidden);
-  }, [activity, filter]);
+  }, [activity, filter, isUnreadEvent]);
 
   const unreadCount = useMemo(
-    () => activity.filter((event) => !event.isHidden && !event.isRead).length,
-    [activity],
+    () => activity.filter((event) => isUnreadEvent(event)).length,
+    [activity, isUnreadEvent],
   );
 
   const hiddenCount = useMemo(
@@ -265,17 +377,6 @@ export function BoardActivityPanel({
     [activity],
   );
 
-  useEffect(() => {
-    if (!open) {
-      markedReadRef.current = false;
-      return;
-    }
-
-    if (onMarkAllRead && !markedReadRef.current) {
-      markedReadRef.current = true;
-      void onMarkAllRead();
-    }
-  }, [onMarkAllRead, open]);
 
   const handleClose = useCallback(() => {
     setPendingDelete(null);
@@ -287,7 +388,7 @@ export function BoardActivityPanel({
     if (!onMarkAllRead) return;
     const ok = await onMarkAllRead();
     if (ok) {
-      showToast('Activity marked as read.', 'success');
+      showToast('Activity marked as seen.', 'success');
     }
   };
 
@@ -328,6 +429,8 @@ export function BoardActivityPanel({
             variant="outline"
             size="icon"
             onClick={handleClose}
+            tooltip="Close activity"
+            tooltipSide="bottom"
             className="rounded-full border-(--border) bg-transparent"
             aria-label="Close activity panel"
           >
@@ -371,7 +474,7 @@ export function BoardActivityPanel({
               onClick={() => void handleMarkAllRead()}
               className="ml-auto rounded-full"
             >
-              Mark all as read
+              Mark all as seen
             </Button>
           ) : null}
         </div>
@@ -405,6 +508,7 @@ export function BoardActivityPanel({
                 <ActivityItem
                   key={event.id}
                   event={event}
+                  isUnread={isUnreadEvent(event)}
                   isActiveReplay={activeReplayId === event.id}
                   canDelete={isOwner}
                   showHiddenActions={filter === 'hidden'}

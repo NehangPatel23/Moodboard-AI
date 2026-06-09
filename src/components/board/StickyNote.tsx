@@ -48,6 +48,7 @@ export function StickyNote({
             size="icon"
             onClick={onDelete}
             aria-label="Delete note"
+            tooltip="Delete note"
           >
             <Trash2 className="h-4 w-4" />
           </Button>

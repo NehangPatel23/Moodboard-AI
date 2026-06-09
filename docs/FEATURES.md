@@ -131,8 +131,9 @@ Implemented.
 
 Implemented across authenticated routes (`/app`, `/settings`, `/templates`, board editor):
 
-- **Sidebar** — navigation, workspace avatar, collapse state in `localStorage`
+- **Sidebar** — navigation, workspace avatar, collapse state in `localStorage`; collapsed mode shows icon-only nav with tooltips and a bottom-aligned expand control
 - **TopBar** — brand link, search / `⌘K` command palette trigger, **sun/moon theme toggle** ([`ThemeToggle`](../src/components/shared/ThemeToggle.tsx)), account menu
+- **Tooltips** — frosted custom tooltips ([`tooltip.tsx`](../src/components/ui/tooltip.tsx)) on icon-only controls; supplementary hints use a longer delay when visible labels exist
 - Theme choice persists via settings cookie + `SettingsBootstrap`
 
 ---
@@ -225,11 +226,12 @@ POST /api/boards/[id]/favorite     # Per-member favorite (migration 019)
 **Real-time co-editing** (migration `006`):
 
 - Supabase Realtime presence on `board:{id}` — avatars + online count in header
-- **Section presence** — tab pills highlight when collaborators are on the same section ([`BoardSectionPresenceBar`](../src/components/board/BoardSectionPresenceBar.tsx))
+- **Section presence** — colored dots on section tabs match each collaborator’s avatar color ([`EditorTabPill`](../src/components/board/BoardEditorClient.tsx)); shared section metadata lives in [`editor-sections.ts`](../src/lib/editor-sections.ts)
+- Switching tabs scrolls the tab bar below the app top bar so tabs stay visible
 - Live board sync via `postgres_changes` on `boards` when local draft is clean
 - Conflict banner on unsaved local edits when a collaborator saves — **Reload** or **Keep editing**
 
-**Board comments:**
+**Board comments** (migration `022` adds `section`):
 
 ```txt
 GET    /api/boards/[id]/comments
@@ -239,19 +241,37 @@ DELETE /api/boards/[id]/comments/[commentId]
 ```
 
 - Slide-over comments panel (owner, editor, viewer)
+- Comments store the active editor section (`overview`, `palette`, `typography`, `references`, `notes`) with section badges in the thread
+- **View in {section}** jumps the editor to that tab and briefly highlights the section content
+- Composer shows which section you are commenting from
 - Live sync via Realtime on `board_comments` (INSERT, UPDATE, DELETE)
 - Authors edit own comments; owners edit or delete any comment
+
+**Unread / unseen collaboration items:**
+
+- Yellow dot + **Unseen** tooltip on unread comments, activity entries, and snapshots ([`CollaborationUnseenIndicator`](../src/components/board/CollaborationUnseenIndicator.tsx))
+- Your own comments, activity, and snapshots never count as unread ([`collaboration-read-state.ts`](../src/lib/collaboration-read-state.ts))
+- Items stay unseen until explicitly marked — eye/read button, **View in {section}**, **Show on board**, or **Mark all as seen** (panels do not auto-mark on open)
+- Toolbar badges on Comments, Activity, and Snapshots buttons; tab title unread count when applicable
 
 **Activity + replay** (migrations `008`–`013`):
 
 - Activity panel with structured change replay, read/hide, owner-only delete
+- Activity entries show section badge(s) for the editor tab(s) that changed; **Tags** popover in the panel header lists updated sections
+- **Show on board** marks activity read and jumps to the relevant section
 - Collaboration retention settings in Settings (migration `018`)
 - Verify with `npm run verify:collaboration`
+
+**Snapshots unread** (migration `023`):
+
+- `snapshots_last_read_at` on `board_collaboration_state` per user
+- New snapshots from collaborators show an unread dot until marked seen
+- Snapshot count in the panel header updates immediately after delete
 
 **Notifications:**
 
 - Remote-save toast when local draft is clean
-- Unread count in tab title + pulsing toolbar badges
+- Unread count in tab title + pulsing toolbar badges on Comments / Activity / Snapshots
 
 Planned: live cursors and character-level sync in a single field.
 
@@ -277,6 +297,7 @@ Supports:
 - **Open Graph meta** on share links for richer social previews
 - Owner preview at `/app/boards/[id]/view`
 - Non-editable consumption
+- **Single section heading** per tab — outer section label + description only (no duplicate card titles inside content panels)
 
 ---
 
@@ -293,9 +314,26 @@ Implemented:
 - Browse all **shared** boards without sign-in
 - Search by title, mood, tags, tone, and summary
 - **Featured row** — curated highlight strip at the top (when not searching)
-- **Creator attribution** — creator name on cards via `profiles` join
+- **Creator attribution** — creator name on cards via `profiles` join; links to `/profile/[id]`
 - Cards link to `/share/[id]` view-only presentation
 - `GET /api/discover` — public list of shared boards (newest first, up to 48)
+
+---
+
+### Profile Page
+
+Route:
+
+```txt
+/profile/[id]
+```
+
+Implemented:
+
+- Public creator profile (no sign-in required)
+- Workspace name, tagline, and avatar from `user_settings` (falls back to profile name + defaults)
+- Grid of **shared** boards by that creator (reuses Discover card component)
+- `GET /api/profile/[id]` — profile identity + shared boards (admin client; email not exposed)
 
 ---
 

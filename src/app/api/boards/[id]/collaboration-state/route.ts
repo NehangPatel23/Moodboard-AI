@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getBoardAccess } from '@/lib/db/board-access';
 import {
+  countUnreadBoardSnapshots,
   getBoardCollaborationState,
   markBoardCollaborationRead,
   upsertItemState,
@@ -17,8 +18,53 @@ type RouteContext = {
 type PatchBody = {
   markCommentsRead?: boolean;
   markActivityRead?: boolean;
+  markSnapshotsRead?: boolean;
   item?: CollaborationItemStateInput;
 };
+
+function emptyCollaborationStateResponse(): BoardCollaborationStateResponse {
+  return {
+    commentsLastReadAt: null,
+    activityLastReadAt: null,
+    snapshotsLastReadAt: null,
+    unreadComments: 0,
+    unreadActivity: 0,
+    unreadSnapshots: 0,
+  };
+}
+
+async function buildCollaborationStateResponse(
+  boardId: string,
+  viewerUserId: string,
+  state: Awaited<ReturnType<typeof getBoardCollaborationState>>,
+): Promise<BoardCollaborationStateResponse> {
+  const admin = createAdminClient();
+
+  const [{ count: unreadComments }, { count: unreadActivity }, unreadSnapshots] = await Promise.all([
+    admin
+      .from('board_comments')
+      .select('id', { count: 'exact', head: true })
+      .eq('board_id', boardId)
+      .neq('user_id', viewerUserId)
+      .gt('updated_at', state.commentsLastReadAt ?? '1970-01-01T00:00:00.000Z'),
+    admin
+      .from('board_activity')
+      .select('id', { count: 'exact', head: true })
+      .eq('board_id', boardId)
+      .neq('user_id', viewerUserId)
+      .gt('created_at', state.activityLastReadAt ?? '1970-01-01T00:00:00.000Z'),
+    countUnreadBoardSnapshots(admin, boardId, state.snapshotsLastReadAt, viewerUserId),
+  ]);
+
+  return {
+    commentsLastReadAt: state.commentsLastReadAt,
+    activityLastReadAt: state.activityLastReadAt,
+    snapshotsLastReadAt: state.snapshotsLastReadAt,
+    unreadComments: unreadComments ?? 0,
+    unreadActivity: unreadActivity ?? 0,
+    unreadSnapshots,
+  };
+}
 
 export async function GET(_request: Request, context: RouteContext) {
   const { id } = await context.params;
@@ -35,38 +81,11 @@ export async function GET(_request: Request, context: RouteContext) {
 
   try {
     const state = await getBoardCollaborationState(user.id, id);
-    const admin = createAdminClient();
-
-    const [{ count: unreadComments }, { count: unreadActivity }] = await Promise.all([
-      admin
-        .from('board_comments')
-        .select('id', { count: 'exact', head: true })
-        .eq('board_id', id)
-        .gt('updated_at', state.commentsLastReadAt ?? '1970-01-01T00:00:00.000Z'),
-      admin
-        .from('board_activity')
-        .select('id', { count: 'exact', head: true })
-        .eq('board_id', id)
-        .gt('created_at', state.activityLastReadAt ?? '1970-01-01T00:00:00.000Z'),
-    ]);
-
-    const response: BoardCollaborationStateResponse = {
-      commentsLastReadAt: state.commentsLastReadAt,
-      activityLastReadAt: state.activityLastReadAt,
-      unreadComments: unreadComments ?? 0,
-      unreadActivity: unreadActivity ?? 0,
-    };
-
-    return NextResponse.json(response);
+    return NextResponse.json(await buildCollaborationStateResponse(id, user.id, state));
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to load collaboration state';
     if (isMissingRelationError({ message }, 'board_collaboration_state')) {
-      return NextResponse.json({
-        commentsLastReadAt: null,
-        activityLastReadAt: null,
-        unreadComments: 0,
-        unreadActivity: 0,
-      } satisfies BoardCollaborationStateResponse);
+      return NextResponse.json(emptyCollaborationStateResponse());
     }
     return NextResponse.json({ error: message }, { status: 500 });
   }
@@ -92,7 +111,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const hasBulkRead = Boolean(body.markCommentsRead || body.markActivityRead);
+  const hasBulkRead = Boolean(body.markCommentsRead || body.markActivityRead || body.markSnapshotsRead);
   const hasItemUpdate = Boolean(body.item);
 
   if (!hasBulkRead && !hasItemUpdate) {
@@ -106,6 +125,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       state = await markBoardCollaborationRead(user.id, id, {
         markCommentsRead: body.markCommentsRead,
         markActivityRead: body.markActivityRead,
+        markSnapshotsRead: body.markSnapshotsRead,
       });
     }
 
@@ -113,29 +133,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       await upsertItemState(user.id, id, body.item);
     }
 
-    const admin = createAdminClient();
-
-    const [{ count: unreadComments }, { count: unreadActivity }] = await Promise.all([
-      admin
-        .from('board_comments')
-        .select('id', { count: 'exact', head: true })
-        .eq('board_id', id)
-        .gt('updated_at', state.commentsLastReadAt ?? '1970-01-01T00:00:00.000Z'),
-      admin
-        .from('board_activity')
-        .select('id', { count: 'exact', head: true })
-        .eq('board_id', id)
-        .gt('created_at', state.activityLastReadAt ?? '1970-01-01T00:00:00.000Z'),
-    ]);
-
-    const response: BoardCollaborationStateResponse = {
-      commentsLastReadAt: state.commentsLastReadAt,
-      activityLastReadAt: state.activityLastReadAt,
-      unreadComments: unreadComments ?? 0,
-      unreadActivity: unreadActivity ?? 0,
-    };
-
-    return NextResponse.json(response);
+    return NextResponse.json(await buildCollaborationStateResponse(id, user.id, state));
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to update collaboration state';
     return NextResponse.json({ error: message }, { status: 500 });

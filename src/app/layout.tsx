@@ -7,6 +7,7 @@ import { Toast } from '@/components/shared/Toast';
 import { CommandPalette } from '@/components/shared/CommandPalette';
 import { SettingsBootstrap } from '@/components/shared/SettingsBootstrap';
 import { ThemeSync } from '@/components/shared/ThemeSync';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { Analytics } from '@vercel/analytics/next';
 
 const dmSans = DM_Sans({
@@ -84,7 +85,9 @@ export default function RootLayout({
         </Script>
         <SettingsBootstrap />
         <ThemeSync />
-        {children}
+        <TooltipProvider>
+          {children}
+        </TooltipProvider>
         <Analytics />
         <Toast />
         <CommandPalette />

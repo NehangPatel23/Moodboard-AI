@@ -1,8 +1,16 @@
 'use client';
 
 import Link from 'next/link';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useGatedHref } from '@/components/auth/use-gated-href';
+import {
+  displayHeadingClass,
+  heroGradientClass,
+  outlineButtonClass,
+  primaryButtonClass,
+  sectionLabelClass,
+} from '@/components/landing/landing-styles';
 
 function MoodBoardMark({ className = 'h-8 w-8' }: { className?: string }) {
   return (
@@ -25,7 +33,7 @@ function DecorativeOrbitVisual() {
 
   return (
     <motion.div
-      className="relative min-h-82.5 overflow-hidden rounded-[2.25rem] border border-(--border) bg-(--surface-elevated) shadow-[0_24px_80px_rgba(15,23,42,0.08)] dark:shadow-[0_24px_80px_rgba(0,0,0,0.22)] lg:min-h-95"
+      className="relative min-h-82.5 overflow-hidden rounded-[2rem] border border-(--border) bg-(--surface)/70 backdrop-blur-sm lg:min-h-95"
       aria-hidden="true"
       initial={reduceMotion ? false : { opacity: 0, scale: 0.98, x: 18 }}
       whileInView={reduceMotion ? undefined : { opacity: 1, scale: 1, x: 0 }}
@@ -68,9 +76,7 @@ function DecorativeOrbitVisual() {
         transition={reduceMotion ? undefined : { duration: 9, repeat: Infinity, ease: 'easeInOut' }}
       >
         <div className="flex items-center justify-between gap-4">
-          <p className="text-xs uppercase tracking-[0.36em] text-(--text-muted)">
-            Visual language
-          </p>
+          <p className={sectionLabelClass}>Visual language</p>
           <span className="h-2 w-12 rounded-full border border-(--border) bg-(--surface-soft)" />
         </div>
 
@@ -119,48 +125,62 @@ function DecorativeOrbitVisual() {
   );
 }
 
-const primaryButtonClass =
-  'inline-flex h-11 items-center justify-center rounded-full border border-transparent bg-[var(--text-strong)]! px-5 text-sm font-medium text-[var(--background)]! shadow-[0_12px_30px_rgba(15,23,42,0.14)] transition-[transform,background-color,box-shadow,color,border-color] duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-[0_16px_36px_rgba(15,23,42,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] dark:border-white/10 dark:bg-white dark:text-slate-950 dark:shadow-[0_12px_30px_rgba(0,0,0,0.22)] dark:hover:bg-slate-200 dark:hover:shadow-[0_16px_36px_rgba(0,0,0,0.28)] dark:focus-visible:ring-offset-[var(--background)]';
-
 export function CTASection() {
   const reduceMotion = useReducedMotion();
   const beginBoardHref = useGatedHref('/app/new');
 
   return (
     <motion.section
-      className="py-12"
+      aria-labelledby="landing-cta-heading"
       initial={reduceMotion ? false : { opacity: 0, y: 16 }}
       whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.2 }}
       transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
     >
       <motion.div
-        className="grid gap-8 rounded-4xl border border-(--border) bg-(--surface-elevated) px-6 py-10 text-(--text-strong) shadow-[0_20px_60px_rgba(15,23,42,0.06)] md:px-10 lg:grid-cols-[0.92fr_1.08fr] lg:items-center lg:gap-10"
+        className="relative overflow-hidden rounded-[2.5rem] border border-(--border) bg-(--surface-elevated) px-6 py-10 shadow-[0_24px_60px_rgba(15,23,42,0.06)] md:px-10 md:py-12 dark:shadow-[0_24px_60px_rgba(0,0,0,0.22)] lg:grid lg:grid-cols-[0.92fr_1.08fr] lg:items-center lg:gap-10"
         whileHover={reduceMotion ? undefined : { y: -4 }}
         transition={{ duration: 0.2 }}
       >
+        <div aria-hidden="true" className={heroGradientClass} />
+
         <motion.div
-          className="max-w-2xl"
+          className="relative max-w-2xl space-y-5"
           initial={reduceMotion ? false : { opacity: 0, x: -12 }}
           whileInView={reduceMotion ? undefined : { opacity: 1, x: 0 }}
           viewport={{ once: true, amount: 0.2 }}
           transition={{ duration: 0.75, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
         >
-          <h2 className="text-3xl font-semibold tracking-tight text-(--text-strong) dark:text-white-400 md:text-4xl">
+          <p className={sectionLabelClass}>Get started</p>
+          <h2
+            id="landing-cta-heading"
+            className={`text-3xl md:text-4xl ${displayHeadingClass}`}
+          >
             Start with a prompt. Leave with a creative direction.
           </h2>
-          <p className="mt-4 text-base leading-7 text-(--text-muted) dark:text-slate-500">
-            Build a moodboard that looks polished, feels intentional, and is easy to iterate on.
+          <p className="text-sm leading-7 text-(--text-muted) md:text-base">
+            Build a moodboard that looks polished, feels intentional, and is easy to iterate on —
+            then share it on Discover or export for your team.
           </p>
 
-          <div className="mt-7">
+          <div className="flex flex-wrap gap-3 pt-1">
             <Link href={beginBoardHref} className={primaryButtonClass}>
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
               Begin your first board
+              <ArrowRight
+                className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                aria-hidden="true"
+              />
+            </Link>
+            <Link href="/about" className={outlineButtonClass}>
+              Learn more
             </Link>
           </div>
         </motion.div>
 
-        <DecorativeOrbitVisual />
+        <div className="relative mt-8 lg:mt-0">
+          <DecorativeOrbitVisual />
+        </div>
       </motion.div>
     </motion.section>
   );

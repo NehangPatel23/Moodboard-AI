@@ -57,7 +57,7 @@ User-scoped data is stored in **Supabase (Postgres + Auth)** with Row Level Secu
 **Setup:** Follow the full guide in [SUPABASE_SETUP.md](SUPABASE_SETUP.md). Short version:
 
 1. Create a Supabase project at [supabase.com](https://supabase.com).
-2. Run migrations in [`supabase/migrations/`](../supabase/migrations/) through `021` in the SQL Editor (or follow [SUPABASE_SETUP.md](SUPABASE_SETUP.md) / [DEPLOY.md](DEPLOY.md) for the full ordered list).
+2. Run migrations in [`supabase/migrations/`](../supabase/migrations/) through `023` in the SQL Editor (or follow [SUPABASE_SETUP.md](SUPABASE_SETUP.md) / [DEPLOY.md](DEPLOY.md) for the full ordered list).
 3. Copy API keys into `.env.local` (see [`.env.local.example`](../.env.local.example)).
 4. Disable **Confirm email** under Authentication → Providers → Email.
 5. Run `npm run setup:supabase` (verifies tables + seeds demo user).
@@ -129,10 +129,18 @@ sequenceDiagram
   RT-->>B: remote update event
   B->>B: apply if draft clean, else conflict banner
 
-  B->>DB: POST comment
+  B->>DB: POST comment (with section)
   DB->>RT: INSERT on board_comments
-  RT-->>A: new comment event
+  RT-->>A: new comment event — unread dot if from another user
+
+  B->>DB: save snapshot
+  DB->>RT: INSERT on board_snapshots
+  RT-->>A: snapshot event — unread until marked seen (migration 023)
 ```
+
+**Collaboration read state:** [`collaboration-read-state.ts`](../src/lib/collaboration-read-state.ts) centralizes unread logic. Own content is always read; timestamps on `board_collaboration_state` track last-read for comments, activity, and snapshots. API routes in [`board-collaboration-state.ts`](../src/lib/db/board-collaboration-state.ts) expose counts and mark-read actions.
+
+**Section metadata:** [`editor-sections.ts`](../src/lib/editor-sections.ts) — shared section ids, labels, descriptions, icons, and accent tokens for editor tabs, comments, activity, and replay.
 
 ---
 
@@ -202,6 +210,8 @@ sequenceDiagram
 **On-demand suggestions** (inside editor): `POST /api/generate/palette` · `POST /api/generate/typography` · `POST /api/generate/brand`
 
 **Design system export** (Export modal): deterministic tokens from palette + typography; optional `POST /api/generate/design-system` for AI-enhanced semantic token names (Gemini with mock fallback).
+
+**Public profiles:** `GET /api/profile/[id]` returns workspace identity (from `profiles` + `user_settings`) and shared boards only. Discover cards include `creatorId` for profile links.
 
 ---
 

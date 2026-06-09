@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { ReferenceItem } from '@/types/board';
 import { Button } from '@/components/ui/button';
+import { Tooltip } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -92,6 +93,7 @@ function ReferenceEditorModal({
               size="icon"
               onClick={onClose}
               aria-label="Close editor"
+              tooltip="Close editor"
               className="shrink-0"
             >
               <X className="h-4 w-4" />
@@ -241,45 +243,55 @@ export function ReferenceCard({
           className,
         )}
       >
-        <button
-          type="button"
-          onClick={openEditor}
-          className={cn(
-            'relative block w-full overflow-hidden bg-(--surface-muted) text-left',
-            readOnly ? 'cursor-default' : 'cursor-pointer',
-          )}
-          aria-label={readOnly ? reference.title : `Edit ${reference.title}`}
+        <Tooltip
+          content={readOnly ? reference.title : `Edit ${reference.title}`}
+          triggerClassName="block w-full"
         >
-          <div className="relative aspect-4/3 w-full overflow-hidden">
-            <ReferenceImageDisplay
-              title={reference.title}
-              category={reference.category}
-              imageUrl={reference.imageUrl}
-              source={reference.source}
-              board={board}
-            />
-          </div>
-
-          {!readOnly ? (
-            <div className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-(--border) bg-(--surface-elevated)/90 px-3 py-1 text-xs font-medium text-(--text) shadow-sm opacity-0 transition group-hover:opacity-100">
-              <Pencil className="h-3.5 w-3.5" />
-              Edit
-            </div>
-          ) : null}
-        </button>
-
-        {!readOnly && onRemove ? (
           <button
             type="button"
-            onClick={() => {
-              onRemove();
-              showToast('Reference removed.', 'success');
-            }}
-            className={cn('absolute right-3 top-3 z-20 shadow-sm', editorIconButtonClass)}
-            aria-label={`Remove ${reference.title}`}
+            onClick={openEditor}
+            className={cn(
+              'relative block w-full overflow-hidden bg-(--surface-muted) text-left',
+              readOnly ? 'cursor-default' : 'cursor-pointer',
+            )}
+            aria-label={readOnly ? reference.title : `Edit ${reference.title}`}
           >
-            <Trash2 className="h-4 w-4 text-(--text)" />
+            <div className="relative aspect-4/3 w-full overflow-hidden">
+              <ReferenceImageDisplay
+                title={reference.title}
+                category={reference.category}
+                imageUrl={reference.imageUrl}
+                source={reference.source}
+                board={board}
+              />
+            </div>
+
+            {!readOnly ? (
+              <div className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-(--border) bg-(--surface-elevated)/90 px-3 py-1 text-xs font-medium text-(--text) shadow-sm opacity-0 transition group-hover:opacity-100">
+                <Pencil className="h-3.5 w-3.5" />
+                Edit
+              </div>
+            ) : null}
           </button>
+        </Tooltip>
+
+        {!readOnly && onRemove ? (
+          <Tooltip
+            content={`Remove ${reference.title}`}
+            triggerClassName="absolute right-3 top-3 z-20"
+          >
+            <button
+              type="button"
+              onClick={() => {
+                onRemove();
+                showToast('Reference removed.', 'success');
+              }}
+              className={cn('shadow-sm', editorIconButtonClass)}
+              aria-label={`Remove ${reference.title}`}
+            >
+              <Trash2 className="h-4 w-4 text-(--text)" />
+            </button>
+          </Tooltip>
         ) : null}
 
         {readOnly ? (

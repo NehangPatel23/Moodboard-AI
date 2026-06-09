@@ -22,7 +22,7 @@ import {
   subscribeBoards,
   updateBoard,
 } from '@/lib/board-store';
-import { useBoardRealtime } from '@/lib/realtime/use-board-realtime';
+import { useBoardRealtime, type BoardPresenceUser } from '@/lib/realtime/use-board-realtime';
 import { useBoardComments } from '@/lib/realtime/use-board-comments';
 import { useBoardActivity } from '@/lib/realtime/use-board-activity';
 import { useBoardCollaborationState } from '@/lib/realtime/use-board-collaboration-state';
@@ -43,7 +43,6 @@ import {
 import { BoardCommentsPanel } from '@/components/board/BoardCommentsPanel';
 import { BoardActivityPanel } from '@/components/board/BoardActivityPanel';
 import { BoardSnapshotsPanel } from '@/components/board/BoardSnapshotsPanel';
-import { BoardSectionPresenceBar } from '@/components/board/BoardSectionPresenceBar';
 import { BoardReplayBanner } from '@/components/board/BoardReplayBanner';
 import { BoardReplayCallout, BoardReplaySectionBlock } from '@/components/board/BoardReplayCallout';
 import { BoardEditorSkeleton } from '@/components/board/BoardEditorSkeleton';
@@ -73,11 +72,18 @@ import {
   sectionHasReplayChanges,
   snapToReplaySectionIndex,
 } from '@/lib/board-replay';
+import {
+  EDITOR_SECTION_META,
+  EDITOR_SECTION_ORDER,
+  getEditorSectionIndex,
+  type EditorSectionName,
+} from '@/lib/editor-sections';
 import { ConfirmationModal } from '@/components/shared/ConfirmationModal';
 import { CollaborateModal } from '@/components/shared/CollaborateModal';
 import { ExportModal } from '@/components/shared/ExportModal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Tooltip } from '@/components/ui/tooltip';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -88,11 +94,6 @@ import {
   ClipboardList, 
   Lightbulb, 
   Tag,
-  Sparkles,
-  Palette,
-  Type,
-  Layers3,
-  Image as ImageIcon,
 } from 'lucide-react';
 import { showToast } from '@/components/shared/toast-store';
 import {
@@ -103,6 +104,7 @@ import {
   editorPanelClass,
   editorSelectClass,
   editorSubtleSurfaceClass,
+  presenceAccentForUser,
 } from '@/components/board/board-editor-styles';
 
 type BoardEditorClientProps = {
@@ -154,44 +156,6 @@ const fontOptions = [
   'Libre Baskerville',
   'Merriweather',
 ];
-
-const EDITOR_SECTIONS = ['overview', 'palette', 'typography', 'references', 'notes'] as const;
-type EditorSection = (typeof EDITOR_SECTIONS)[number];
-
-const EDITOR_SECTION_META: Record<
-  EditorSection,
-  {
-    label: string;
-    description: string;
-    icon: typeof Sparkles;
-  }
-> = {
-  overview: {
-    label: 'Overview',
-    description: 'Creative direction and summary.',
-    icon: Sparkles,
-  },
-  palette: {
-    label: 'Palette',
-    description: 'Core color direction.',
-    icon: Palette,
-  },
-  typography: {
-    label: 'Typography',
-    description: 'Font choices and usage notes.',
-    icon: Type,
-  },
-  references: {
-    label: 'References',
-    description: 'Inspiration grid and visual assets.',
-    icon: ImageIcon,
-  },
-  notes: {
-    label: 'Notes',
-    description: 'Captured ideas and instructions.',
-    icon: Layers3,
-  },
-};
 
 const panelClass = editorPanelClass;
 const fieldClass = editorFieldClass;
@@ -245,19 +209,19 @@ function EditorTabPill({
   index,
   replayHighlight = false,
   replayDisabled = false,
-  collaboratorActive = false,
-  collaboratorEditing = false,
+  presenceUsers = [],
+  currentUserId = null,
 }: {
   label: string;
   description: string;
-  icon: typeof Sparkles;
+  icon: typeof EDITOR_SECTION_META.overview.icon;
   active: boolean;
   onClick: () => void;
   index: number;
   replayHighlight?: boolean;
   replayDisabled?: boolean;
-  collaboratorActive?: boolean;
-  collaboratorEditing?: boolean;
+  presenceUsers?: BoardPresenceUser[];
+  currentUserId?: string | null;
 }) {
   return (
     <button
@@ -273,22 +237,11 @@ function EditorTabPill({
         'hover:bg-(--surface-subtle)',
         active ? 'bg-(--surface-subtle) shadow-sm' : '',
         replayHighlight ? 'border-amber-400/70 ring-1 ring-amber-400/30' : '',
-        collaboratorActive && !replayHighlight
-          ? 'border-emerald-400/70 ring-1 ring-emerald-400/30'
-          : '',
         replayDisabled ? 'cursor-not-allowed opacity-45 hover:bg-(--surface)' : '',
       ].join(' ')}
     >
       {replayHighlight ? (
         <span className="absolute right-3 top-3 h-2 w-2 rounded-full bg-amber-500" aria-hidden="true" />
-      ) : collaboratorActive ? (
-        <span
-          className={[
-            'absolute right-3 top-3 h-2 w-2 rounded-full',
-            collaboratorEditing ? 'bg-emerald-500' : 'bg-sky-500',
-          ].join(' ')}
-          aria-hidden="true"
-        />
       ) : null}
       <div
         className={[
@@ -302,8 +255,29 @@ function EditorTabPill({
       </div>
 
       <div className="min-w-0">
-        <p className="text-sm font-medium">
-          {index + 1}. {label}
+        <p className="flex flex-wrap items-center gap-1.5 text-sm font-medium">
+          <span>
+            {index + 1}. {label}
+          </span>
+          {presenceUsers.length > 0 ? (
+            <span className="inline-flex items-center gap-1">
+              {presenceUsers.map((user) => {
+                const isCurrentUser = user.userId === currentUserId;
+                const displayName = isCurrentUser ? 'You' : user.name;
+                const statusLabel = user.status === 'editing' ? 'editing' : 'viewing';
+
+                return (
+                  <span
+                    key={user.userId}
+                    className="h-2 w-2 shrink-0 rounded-full ring-1 ring-(--background)"
+                    style={{ backgroundColor: presenceAccentForUser(user.userId) }}
+                    title={`${displayName} (${statusLabel})`}
+                    aria-label={`${displayName} is ${statusLabel} this section`}
+                  />
+                );
+              })}
+            </span>
+          ) : null}
         </p>
         <p className="mt-1 text-xs text-(--text-muted)">{description}</p>
       </div>
@@ -464,6 +438,7 @@ function ReferenceEditorModal({
             size="icon"
             onClick={onClose}
             aria-label="Close reference editor"
+            tooltip="Close reference editor"
             className="h-11 w-11 rounded-full border border-(--border) bg-(--surface-elevated) text-(--text-muted) hover:bg-(--surface-subtle) hover:text-(--text-strong)"
           >
             <X className="h-5 w-5" />
@@ -652,6 +627,8 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const [editingReferenceIndex, setEditingReferenceIndex] = useState<number | null>(null);
   const [isNewReference, setIsNewReference] = useState(false);
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
+  const [sectionHighlight, setSectionHighlight] = useState<EditorSectionName | null>(null);
+  const sectionTabsRef = useRef<HTMLElement>(null);
   const sectionContentRef = useRef<HTMLDivElement>(null);
   const skipInitialSectionScroll = useRef(true);
   const [typographyLoading, setTypographyLoading] = useState(false);
@@ -718,9 +695,9 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     [boardId, isDirty],
   );
 
-  const activeSectionLabel = EDITOR_SECTION_META[EDITOR_SECTIONS[activeSectionIndex]].label;
+  const activeSectionLabel = EDITOR_SECTION_META[EDITOR_SECTION_ORDER[activeSectionIndex]].label;
 
-  const { presenceUsers, onlineUsers } = useBoardRealtime({
+  const { onlineUsers } = useBoardRealtime({
     boardId,
     userId: auth.user?.id ?? null,
     userName: auth.user?.name ?? settings.workspaceName,
@@ -736,8 +713,11 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const {
     commentsLastReadAt,
     activityLastReadAt,
+    snapshotsLastReadAt,
+    unreadSnapshots,
     markCommentsRead,
     markActivityRead,
+    markSnapshotsRead,
     setItemRead,
     hideItem,
     unhideItem,
@@ -745,6 +725,8 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   } = useBoardCollaborationState({
     boardId,
     enabled: canComment,
+    currentUserId: auth.user?.id ?? null,
+    trackSnapshots: canEditBoard,
   });
 
   const {
@@ -773,19 +755,30 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   } = useBoardActivity({
     boardId,
     enabled: canComment,
+    currentUserId: auth.user?.id ?? null,
     activityLastReadAt,
   });
 
+  const currentUserId = auth.user?.id ?? null;
+
   const unreadCommentsCount = useMemo(
-    () => comments.filter((comment) => !comment.isHidden && !comment.isRead).length,
-    [comments],
+    () =>
+      comments.filter(
+        (comment) =>
+          !comment.isHidden && !comment.isRead && comment.userId !== currentUserId,
+      ).length,
+    [comments, currentUserId],
   );
   const unreadActivityCount = useMemo(
-    () => activity.filter((event) => !event.isHidden && !event.isRead).length,
-    [activity],
+    () =>
+      activity.filter(
+        (event) => !event.isHidden && !event.isRead && event.userId !== currentUserId,
+      ).length,
+    [activity, currentUserId],
   );
+  const unreadSnapshotsCount = canEditBoard ? unreadSnapshots : 0;
 
-  const tabUnreadCount = unreadCommentsCount + unreadActivityCount;
+  const tabUnreadCount = unreadCommentsCount + unreadActivityCount + unreadSnapshotsCount;
   useDocumentTitle(editorBoard?.title ?? 'Board', tabUnreadCount);
 
   useEffect(() => {
@@ -855,14 +848,14 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
 
       if (event.key === 'ArrowRight' || event.key === ' ') {
         event.preventDefault();
-        setActiveSectionIndex((current) => (current + 1) % EDITOR_SECTIONS.length);
+        setActiveSectionIndex((current) => (current + 1) % EDITOR_SECTION_ORDER.length);
         return;
       }
 
       if (event.key === 'ArrowLeft') {
         event.preventDefault();
         setActiveSectionIndex(
-          (current) => (current - 1 + EDITOR_SECTIONS.length) % EDITOR_SECTIONS.length,
+          (current) => (current - 1 + EDITOR_SECTION_ORDER.length) % EDITOR_SECTION_ORDER.length,
         );
       }
     };
@@ -878,7 +871,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     }
 
     const scrollBehavior = settings.reduceMotionEnabled ? 'auto' : 'smooth';
-    sectionContentRef.current?.scrollIntoView({ behavior: scrollBehavior, block: 'start' });
+    sectionTabsRef.current?.scrollIntoView({ behavior: scrollBehavior, block: 'start' });
   }, [activeSectionIndex, settings.reduceMotionEnabled]);
 
   if (isResolvingBoard) {
@@ -927,7 +920,16 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const dirtyStatus = isDirty ? 'Unsaved changes' : saveStatus;
   const currentReference =
     editingReferenceIndex !== null ? editorBoard.references[editingReferenceIndex] ?? null : null;
-  const activeSection: EditorSection = EDITOR_SECTIONS[activeSectionIndex];
+  const activeSection: EditorSectionName = EDITOR_SECTION_ORDER[activeSectionIndex];
+
+  const handleGoToSection = (section: EditorSectionName) => {
+    const index = getEditorSectionIndex(section);
+    if (index < 0) return;
+
+    setActiveSectionIndex(index);
+    setSectionHighlight(section);
+    window.setTimeout(() => setSectionHighlight(null), 2000);
+  };
 
   const markDirty = () => {
     if (!isDirty) {
@@ -1309,7 +1311,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     setActiveSectionIndex(sectionIndex);
     const scrollBehavior = settings.reduceMotionEnabled ? 'auto' : 'smooth';
     window.setTimeout(() => {
-      sectionContentRef.current?.scrollIntoView({ behavior: scrollBehavior, block: 'start' });
+      sectionTabsRef.current?.scrollIntoView({ behavior: scrollBehavior, block: 'start' });
     }, 80);
   };
 
@@ -1330,11 +1332,11 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     setActiveSectionIndex(targetIndex);
     const scrollBehavior = settings.reduceMotionEnabled ? 'auto' : 'smooth';
     window.setTimeout(() => {
-      sectionContentRef.current?.scrollIntoView({ behavior: scrollBehavior, block: 'start' });
+      sectionTabsRef.current?.scrollIntoView({ behavior: scrollBehavior, block: 'start' });
     }, 80);
   };
 
-  const renderSectionReplay = (section: EditorSection) => {
+  const renderSectionReplay = (section: EditorSectionName) => {
     if (!isReplayMode) return null;
     return (
       <BoardReplaySectionBlock
@@ -1379,6 +1381,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
           isDirty={isDirty}
           unreadCommentsCount={unreadCommentsCount}
           unreadActivityCount={unreadActivityCount}
+          unreadSnapshotsCount={unreadSnapshotsCount}
           reduceMotionEnabled={settings.reduceMotionEnabled}
           onlineUsers={onlineUsers}
           currentUserId={auth.user?.id ?? null}
@@ -1462,66 +1465,64 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
               </div>
             </aside>
           </div>
-
-          <div className="flex flex-col gap-3 border-t border-(--border) pt-5">
-            <div className="flex flex-wrap gap-2" aria-label="Editor sections">
-              {EDITOR_SECTIONS.map((section, index) => {
-                const meta = EDITOR_SECTION_META[section];
-                const hasReplayChanges =
-                  isReplayMode && sectionHasReplayChanges(replayChanges, section);
-                const othersOnSection = onlineUsers.filter(
-                  (user) =>
-                    user.userId !== auth.user?.id && user.sectionIndex === index,
-                );
-                const collaboratorActive = othersOnSection.length > 0;
-                const collaboratorEditing = othersOnSection.some(
-                  (user) => user.status === 'editing',
-                );
-                return (
-                  <EditorTabPill
-                    key={section}
-                    label={meta.label}
-                    description={meta.description}
-                    icon={meta.icon}
-                    active={index === activeSectionIndex}
-                    replayHighlight={hasReplayChanges}
-                    replayDisabled={isReplayMode && !hasReplayChanges}
-                    collaboratorActive={!isReplayMode && collaboratorActive}
-                    collaboratorEditing={!isReplayMode && collaboratorEditing}
-                    onClick={() => {
-                      if (isReplayMode) {
-                        if (hasReplayChanges) {
-                          goToReplaySection(index);
-                        }
-                        return;
-                      }
-                      setActiveSectionIndex(index);
-                    }}
-                    index={index}
-                  />
-                );
-              })}
-            </div>
-
-            {!isReplayMode ? (
-              <BoardSectionPresenceBar
-                users={onlineUsers}
-                currentUserId={auth.user?.id ?? null}
-                activeSectionIndex={activeSectionIndex}
-                activeSectionLabel={EDITOR_SECTION_META[activeSection].label}
-              />
-            ) : null}
-
-            <p className="text-center text-sm leading-6 text-(--text-muted)" aria-live="polite">
-              {isReplayMode
-                ? 'Use ← → or Space to move through changed sections.'
-                : 'Use ← → or Space to move through sections.'}
-            </p>
-          </div>
         </div>
       </section>
 
-      <div ref={sectionContentRef} className="space-y-6 scroll-mt-28">
+      <nav
+        ref={sectionTabsRef}
+        aria-label="Editor sections"
+        className="scroll-mt-24 rounded-[2rem] border border-(--border) bg-(--surface-elevated) px-4 py-4 shadow-[var(--shadow-card)] md:scroll-mt-28 md:px-5"
+      >
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap gap-2">
+            {EDITOR_SECTION_ORDER.map((section, index) => {
+              const meta = EDITOR_SECTION_META[section];
+              const hasReplayChanges =
+                isReplayMode && sectionHasReplayChanges(replayChanges, section);
+              const othersOnSection = onlineUsers.filter((user) => user.sectionIndex === index);
+              return (
+                <EditorTabPill
+                  key={section}
+                  label={meta.label}
+                  description={meta.description}
+                  icon={meta.icon}
+                  active={index === activeSectionIndex}
+                  replayHighlight={hasReplayChanges}
+                  replayDisabled={isReplayMode && !hasReplayChanges}
+                  presenceUsers={!isReplayMode ? othersOnSection : []}
+                  currentUserId={auth.user?.id ?? null}
+                  onClick={() => {
+                    if (isReplayMode) {
+                      if (hasReplayChanges) {
+                        goToReplaySection(index);
+                      }
+                      return;
+                    }
+                    setActiveSectionIndex(index);
+                  }}
+                  index={index}
+                />
+              );
+            })}
+          </div>
+
+          <p className="text-center text-sm leading-6 text-(--text-muted)" aria-live="polite">
+            {isReplayMode
+              ? 'Use ← → or Space to move through changed sections.'
+              : 'Use ← → or Space to move through sections.'}
+          </p>
+        </div>
+      </nav>
+
+      <div
+        ref={sectionContentRef}
+        className={[
+          'space-y-6 rounded-[2rem] transition-shadow',
+          sectionHighlight === activeSection
+            ? `ring-2 ${EDITOR_SECTION_META[activeSection].ringClass} ring-offset-2 ring-offset-(--background)`
+            : '',
+        ].join(' ')}
+      >
         {activeSection === 'overview' ? (
           <Card className={panelClass}>
             <CardHeader className="flex flex-row items-center justify-between gap-4">
@@ -1719,40 +1720,45 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                           </div>
                         </div>
                       ) : (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsNewReference(false);
-                            setEditingReferenceIndex(index);
-                          }}
-                          aria-label={`Edit reference ${reference.title}`}
-                          className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring)"
+                        <Tooltip
+                          content={`Edit reference ${reference.title}`}
+                          triggerClassName="block w-full"
                         >
-                          <div className="relative aspect-4/3 w-full overflow-hidden">
-                            <ReferenceImageDisplay
-                              title={reference.title}
-                              category={reference.category}
-                              imageUrl={reference.imageUrl}
-                              source={reference.source}
-                              board={draft ?? editorBoard}
-                              index={index}
-                            />
-                            <div className="absolute inset-0 bg-linear-to-t from-black/20 via-transparent to-transparent" />
-                          </div>
-
-                          <div className="space-y-2 p-4">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Badge variant="secondary">{reference.category}</Badge>
-                              {reference.source ? (
-                                <span className="text-xs text-(--text-muted)">{reference.source}</span>
-                              ) : null}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsNewReference(false);
+                              setEditingReferenceIndex(index);
+                            }}
+                            aria-label={`Edit reference ${reference.title}`}
+                            className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring)"
+                          >
+                            <div className="relative aspect-4/3 w-full overflow-hidden">
+                              <ReferenceImageDisplay
+                                title={reference.title}
+                                category={reference.category}
+                                imageUrl={reference.imageUrl}
+                                source={reference.source}
+                                board={draft ?? editorBoard}
+                                index={index}
+                              />
+                              <div className="absolute inset-0 bg-linear-to-t from-black/20 via-transparent to-transparent" />
                             </div>
 
-                            <p className="line-clamp-2 text-sm leading-6 text-(--text)">
-                              {reference.title}
-                            </p>
-                          </div>
-                        </button>
+                            <div className="space-y-2 p-4">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant="secondary">{reference.category}</Badge>
+                                {reference.source ? (
+                                  <span className="text-xs text-(--text-muted)">{reference.source}</span>
+                                ) : null}
+                              </div>
+
+                              <p className="line-clamp-2 text-sm leading-6 text-(--text)">
+                                {reference.title}
+                              </p>
+                            </div>
+                          </button>
+                        </Tooltip>
                       )}
 
                       {canMutateBoard ? (
@@ -1762,7 +1768,9 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                           size="icon"
                           onClick={() => handleRequestRemoval('reference', index)}
                           aria-label={`Remove reference ${reference.title}`}
-                          className="absolute right-3 top-3 h-9 w-9 rounded-full border border-(--border) bg-(--surface-elevated) text-(--text-muted) opacity-100 transition hover:bg-(--surface-subtle) hover:text-(--text)"
+                          tooltip={`Remove reference ${reference.title}`}
+                          tooltipTriggerClassName="absolute right-3 top-3 z-20"
+                          className="h-9 w-9 rounded-full border border-(--border) bg-(--surface-elevated) text-(--text-muted) opacity-100 transition hover:bg-(--surface-subtle) hover:text-(--text)"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -1836,6 +1844,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                           size="icon"
                           onClick={() => handleRequestRemoval('note', index)}
                           aria-label={`Remove note ${index + 1}`}
+                          tooltip={`Remove note ${index + 1}`}
                           className={editorIconButtonClass}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -1948,6 +1957,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                       size="icon"
                       onClick={() => handleRequestRemoval('palette', index)}
                       aria-label={`Remove color ${item.label}`}
+                      tooltip={`Remove color ${item.label}`}
                       className="absolute right-4 top-4 z-10 h-9 w-9 rounded-full border border-(--border) bg-(--surface-elevated) text-(--text-muted) transition hover:bg-(--surface-subtle) hover:text-(--text)"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -1986,23 +1996,25 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                           Color hex
                         </label>
                         <div className="flex items-center gap-3">
-                          <div className="flex h-11 w-14 items-center justify-center rounded-2xl border border-(--border) bg-(--surface-elevated) p-1">
-                            <input
-                              type="color"
-                              value={item.hex}
-                              disabled={effectiveReadOnly}
-                              onChange={(e) =>
-                                updateDraft((current) => ({
-                                  ...current,
-                                  palette: current.palette.map((color, currentIndex) =>
-                                    currentIndex === index ? { ...color, hex: e.target.value } : color,
-                                  ),
-                                }))
-                              }
-                              className="h-full w-full cursor-pointer rounded-xl border-0 bg-transparent p-0"
-                              aria-label={`Pick color for ${item.label}`}
-                            />
-                          </div>
+                          <Tooltip content={`Pick color for ${item.label}`}>
+                            <div className="flex h-11 w-14 items-center justify-center rounded-2xl border border-(--border) bg-(--surface-elevated) p-1">
+                              <input
+                                type="color"
+                                value={item.hex}
+                                disabled={effectiveReadOnly}
+                                onChange={(e) =>
+                                  updateDraft((current) => ({
+                                    ...current,
+                                    palette: current.palette.map((color, currentIndex) =>
+                                      currentIndex === index ? { ...color, hex: e.target.value } : color,
+                                    ),
+                                  }))
+                                }
+                                className="h-full w-full cursor-pointer rounded-xl border-0 bg-transparent p-0"
+                                aria-label={`Pick color for ${item.label}`}
+                              />
+                            </div>
+                          </Tooltip>
                           <Input
                             value={item.hex}
                             readOnly={effectiveReadOnly}
@@ -2101,6 +2113,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                         size="icon"
                         onClick={() => handleRequestRemoval('typography', index)}
                         aria-label={`Remove ${item.role} typography`}
+                        tooltip={`Remove ${item.role} typography`}
                         className="absolute right-4 top-4 z-10 h-9 w-9 rounded-full border border-(--border) bg-(--surface-elevated) text-(--text-muted) transition hover:bg-(--surface-subtle) hover:text-(--text)"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -2334,8 +2347,10 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         isOwner={isOwner}
         currentUserId={auth.user?.id ?? null}
         onClose={() => setCommentsOpen(false)}
+        currentSection={activeSection}
+        onGoToSection={handleGoToSection}
         onPost={async (body) => {
-          const ok = await postComment(body);
+          const ok = await postComment(body, activeSection);
           if (ok) {
             void refreshCollaborationState();
           }
@@ -2375,6 +2390,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         activity={activity}
         loading={activityLoading}
         isOwner={isOwner}
+        currentUserId={currentUserId}
         activeReplayId={replayEvent?.id ?? null}
         onClose={() => setActivityOpen(false)}
         onReplayOnBoard={startBoardReplay}
@@ -2411,6 +2427,18 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         canEdit={canMutateBoard}
         isOwner={isOwner}
         onClose={() => setSnapshotsOpen(false)}
+        onMarkAllRead={async () => {
+          const ok = await markSnapshotsRead();
+          if (ok) {
+            void refreshCollaborationState();
+          }
+          return ok;
+        }}
+        onSnapshotsChanged={() => {
+          void refreshCollaborationState();
+        }}
+        snapshotsLastReadAt={snapshotsLastReadAt}
+        currentUserId={currentUserId}
         onRestored={(board) => {
           setDraft(cloneBoard(board));
           setIsDirty(false);

@@ -1,3 +1,5 @@
+import type { EditorSectionName } from '@/lib/editor-sections';
+
 export type BoardVisibility = 'private' | 'shared';
 
 export type BoardMemberRole = 'editor' | 'viewer';
@@ -22,12 +24,14 @@ export type BoardInvite = {
   acceptedAt?: string;
 };
 
+
 export type BoardComment = {
   id: string;
   boardId: string;
   userId: string;
   authorName: string;
   body: string;
+  section: EditorSectionName;
   createdAt: string;
   updatedAt: string;
   isRead?: boolean;
@@ -73,8 +77,10 @@ export type CollaborationItemStateInput = {
 export type BoardCollaborationStateResponse = {
   commentsLastReadAt: string | null;
   activityLastReadAt: string | null;
+  snapshotsLastReadAt: string | null;
   unreadComments: number;
   unreadActivity: number;
+  unreadSnapshots: number;
 };
 
 export type PaletteItem = {
@@ -137,6 +143,8 @@ export type Board = {
   visibility: BoardVisibility;
   role?: BoardRole;
   creatorName?: string;
+  /** Owner user id — set on discover/profile listings. */
+  creatorId?: string;
   /** Computed on owned boards from GET /api/boards — true when members or pending invites exist. */
   hasCollaborators?: boolean;
 };

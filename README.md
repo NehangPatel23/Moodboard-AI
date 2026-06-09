@@ -50,7 +50,7 @@ AI-assisted workspace for creative direction and moodboarding. Describe a brand 
 | **Problem** | Creative briefs start vague; moodboards take hours to assemble manually |
 | **Solution** | AI generates a structured first draft — palette, type, refs, notes — you refine and share |
 | **Output** | Editable boards exportable as JSON, PNG, or PDF |
-| **Collaboration** | Invites, roles, real-time presence, comments, activity replay |
+| **Collaboration** | Invites, roles, real-time presence, section-linked comments, activity replay, unread badges |
 | **Status** | MVP live · active development · portfolio-grade product build |
 
 ---
@@ -278,11 +278,12 @@ flowchart TD
   editAccess --> realtime
 
   subgraph realtime ["Real-time layer"]
-    presence["Presence avatars + section highlights"]
+    presence["Presence dots on section tabs"]
     sync["Live sync when draft is clean"]
     conflict["Conflict banner if you have unsaved edits"]
-    comments["Comments panel — live updates"]
+    comments["Section-linked comments — jump to tab"]
     activity["Activity feed — replay past saves"]
+    unseen["Unread dots on comments, activity, snapshots"]
   end
 
   viewAccess --> comments
@@ -346,16 +347,18 @@ flowchart LR
 <summary><strong>Share & collaborate</strong></summary>
 
 - Email invites with **owner / editor / viewer** roles
-- **Real-time presence** — see who's online and which section they're on
-- **Comments** and **activity replay** with save notifications
-- View-only links at `/share/[id]` · public boards on `/discover`
+- **Real-time presence** — colored dots on section tabs show who is on each tab
+- **Section-linked comments** — tag feedback to Overview, Palette, Typography, References, or Notes; **View in section** jumps the editor
+- **Unread indicators** — yellow dots on new comments, activity, and snapshots (your own posts never count as unread)
+- **Activity replay** with section badges and save notifications
+- View-only links at `/share/[id]` · public boards on `/discover` · creator profiles at `/profile/[id]`
 
 </details>
 
 <details open>
 <summary><strong>Export & organize</strong></summary>
 
-- **JSON**, **PNG**, or **PDF** export with live preview
+- **JSON**, **PNG**, **PDF**, or **design system** export with live preview
 - Dashboard filters — All, With me, With others, Public, Private
 - Favorites, duplicate, global search with **`⌘K`**
 
@@ -420,7 +423,7 @@ Yes. Set visibility to **Shared** for a view-only link at `/share/[id]`, or invi
 <details>
 <summary><strong>What can I export?</strong></summary>
 
-**JSON** (full board data), **PNG** (visual summary), or **PDF** (print-ready with smart page breaks). All formats include palette, typography, references, notes, and brand strategy when saved.
+**JSON** (full board data), **PNG** (visual summary), **PDF** (print-ready with smart page breaks), or **design system tokens** (CSS, Tailwind, JSON, Markdown). All formats include palette, typography, references, notes, and brand strategy when saved.
 
 </details>
 

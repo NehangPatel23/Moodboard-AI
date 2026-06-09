@@ -4,6 +4,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Eye, Pencil } from 'lucide-react';
 import type { BoardRole } from '@/types/board';
 import { cn } from '@/lib/utils';
+import { Tooltip } from '@/components/ui/tooltip';
 import type { BoardPresenceUser } from '@/lib/realtime/use-board-realtime';
 import {
   editorPresenceAvatarBorderClass,
@@ -11,7 +12,7 @@ import {
   editorPresenceAvatarCurrentClass,
   editorPresenceEditingDotClass,
   editorPresenceViewingDotClass,
-  presenceAccentColors,
+  presenceAccentForUser,
 } from '@/components/board/board-editor-styles';
 
 type BoardPresenceStripProps = {
@@ -27,15 +28,6 @@ function initialsFromName(name: string): string {
   return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase();
 }
 
-const ACCENT_COLORS = [...presenceAccentColors];
-
-function accentForUser(userId: string): string {
-  let hash = 0;
-  for (let i = 0; i < userId.length; i += 1) {
-    hash = (hash + userId.charCodeAt(i) * (i + 1)) % ACCENT_COLORS.length;
-  }
-  return ACCENT_COLORS[hash] ?? ACCENT_COLORS[0];
-}
 
 function roleLabel(role: BoardRole): string {
   if (role === 'owner') return 'Owner';
@@ -73,7 +65,7 @@ function PresenceAvatar({
         dimension,
         isCurrentUser ? editorPresenceAvatarCurrentClass : editorPresenceAvatarBorderClass,
       )}
-      style={{ backgroundColor: accentForUser(user.userId) }}
+      style={{ backgroundColor: presenceAccentForUser(user.userId) }}
       aria-hidden="true"
     >
       {initialsFromName(user.name)}
@@ -172,50 +164,52 @@ export function BoardPresenceStrip({ users, currentUserId, className }: BoardPre
 
   return (
     <div className={cn('relative', className)} ref={containerRef}>
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        aria-expanded={open}
-        aria-controls={open ? panelId : undefined}
-        aria-haspopup="dialog"
-        aria-label={`${users.length} collaborator${users.length === 1 ? '' : 's'} online. Show details.`}
-        className={cn(
-          'inline-flex items-center gap-2.5 rounded-full border border-(--border) bg-(--surface-elevated) px-3 py-1.5 text-left shadow-sm transition',
-          'hover:border-(--text-muted)/30 hover:bg-(--surface-subtle) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)',
-          open && 'border-(--text-muted)/30 bg-(--surface-subtle)',
-        )}
+      <Tooltip
+        content={`${users.length} collaborator${users.length === 1 ? '' : 's'} online`}
+        side="bottom"
       >
-        <div className="flex -space-x-2">
-          {visible.map((user) => {
-            const isCurrentUser = currentUserId === user.userId;
-
-            return (
-              <div
-                key={user.userId}
-                title={`${isCurrentUser ? 'You' : user.name} (${user.status === 'editing' ? 'editing' : 'viewing'})`}
-              >
-                <PresenceAvatar user={user} isCurrentUser={isCurrentUser} />
-              </div>
-            );
-          })}
-        </div>
-        <div className="min-w-0 text-xs leading-tight">
-          <p className="font-medium text-(--text-strong)">
-            {users.length} online
-            {overflow > 0 ? ` (+${overflow})` : ''}
-          </p>
-          <p className="text-(--text-muted)">
-            {othersCount === 0 ? 'Just you' : `${othersCount} collaborator${othersCount === 1 ? '' : 's'}`}
-          </p>
-        </div>
-        <ChevronDown
+        <button
+          type="button"
+          onClick={() => setOpen((value) => !value)}
+          aria-expanded={open}
+          aria-controls={open ? panelId : undefined}
+          aria-haspopup="dialog"
+          aria-label={`${users.length} collaborator${users.length === 1 ? '' : 's'} online. Show details.`}
           className={cn(
-            'h-4 w-4 shrink-0 text-(--text-muted) transition-transform',
-            open && 'rotate-180',
+            'inline-flex items-center gap-2.5 rounded-full border border-(--border) bg-(--surface-elevated) px-3 py-1.5 text-left shadow-sm transition',
+            'hover:border-(--text-muted)/30 hover:bg-(--surface-subtle) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)',
+            open && 'border-(--text-muted)/30 bg-(--surface-subtle)',
           )}
-          aria-hidden="true"
-        />
-      </button>
+        >
+          <div className="flex -space-x-2">
+            {visible.map((user) => {
+              const isCurrentUser = currentUserId === user.userId;
+
+              return (
+                <div key={user.userId}>
+                  <PresenceAvatar user={user} isCurrentUser={isCurrentUser} />
+                </div>
+              );
+            })}
+          </div>
+          <div className="min-w-0 text-xs leading-tight">
+            <p className="font-medium text-(--text-strong)">
+              {users.length} online
+              {overflow > 0 ? ` (+${overflow})` : ''}
+            </p>
+            <p className="text-(--text-muted)">
+              {othersCount === 0 ? 'Just you' : `${othersCount} collaborator${othersCount === 1 ? '' : 's'}`}
+            </p>
+          </div>
+          <ChevronDown
+            className={cn(
+              'h-4 w-4 shrink-0 text-(--text-muted) transition-transform',
+              open && 'rotate-180',
+            )}
+            aria-hidden="true"
+          />
+        </button>
+      </Tooltip>
 
       {open ? (
         <div

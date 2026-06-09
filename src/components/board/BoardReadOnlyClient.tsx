@@ -1,10 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Image as ImageIcon, Layers3, Palette, Sparkles, Type } from 'lucide-react';
 import type { Board, NoteType, TypographyRole } from '@/types/board';
+import {
+  EDITOR_SECTION_META,
+  EDITOR_SECTION_ORDER,
+  type EditorSectionName,
+} from '@/lib/editor-sections';
 import { useGatedHref } from '@/components/auth/use-gated-href';
 import {
   getBoardStoreSnapshot,
@@ -52,44 +56,6 @@ type PublicFetchState = {
   board: Board | null;
   loading: boolean;
   error: 'not_found' | 'network' | null;
-};
-
-const PRESENTATION_SECTIONS = ['overview', 'palette', 'typography', 'references', 'notes'] as const;
-type PresentationSection = (typeof PRESENTATION_SECTIONS)[number];
-
-const SECTION_META: Record<
-  PresentationSection,
-  {
-    label: string;
-    description: string;
-    icon: typeof Sparkles;
-  }
-> = {
-  overview: {
-    label: 'Overview',
-    description: 'Creative direction and summary.',
-    icon: Sparkles,
-  },
-  palette: {
-    label: 'Palette',
-    description: 'Core color direction.',
-    icon: Palette,
-  },
-  typography: {
-    label: 'Typography',
-    description: 'Font choices and usage notes.',
-    icon: Type,
-  },
-  references: {
-    label: 'References',
-    description: 'Inspiration grid and visual assets.',
-    icon: ImageIcon,
-  },
-  notes: {
-    label: 'Notes',
-    description: 'Captured ideas and instructions.',
-    icon: Layers3,
-  },
 };
 
 const TYPOGRAPHY_FALLBACK_FAMILIES: Record<string, string> = {
@@ -148,7 +114,7 @@ function PresentationPill({
 }: {
   label: string;
   description: string;
-  icon: typeof Sparkles;
+  icon: typeof EDITOR_SECTION_META.overview.icon;
   active: boolean;
   onClick: () => void;
   index: number;
@@ -286,7 +252,15 @@ export function BoardReadOnlyClient({ boardId, publicView = false }: BoardReadOn
     () => DEFAULT_APP_SETTINGS.presentationModeEnabled,
   );
 
+  const reduceMotionEnabled = useSyncExternalStore(
+    subscribeAppSettings,
+    () => readAppSettings().reduceMotionEnabled,
+    () => DEFAULT_APP_SETTINGS.reduceMotionEnabled,
+  );
+
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
+  const sectionTabsRef = useRef<HTMLElement>(null);
+  const skipInitialSectionScroll = useRef(true);
 
   useEffect(() => {
     if (!publicView) return;
@@ -338,17 +312,27 @@ export function BoardReadOnlyClient({ boardId, publicView = false }: BoardReadOn
   const board = publicView ? publicFetch.board : storeBoard;
   const isLoading = publicView ? publicFetch.loading : isResolvingBoard;
 
-  const activeSection = PRESENTATION_SECTIONS[activeSectionIndex];
-  const activeSectionMeta = SECTION_META[activeSection];
+  const activeSection: EditorSectionName = EDITOR_SECTION_ORDER[activeSectionIndex];
+  const activeSectionMeta = EDITOR_SECTION_META[activeSection];
 
   const presentationSections = useMemo(
     () =>
-      PRESENTATION_SECTIONS.map((section) => ({
+      EDITOR_SECTION_ORDER.map((section) => ({
         key: section,
-        ...SECTION_META[section],
+        ...EDITOR_SECTION_META[section],
       })),
     [],
   );
+
+  useEffect(() => {
+    if (skipInitialSectionScroll.current) {
+      skipInitialSectionScroll.current = false;
+      return;
+    }
+
+    const scrollBehavior = reduceMotionEnabled ? 'auto' : 'smooth';
+    sectionTabsRef.current?.scrollIntoView({ behavior: scrollBehavior, block: 'start' });
+  }, [activeSectionIndex, reduceMotionEnabled]);
 
   useEffect(() => {
     if (!presentationModeEnabled) return;
@@ -358,14 +342,14 @@ export function BoardReadOnlyClient({ boardId, publicView = false }: BoardReadOn
 
       if (event.key === 'ArrowRight' || event.key === ' ') {
         event.preventDefault();
-        setActiveSectionIndex((current) => (current + 1) % PRESENTATION_SECTIONS.length);
+        setActiveSectionIndex((current) => (current + 1) % EDITOR_SECTION_ORDER.length);
         return;
       }
 
       if (event.key === 'ArrowLeft') {
         event.preventDefault();
         setActiveSectionIndex(
-          (current) => (current - 1 + PRESENTATION_SECTIONS.length) % PRESENTATION_SECTIONS.length,
+          (current) => (current - 1 + EDITOR_SECTION_ORDER.length) % EDITOR_SECTION_ORDER.length,
         );
         return;
       }
@@ -495,46 +479,55 @@ export function BoardReadOnlyClient({ boardId, publicView = false }: BoardReadOn
               )}
             </div>
           </div>
-
-          <div className="flex flex-wrap items-center gap-3 border-t border-(--border) pt-5">
-            <div className="flex flex-wrap gap-2" aria-label="Presentation sections">
-              {presentationSections.map((section, index) => {
-                const isActive = index === activeSectionIndex;
-                return (
-                  <PresentationPill
-                    key={section.key}
-                    label={section.label}
-                    description={section.description}
-                    icon={section.icon}
-                    active={isActive}
-                    onClick={() => setActiveSectionIndex(index)}
-                    index={index}
-                  />
-                );
-              })}
-            </div>
-          </div>
         </div>
       </section>
 
-      <section className={outerPanelClass} aria-labelledby="presentation-section-title">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-2">
-            <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
-              {activeSectionMeta.label}
-            </p>
-            <h2
-              id="presentation-section-title"
-              className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)"
-            >
-              {activeSectionMeta.description}
-            </h2>
-          </div>
+      <nav
+        ref={sectionTabsRef}
+        aria-label="Presentation sections"
+        className="scroll-mt-24 rounded-[2rem] border border-(--border) bg-(--surface-elevated) px-4 py-4 shadow-[var(--shadow-card)] md:scroll-mt-28 md:px-5"
+      >
+        <div className="flex flex-wrap gap-2">
+          {presentationSections.map((section, index) => {
+            const isActive = index === activeSectionIndex;
+            return (
+              <PresentationPill
+                key={section.key}
+                label={section.label}
+                description={section.description}
+                icon={section.icon}
+                active={isActive}
+                onClick={() => setActiveSectionIndex(index)}
+                index={index}
+              />
+            );
+          })}
+        </div>
+        <p className="mt-3 text-center text-sm leading-6 text-(--text-muted)" aria-live="polite">
+          {presentationModeEnabled
+            ? 'Use ← → or Space to move through sections. Press Esc to leave presentation mode.'
+            : 'Select a section to explore this board.'}
+        </p>
+      </nav>
 
-          <p className="text-sm leading-6 text-(--text-muted)" aria-live="polite">
+      <section
+        className={outerPanelClass}
+        aria-labelledby="presentation-section-title"
+      >
+        <div className="space-y-2">
+          <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
+            {activeSectionMeta.label}
+          </p>
+          <h2
+            id="presentation-section-title"
+            className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)"
+          >
+            {activeSectionMeta.description}
+          </h2>
+          <p className="sr-only" aria-live="polite">
             {presentationModeEnabled
-              ? 'Use ← → or Space to move through sections. Press Esc to leave presentation mode.'
-              : 'Select a section above to explore this board.'}
+              ? 'Use arrow keys or space to move through sections.'
+              : 'Section content updated.'}
           </p>
         </div>
 
@@ -542,16 +535,7 @@ export function BoardReadOnlyClient({ boardId, publicView = false }: BoardReadOn
           {activeSection === 'overview' ? (
             <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
               <Card className={innerPanelClass}>
-                <CardHeader>
-                  <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)">
-                    Direction, tone, and summary
-                  </CardTitle>
-                  <CardDescription className="max-w-2xl text-(--text-muted)">
-                    Snapshot of the board in presentation mode.
-                  </CardDescription>
-                </CardHeader>
-
-                <CardContent className="space-y-5">
+                <CardContent className="space-y-5 pt-6">
                   <div className={softPanelClass}>
                     <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
                       Mood
@@ -634,16 +618,7 @@ export function BoardReadOnlyClient({ boardId, publicView = false }: BoardReadOn
 
           {activeSection === 'palette' ? (
             <Card className={innerPanelClass}>
-              <CardHeader>
-                <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)">
-                  Color direction
-                </CardTitle>
-                <CardDescription className="max-w-2xl text-(--text-muted)">
-                  The board&apos;s color direction and usage notes.
-                </CardDescription>
-              </CardHeader>
-
-              <CardContent>
+              <CardContent className="pt-6">
                 {board.palette.length ? (
                   <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                     {board.palette.map((item) => (
@@ -674,16 +649,7 @@ export function BoardReadOnlyClient({ boardId, publicView = false }: BoardReadOn
 
           {activeSection === 'typography' ? (
             <Card className={innerPanelClass}>
-              <CardHeader>
-                <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)">
-                  Type system
-                </CardTitle>
-                <CardDescription className="max-w-2xl text-(--text-muted)">
-                  Font choices and usage notes.
-                </CardDescription>
-              </CardHeader>
-
-              <CardContent>
+              <CardContent className="pt-6">
                 {board.typography.length ? (
                   <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {board.typography.map((item) => {
@@ -724,16 +690,7 @@ export function BoardReadOnlyClient({ boardId, publicView = false }: BoardReadOn
 
           {activeSection === 'references' ? (
             <Card className={innerPanelClass}>
-              <CardHeader>
-                <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)">
-                  Inspiration grid
-                </CardTitle>
-                <CardDescription className="max-w-2xl text-(--text-muted)">
-                  Visual references that support the mood and composition.
-                </CardDescription>
-              </CardHeader>
-
-              <CardContent>
+              <CardContent className="pt-6">
                 {board.references.length ? (
                   <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {board.references.map((reference, index) => (
@@ -759,16 +716,7 @@ export function BoardReadOnlyClient({ boardId, publicView = false }: BoardReadOn
 
           {activeSection === 'notes' ? (
             <Card className={innerPanelClass}>
-              <CardHeader>
-                <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)">
-                  Captured ideas
-                </CardTitle>
-                <CardDescription className="max-w-2xl text-(--text-muted)">
-                  Short notes and instructions saved from the board.
-                </CardDescription>
-              </CardHeader>
-
-              <CardContent>
+              <CardContent className="pt-6">
                 {board.notes.length ? (
                   <div className="grid gap-4 md:grid-cols-2">
                     {board.notes.map((note) => (

@@ -1,7 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { RealtimeChannel, RealtimePostgresInsertPayload } from '@supabase/supabase-js';
 import { apiFetch } from '@/lib/api-client';
+import { createClient } from '@/lib/supabase/client';
 import type {
   BoardCollaborationStateResponse,
   CollaborationItemStateInput,
@@ -10,16 +12,33 @@ import type {
 type UseBoardCollaborationStateOptions = {
   boardId: string;
   enabled: boolean;
+  currentUserId?: string | null;
+  /** Subscribe to new snapshots so unread badges update live for editors. */
+  trackSnapshots?: boolean;
 };
 
-export function useBoardCollaborationState({ boardId, enabled }: UseBoardCollaborationStateOptions) {
-  const [state, setState] = useState<BoardCollaborationStateResponse>({
-    commentsLastReadAt: null,
-    activityLastReadAt: null,
-    unreadComments: 0,
-    unreadActivity: 0,
-  });
+const emptyState: BoardCollaborationStateResponse = {
+  commentsLastReadAt: null,
+  activityLastReadAt: null,
+  snapshotsLastReadAt: null,
+  unreadComments: 0,
+  unreadActivity: 0,
+  unreadSnapshots: 0,
+};
+
+export function useBoardCollaborationState({
+  boardId,
+  enabled,
+  currentUserId = null,
+  trackSnapshots = false,
+}: UseBoardCollaborationStateOptions) {
+  const [state, setState] = useState<BoardCollaborationStateResponse>(emptyState);
   const [loading, setLoading] = useState(false);
+  const currentUserIdRef = useRef(currentUserId);
+
+  useEffect(() => {
+    currentUserIdRef.current = currentUserId;
+  }, [currentUserId]);
 
   const refresh = useCallback(async () => {
     if (!enabled) return;
@@ -31,12 +50,7 @@ export function useBoardCollaborationState({ boardId, enabled }: UseBoardCollabo
       );
       setState(data);
     } catch {
-      setState({
-        commentsLastReadAt: null,
-        activityLastReadAt: null,
-        unreadComments: 0,
-        unreadActivity: 0,
-      });
+      setState(emptyState);
     } finally {
       setLoading(false);
     }
@@ -58,12 +72,7 @@ export function useBoardCollaborationState({ boardId, enabled }: UseBoardCollabo
         }
       } catch {
         if (!cancelled) {
-          setState({
-            commentsLastReadAt: null,
-            activityLastReadAt: null,
-            unreadComments: 0,
-            unreadActivity: 0,
-          });
+          setState(emptyState);
         }
       } finally {
         if (!cancelled) {
@@ -78,6 +87,39 @@ export function useBoardCollaborationState({ boardId, enabled }: UseBoardCollabo
       cancelled = true;
     };
   }, [boardId, enabled]);
+
+  useEffect(() => {
+    if (!enabled || !trackSnapshots) return;
+
+    const supabase = createClient();
+    let channel: RealtimeChannel | null = null;
+
+    channel = supabase
+      .channel(`board-snapshots-unread:${boardId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'board_snapshots',
+          filter: `board_id=eq.${boardId}`,
+        },
+        (payload: RealtimePostgresInsertPayload<{ user_id?: string }>) => {
+          const row = payload.new;
+          if (row.user_id && row.user_id === currentUserIdRef.current) {
+            return;
+          }
+          void refresh();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      if (channel) {
+        void supabase.removeChannel(channel);
+      }
+    };
+  }, [boardId, enabled, refresh, trackSnapshots]);
 
   const patchState = useCallback(
     async (body: Record<string, unknown>): Promise<boolean> => {
@@ -106,6 +148,10 @@ export function useBoardCollaborationState({ boardId, enabled }: UseBoardCollabo
 
   const markActivityRead = useCallback(async (): Promise<boolean> => {
     return patchState({ markActivityRead: true });
+  }, [patchState]);
+
+  const markSnapshotsRead = useCallback(async (): Promise<boolean> => {
+    return patchState({ markSnapshotsRead: true });
   }, [patchState]);
 
   const setItemState = useCallback(
@@ -142,6 +188,7 @@ export function useBoardCollaborationState({ boardId, enabled }: UseBoardCollabo
     refresh,
     markCommentsRead,
     markActivityRead,
+    markSnapshotsRead,
     setItemRead,
     hideItem,
     unhideItem,

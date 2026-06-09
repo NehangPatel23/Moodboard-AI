@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Camera, Eye, RotateCcw, Trash2, X } from 'lucide-react';
 import type { Board, BoardSnapshot } from '@/types/board';
@@ -11,6 +11,11 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ConfirmationModal } from '@/components/shared/ConfirmationModal';
 import { SnapshotPreviewModal } from '@/components/board/SnapshotPreviewModal';
+import {
+  collaborationListItemClassName,
+  CollaborationUnseenIndicator,
+} from '@/components/board/CollaborationUnseenIndicator';
+import { isCollaborationItemUnreadForViewer } from '@/lib/collaboration-read-state';
 import { showToast } from '@/components/shared/toast-store';
 import { editorModalScrimClass, editorPanelScrimClass } from '@/components/board/board-editor-styles';
 import { cn } from '@/lib/utils';
@@ -23,6 +28,10 @@ type BoardSnapshotsPanelProps = {
   isOwner: boolean;
   onClose: () => void;
   onRestored: (board: Board) => void;
+  onMarkAllRead?: () => Promise<boolean>;
+  onSnapshotsChanged?: () => void;
+  snapshotsLastReadAt?: string | null;
+  currentUserId?: string | null;
   returnFocusRef?: React.RefObject<HTMLButtonElement | null>;
 };
 
@@ -33,6 +42,10 @@ export function BoardSnapshotsPanel({
   isOwner,
   onClose,
   onRestored,
+  onMarkAllRead,
+  onSnapshotsChanged,
+  snapshotsLastReadAt = null,
+  currentUserId = null,
   returnFocusRef,
 }: BoardSnapshotsPanelProps) {
   const [snapshots, setSnapshots] = useState<BoardSnapshot[]>([]);
@@ -48,6 +61,22 @@ export function BoardSnapshotsPanel({
   const [pendingDelete, setPendingDelete] = useState<BoardSnapshot | null>(null);
   const [previewSnapshot, setPreviewSnapshot] = useState<BoardSnapshot | null>(null);
   const [autoBackupBeforeRestore, setAutoBackupBeforeRestore] = useState(true);
+
+  const isUnseenSnapshot = useCallback(
+    (snapshot: BoardSnapshot) =>
+      isCollaborationItemUnreadForViewer(
+        currentUserId,
+        snapshot.userId,
+        snapshot.createdAt,
+        snapshotsLastReadAt,
+      ),
+    [currentUserId, snapshotsLastReadAt],
+  );
+
+  const unseenSnapshotCount = useMemo(
+    () => snapshots.filter((snapshot) => isUnseenSnapshot(snapshot)).length,
+    [isUnseenSnapshot, snapshots],
+  );
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -77,7 +106,17 @@ export function BoardSnapshotsPanel({
 
   useEffect(() => {
     if (!open) return;
-    void refresh();
+
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) {
+        void refresh();
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [open, refresh]);
 
   useEffect(() => {
@@ -132,6 +171,7 @@ export function BoardSnapshotsPanel({
       });
       await refresh();
       setLabelDraft('');
+      onSnapshotsChanged?.();
       if (data.pruned && data.pruned > 0) {
         showToast(
           `Snapshot saved. ${data.pruned} older snapshot${data.pruned === 1 ? '' : 's'} removed to stay within your limit.`,
@@ -188,7 +228,9 @@ export function BoardSnapshotsPanel({
         method: 'DELETE',
       });
       setSnapshots((current) => current.filter((snapshot) => snapshot.id !== pendingDelete.id));
+      setSnapshotCount((count) => Math.max(0, count - 1));
       setPendingDelete(null);
+      onSnapshotsChanged?.();
       showToast('Snapshot deleted.', 'success');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to delete snapshot';
@@ -196,6 +238,18 @@ export function BoardSnapshotsPanel({
     } finally {
       setDeletingId(null);
     }
+  };
+
+  const handleMarkAllRead = async () => {
+    if (!onMarkAllRead) return;
+    const ok = await onMarkAllRead();
+    if (ok) {
+      showToast('Snapshots marked as seen.', 'success');
+    }
+  };
+
+  const handlePreviewSnapshot = (snapshot: BoardSnapshot) => {
+    setPreviewSnapshot(snapshot);
   };
 
   if (!open || typeof document === 'undefined') return null;
@@ -234,12 +288,28 @@ export function BoardSnapshotsPanel({
               variant="outline"
               size="icon"
               onClick={handleClose}
+              tooltip="Close snapshots"
+              tooltipSide="bottom"
               className="rounded-full border-(--border) bg-transparent"
               aria-label="Close snapshots panel"
             >
               <X className="h-4 w-4" />
             </Button>
           </header>
+
+          {unseenSnapshotCount > 0 && onMarkAllRead ? (
+            <div className="flex justify-end border-b border-(--border) px-5 py-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => void handleMarkAllRead()}
+                className="rounded-full text-xs"
+              >
+                Mark all as seen
+              </Button>
+            </div>
+          ) : null}
 
           {canEdit ? (
             <div className="space-y-3 border-b border-(--border) px-5 py-4">
@@ -283,16 +353,22 @@ export function BoardSnapshotsPanel({
               </p>
             ) : (
               <ul className="space-y-3">
-                {snapshots.map((snapshot) => (
+                {snapshots.map((snapshot) => {
+                  const unseen = isUnseenSnapshot(snapshot);
+
+                  return (
                   <li
                     key={snapshot.id}
-                    className="rounded-2xl border border-(--border) bg-(--surface-muted) px-4 py-3"
+                    className={collaborationListItemClassName()}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-(--text-strong)">
-                          {snapshot.label?.trim() || 'Untitled snapshot'}
-                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-medium text-(--text-strong)">
+                            {snapshot.label?.trim() || 'Untitled snapshot'}
+                          </p>
+                          {unseen ? <CollaborationUnseenIndicator /> : null}
+                        </div>
                         <p className="text-xs text-(--text-muted)">
                           {snapshot.actorName} · {formatDateTime(snapshot.createdAt)}
                         </p>
@@ -304,6 +380,8 @@ export function BoardSnapshotsPanel({
                           size="icon"
                           disabled={deletingId === snapshot.id}
                           onClick={() => setPendingDelete(snapshot)}
+                          tooltip="Delete snapshot"
+                          tooltipSide="bottom"
                           className="h-8 w-8 shrink-0 rounded-full text-(--text-muted) hover:text-red-600"
                           aria-label={`Delete snapshot ${snapshot.label?.trim() || 'Untitled snapshot'}`}
                         >
@@ -317,7 +395,7 @@ export function BoardSnapshotsPanel({
                           type="button"
                           size="sm"
                           variant="outline"
-                          onClick={() => setPreviewSnapshot(snapshot)}
+                          onClick={() => handlePreviewSnapshot(snapshot)}
                           className="rounded-full"
                         >
                           <Eye className="h-4 w-4" />
@@ -340,7 +418,8 @@ export function BoardSnapshotsPanel({
                       </div>
                     ) : null}
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             )}
           </div>

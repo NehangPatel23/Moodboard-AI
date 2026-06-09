@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { useSyncExternalStore } from 'react';
 import { cn } from '@/lib/utils';
 import { GuardedLink } from '@/components/shared/GuardedLink';
+import { Tooltip } from '@/components/ui/tooltip';
 import {
   LayoutDashboard,
   PanelLeftClose,
@@ -60,24 +61,35 @@ export function Sidebar() {
         collapsed ? 'w-20 px-3' : 'w-72 px-5',
       )}
     >
-      <GuardedLink
-        href="/"
-        title={collapsed ? settings.workspaceName : undefined}
-        className={cn(
-          'flex items-center rounded-2xl transition hover:bg-[var(--surface-elevated)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]',
-          collapsed ? 'justify-center py-2' : 'gap-3 px-3 py-2',
-        )}
-      >
-        <WorkspaceAvatar className="h-11 w-11 shrink-0 rounded-2xl text-sm" emojiClassName="text-2xl" />
-        {!collapsed ? (
+      {collapsed ? (
+        <Tooltip content={settings.workspaceName} side="right" triggerClassName="block w-full">
+          <GuardedLink
+            href="/"
+            className={cn(
+              'flex items-center rounded-2xl transition hover:bg-[var(--surface-elevated)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]',
+              'justify-center py-2',
+            )}
+          >
+            <WorkspaceAvatar className="h-11 w-11 shrink-0 rounded-2xl text-sm" emojiClassName="text-2xl" />
+          </GuardedLink>
+        </Tooltip>
+      ) : (
+        <GuardedLink
+          href="/"
+          className={cn(
+            'flex items-center rounded-2xl transition hover:bg-[var(--surface-elevated)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]',
+            'gap-3 px-3 py-2',
+          )}
+        >
+          <WorkspaceAvatar className="h-11 w-11 shrink-0 rounded-2xl text-sm" emojiClassName="text-2xl" />
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold text-[var(--text-strong)]">
               {settings.workspaceName}
             </div>
             <div className="truncate text-xs text-[var(--text-muted)]">{settings.workspaceTagline}</div>
           </div>
-        ) : null}
-      </GuardedLink>
+        </GuardedLink>
+      )}
 
       <div className="mt-8">
         {!collapsed ? (
@@ -89,17 +101,15 @@ export function Sidebar() {
         )}
       </div>
 
-      <nav className="mt-3 space-y-1" aria-label="Primary">
+      <nav className="mt-3 flex flex-col gap-1" aria-label="Primary">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActivePath(pathname, item.href);
 
-          return (
+          const link = (
             <GuardedLink
-              key={item.href}
               href={item.href}
               aria-current={active ? 'page' : undefined}
-              title={collapsed ? item.label : undefined}
               aria-label={collapsed ? item.label : undefined}
               className={cn(
                 'flex items-center rounded-2xl py-3 text-sm font-medium transition',
@@ -113,29 +123,45 @@ export function Sidebar() {
               {!collapsed ? <span>{item.label}</span> : null}
             </GuardedLink>
           );
+
+          return collapsed ? (
+            <Tooltip key={item.href} content={item.label} side="right" triggerClassName="block w-full">
+              {link}
+            </Tooltip>
+          ) : (
+            link
+          );
         })}
       </nav>
 
-      <button
-        type="button"
-        onClick={toggleSidebarCollapsed}
-        aria-expanded={!collapsed}
-        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        className={cn(
-          'mt-auto flex items-center rounded-2xl py-3 text-sm font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-elevated)] hover:text-[var(--text-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]',
-          collapsed ? 'justify-center' : 'gap-3 px-3',
-        )}
-      >
-        {collapsed ? (
-          <PanelLeftOpen className="h-4 w-4 shrink-0" />
-        ) : (
-          <>
-            <PanelLeftClose className="h-4 w-4 shrink-0" />
-            <span>Collapse</span>
-          </>
-        )}
-      </button>
+      <div className="mt-auto w-full">
+        <Tooltip
+          content={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          side="right"
+          disabled={!collapsed}
+          triggerClassName={collapsed ? 'flex w-full justify-center' : undefined}
+        >
+          <button
+            type="button"
+            onClick={toggleSidebarCollapsed}
+            aria-expanded={!collapsed}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className={cn(
+              'flex items-center rounded-2xl py-3 text-sm font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-elevated)] hover:text-[var(--text-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]',
+              collapsed ? 'w-full justify-center' : 'w-full gap-3 px-3',
+            )}
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="h-4 w-4 shrink-0" />
+            ) : (
+              <>
+                <PanelLeftClose className="h-4 w-4 shrink-0" />
+                <span>Collapse</span>
+              </>
+            )}
+          </button>
+        </Tooltip>
+      </div>
     </aside>
   );
 }

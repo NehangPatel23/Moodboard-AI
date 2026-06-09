@@ -1,14 +1,26 @@
 import type { BoardActivityChange } from '@/types/board';
+import {
+  EDITOR_SECTION_ORDER,
+  normalizeEditorSection,
+  type EditorSectionName,
+} from '@/lib/editor-sections';
 
-export const EDITOR_SECTION_ORDER = [
-  'overview',
-  'palette',
-  'typography',
-  'references',
-  'notes',
-] as const;
+export { EDITOR_SECTION_ORDER, type EditorSectionName };
 
-export type EditorSectionName = (typeof EDITOR_SECTION_ORDER)[number];
+export function getActivityEventSections(changes: BoardActivityChange[]): EditorSectionName[] {
+  const sections = new Set<EditorSectionName>();
+
+  for (const change of changes) {
+    if (change.section === 'settings' || change.label === 'Title') {
+      sections.add('overview');
+      continue;
+    }
+
+    sections.add(normalizeEditorSection(change.section));
+  }
+
+  return EDITOR_SECTION_ORDER.filter((section) => sections.has(section));
+}
 
 export function findChangeByLabel(
   changes: BoardActivityChange[],

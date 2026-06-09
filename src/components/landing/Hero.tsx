@@ -1,15 +1,17 @@
 'use client';
 
 import Link from 'next/link';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useGatedHref } from '@/components/auth/use-gated-href';
-import { LANDING_FEATURE_CHIPS } from '@/components/landing/landing-features';
-
-const primaryButtonClass =
-  'inline-flex h-11 items-center justify-center rounded-full border border-transparent bg-[var(--text-strong)]! px-5 text-sm font-medium text-[var(--background)]! shadow-[0_12px_30px_rgba(15,23,42,0.14)] transition-[transform,background-color,box-shadow,color,border-color] duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-[0_16px_36px_rgba(15,23,42,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] dark:border-white/10 dark:bg-white dark:text-slate-950 dark:shadow-[0_12px_30px_rgba(0,0,0,0.22)] dark:hover:bg-slate-200 dark:hover:shadow-[0_16px_36px_rgba(0,0,0,0.28)] dark:focus-visible:ring-offset-[var(--background)]';
-
-const secondaryButtonClass =
-  'inline-flex h-11 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-elevated)] px-5 text-sm font-medium text-[var(--text-strong)] shadow-none transition-[transform,background-color,box-shadow,color,border-color] duration-200 hover:-translate-y-0.5 hover:bg-[var(--surface-subtle)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] dark:border-white/10 dark:bg-white/5 dark:text-[var(--text-strong)] dark:hover:bg-white/10 dark:focus-visible:ring-offset-[var(--background)]';
+import { PromptToBoardAnimation } from '@/components/landing/PromptToBoardAnimation';
+import {
+  displayHeadingClass,
+  heroGradientClass,
+  outlineButtonClass,
+  primaryButtonClass,
+  sectionLabelClass,
+} from '@/components/landing/landing-styles';
 
 export function Hero() {
   const reduceMotion = useReducedMotion();
@@ -17,118 +19,84 @@ export function Hero() {
   const viewBoardsHref = useGatedHref('/app');
 
   return (
-    <section className="grid gap-10 py-10 lg:grid-cols-[1.08fr_0.92fr] lg:items-center lg:py-16">
-      <motion.div
-        className="max-w-2xl"
-        initial={reduceMotion ? false : { opacity: 0, y: 16 }}
-        whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.35 }}
-        transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
-      >
-        <motion.h1
-          className="max-w-xl text-5xl font-semibold tracking-tight text-(--text-strong) md:text-6xl"
-          initial={reduceMotion ? false : { opacity: 0, y: 14 }}
-          whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.35 }}
-          transition={{ duration: 0.8, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
-        >
-          Turn rough ideas into a beautiful visual board.
-        </motion.h1>
+    <section
+      aria-labelledby="landing-hero-heading"
+      className="relative overflow-hidden rounded-[2.5rem] border border-(--border) bg-(--surface-elevated) p-6 shadow-[0_24px_60px_rgba(15,23,42,0.06)] md:p-10 dark:shadow-[0_24px_60px_rgba(0,0,0,0.22)]"
+    >
+      <div aria-hidden="true" className={heroGradientClass} />
 
-        <motion.p
-          className="mt-6 max-w-xl text-lg leading-8 text-(--text-muted)"
-          initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+      <div className="relative grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-12">
+        <motion.div
+          className="max-w-2xl space-y-5"
+          initial={reduceMotion ? false : { opacity: 0, y: 16 }}
           whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.35 }}
-          transition={{ duration: 0.75, delay: 0.14, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
         >
-          MoodBoard AI helps designers, founders, and creators transform vague prompts into
-          palettes, typography, references, and clear creative direction — with collaboration
-          and export built in.
-        </motion.p>
+          <p className={sectionLabelClass}>Creative direction</p>
 
-        <motion.ul
-          className="mt-6 flex flex-wrap gap-2"
-          initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-          whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.35 }}
-          transition={{ duration: 0.7, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
-        >
-          {LANDING_FEATURE_CHIPS.map((chip) => (
-            <li
-              key={chip}
-              className="rounded-full border border-(--border) bg-(--surface-elevated) px-3 py-1 text-xs font-medium text-(--text-muted)"
+          <motion.h1
+            id="landing-hero-heading"
+            className={`max-w-xl text-[clamp(2.5rem,5vw,3.75rem)] leading-[0.98] ${displayHeadingClass}`}
+            initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+            whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.35 }}
+            transition={{ duration: 0.8, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
+          >
+            Turn rough ideas into a beautiful visual board.
+          </motion.h1>
+
+          <motion.p
+            className="max-w-xl text-base leading-7 text-(--text-muted) md:text-lg"
+            initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+            whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.35 }}
+            transition={{ duration: 0.75, delay: 0.14, ease: [0.22, 1, 0.36, 1] }}
+          >
+            MoodBoard AI helps designers, founders, and creators transform vague prompts into
+            palettes, typography, references, and clear creative direction — with collaboration
+            and export built in.
+          </motion.p>
+
+          <motion.div
+            className="flex flex-wrap gap-3 pt-1"
+            initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+            whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.35 }}
+            transition={{ duration: 0.75, delay: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <Link href={startBoardHref} className={primaryButtonClass}>
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+              Start a board
+              <ArrowRight
+                className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                aria-hidden="true"
+              />
+            </Link>
+
+            <Link href={viewBoardsHref} className={outlineButtonClass}>
+              View my boards
+            </Link>
+
+            <Link
+              href="/discover"
+              className="inline-flex h-11 items-center rounded-full px-4 text-sm font-medium text-(--text-muted) transition hover:text-(--text-strong) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)"
             >
-              {chip}
-            </li>
-          ))}
-        </motion.ul>
+              Browse Discover
+            </Link>
+          </motion.div>
+        </motion.div>
 
         <motion.div
-          className="mt-8 flex flex-wrap gap-3"
-          initial={reduceMotion ? false : { opacity: 0, y: 14 }}
-          whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.35 }}
-          transition={{ duration: 0.75, delay: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          initial={reduceMotion ? false : { opacity: 0, x: 20, y: 8 }}
+          whileInView={reduceMotion ? undefined : { opacity: 1, x: 0, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.8, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
+          whileHover={reduceMotion ? undefined : { y: -4 }}
         >
-          <Link href={startBoardHref} className={primaryButtonClass}>
-            Start a board
-          </Link>
-
-          <Link href={viewBoardsHref} className={secondaryButtonClass}>
-            View my boards
-          </Link>
+          <PromptToBoardAnimation />
         </motion.div>
-      </motion.div>
-
-      <motion.div
-        className="rounded-4xl border border-(--border) bg-(--surface-elevated) p-4 shadow-[0_20px_60px_rgba(15,23,42,0.08)]"
-        initial={reduceMotion ? false : { opacity: 0, x: 20, y: 8 }}
-        whileInView={reduceMotion ? undefined : { opacity: 1, x: 0, y: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.8, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-        whileHover={reduceMotion ? undefined : { y: -4 }}
-      >
-        <div className="grid gap-4 md:grid-cols-2">
-          <motion.div
-            className="rounded-[1.6rem] border border-(--border) bg-(--surface-soft) p-5 text-(--text-strong) shadow-none"
-            animate={reduceMotion ? undefined : { y: [0, -3, 0] }}
-            transition={reduceMotion ? undefined : { duration: 7, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            <p className="text-xs uppercase tracking-[0.3em] text-(--text-muted)">Prompt</p>
-            <p className="mt-3 text-lg leading-7">
-              “soft luxury wellness brand for women aged 25–40”
-            </p>
-          </motion.div>
-
-          <motion.div
-            className="rounded-[1.6rem] border border-(--border) bg-(--surface-soft) p-5 shadow-none"
-            animate={reduceMotion ? undefined : { y: [0, 3, 0] }}
-            transition={reduceMotion ? undefined : { duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            <p className="text-xs uppercase tracking-[0.3em] text-(--text-muted)">
-              Generated mood
-            </p>
-            <p className="mt-3 text-xl font-medium text-(--text-strong)">Calm luxury</p>
-            <p className="mt-2 text-sm leading-6 text-(--text-muted)">
-              Ivory, sage, muted gold, charcoal.
-            </p>
-          </motion.div>
-
-          <motion.div
-            className="rounded-[1.6rem] border border-(--border) bg-(--surface-soft) p-5 md:col-span-2 shadow-none"
-            animate={reduceMotion ? undefined : { y: [0, -2, 0] }}
-            transition={reduceMotion ? undefined : { duration: 8.5, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            <p className="text-xs uppercase tracking-[0.3em] text-(--text-muted)">
-              Creative summary
-            </p>
-            <p className="mt-3 max-w-xl text-base leading-7 text-(--text-muted)">
-              A calm, elevated identity built around restraint, warmth, and trust.
-            </p>
-          </motion.div>
-        </div>
-      </motion.div>
+      </div>
     </section>
   );
 }

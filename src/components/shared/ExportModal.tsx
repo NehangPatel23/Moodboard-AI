@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { createPortal, flushSync } from 'react-dom';
 import type { Board } from '@/types/board';
 import { jsPDF } from 'jspdf';
@@ -69,27 +69,36 @@ export function ExportModal({
   onExported,
   onClose,
 }: ExportModalProps) {
+  if (!open) return null;
+
+  return (
+    <ExportModalContent
+      key={`${board.id}:${board.updatedAt}`}
+      board={board}
+      onExported={onExported}
+      onClose={onClose}
+    />
+  );
+}
+
+function ExportModalContent({
+  board,
+  onExported,
+  onClose,
+}: Omit<ExportModalProps, 'open'>) {
   const portalRef = useRef<HTMLDivElement>(null);
   const exportingRef = useRef<'png' | 'pdf' | null>(null);
   const [captureBoard, setCaptureBoard] = useState<Board | null>(null);
   const [exportingVisual, setExportingVisual] = useState<'png' | 'pdf' | null>(null);
   const [previewFormat, setPreviewFormat] = useState<PreviewFormat>('visual');
   const [designSystemFormat, setDesignSystemFormat] = useState<DesignSystemFormat>('css');
-  const [designSystemTokens, setDesignSystemTokens] = useState<DesignSystemTokens | null>(null);
+  const [designSystemTokens, setDesignSystemTokens] = useState<DesignSystemTokens>(() =>
+    buildDeterministicDesignSystemTokens(board),
+  );
   const [designSystemSource, setDesignSystemSource] = useState<'deterministic' | 'gemini' | 'mock'>(
     'deterministic',
   );
   const [designSystemEnhancing, setDesignSystemEnhancing] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    setDesignSystemTokens(buildDeterministicDesignSystemTokens(board));
-    setDesignSystemSource('deterministic');
-    setPreviewFormat('visual');
-    setDesignSystemFormat('css');
-  }, [open, board]);
-
-  if (!open) return null;
 
   const jsonPreview = JSON.stringify(board, null, 2);
   const designSystemPreview = designSystemTokens

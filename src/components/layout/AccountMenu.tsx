@@ -7,6 +7,8 @@ import { LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { requestBoardEditorNavigation } from '@/lib/board-editor-navigation-guard';
 import { WorkspaceAvatar } from '@/components/layout/WorkspaceAvatar';
+import { Tooltip } from '@/components/ui/tooltip';
+import { useMinSm } from '@/lib/use-media-query';
 import { showToast } from '@/components/shared/toast-store';
 import {
   getServerAuthSnapshot,
@@ -18,6 +20,7 @@ import {
 export function AccountMenu() {
   const router = useRouter();
   const auth = useSyncExternalStore(subscribeAuth, readAuthState, getServerAuthSnapshot);
+  const accountLabelVisible = useMinSm();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
@@ -70,27 +73,35 @@ export function AccountMenu() {
     );
   }
 
+  const accountTrigger = (
+    <button
+      type="button"
+      onClick={() => setOpen((value) => !value)}
+      aria-haspopup="menu"
+      aria-expanded={open}
+      aria-controls={open ? menuId : undefined}
+      aria-label="Account menu"
+      className="flex items-center gap-3 rounded-full transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
+    >
+      <span className="hidden min-w-0 text-right leading-tight sm:block">
+        <span className="block text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
+          Signed in as
+        </span>
+        <span className="block max-w-[10rem] truncate text-sm font-medium text-[var(--text-strong)]">
+          {user.name}
+        </span>
+      </span>
+      {avatar}
+    </button>
+  );
+
   return (
     <div className="relative" ref={containerRef}>
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-controls={open ? menuId : undefined}
-        aria-label="Account menu"
-        className="flex items-center gap-3 rounded-full transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
-      >
-        <span className="hidden min-w-0 text-right leading-tight sm:block">
-          <span className="block text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
-            Signed in as
-          </span>
-          <span className="block max-w-[10rem] truncate text-sm font-medium text-[var(--text-strong)]">
-            {user.name}
-          </span>
-        </span>
-        {avatar}
-      </button>
+      {accountLabelVisible ? (
+        accountTrigger
+      ) : (
+        <Tooltip content="Account menu">{accountTrigger}</Tooltip>
+      )}
 
       {open ? (
         <div

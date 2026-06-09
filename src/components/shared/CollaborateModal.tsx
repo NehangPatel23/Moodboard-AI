@@ -399,6 +399,7 @@ export function CollaborateModal({
                         size="icon"
                         className={deleteButtonClassName}
                         aria-label={`Remove ${member.name}`}
+                        tooltip={`Remove ${member.name}`}
                         onClick={() =>
                           setPendingRemoval({
                             type: 'member',
@@ -446,6 +447,7 @@ export function CollaborateModal({
                         size="icon"
                         className={deleteButtonClassName}
                         aria-label={`Revoke invite for ${invite.email}`}
+                        tooltip={`Revoke invite for ${invite.email}`}
                         onClick={() =>
                           setPendingRemoval({
                             type: 'invite',

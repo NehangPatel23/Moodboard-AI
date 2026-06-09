@@ -9,6 +9,8 @@ import type {
 } from '@supabase/supabase-js';
 import type { BoardComment } from '@/types/board';
 import { apiFetch } from '@/lib/api-client';
+import { normalizeEditorSection, type EditorSectionName } from '@/lib/editor-sections';
+import { isCollaborationItemReadForViewer } from '@/lib/collaboration-read-state';
 import { createClient } from '@/lib/supabase/client';
 
 type CommentRow = {
@@ -17,6 +19,7 @@ type CommentRow = {
   user_id: string;
   body: string;
   author_name?: string | null;
+  section?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -38,22 +41,25 @@ function sortComments(comments: BoardComment[]): BoardComment[] {
 function rowToComment(
   row: CommentRow,
   authorName: string,
+  viewerUserId: string | null,
   commentsLastReadAt: string | null | undefined,
   isHidden = false,
 ): BoardComment {
-  const isRead = commentsLastReadAt
-    ? new Date(row.updated_at).getTime() <= new Date(commentsLastReadAt).getTime()
-    : false;
-
   return {
     id: row.id,
     boardId: row.board_id,
     userId: row.user_id,
     authorName,
     body: row.body,
+    section: normalizeEditorSection(row.section),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    isRead,
+    isRead: isCollaborationItemReadForViewer(
+      viewerUserId,
+      row.user_id,
+      row.updated_at,
+      commentsLastReadAt ?? null,
+    ),
     isHidden,
   };
 }
@@ -193,7 +199,7 @@ export function useBoardComments({
 
             return sortComments([
               ...current,
-              rowToComment(row, author, commentsLastReadAtRef.current, false),
+              rowToComment(row, author, currentUserId, commentsLastReadAtRef.current, false),
             ]);
           });
         },
@@ -221,10 +227,15 @@ export function useBoardComments({
 
             authorNameByUserIdRef.current.set(row.user_id, author);
 
-            const updated = rowToComment(row, author, commentsLastReadAtRef.current, current[index]?.isHidden);
+            const updated = rowToComment(
+              row,
+              author,
+              currentUserId,
+              commentsLastReadAtRef.current,
+              current[index]?.isHidden,
+            );
             const next = [...current];
-            next[index] =
-              row.user_id === currentUserId ? { ...updated, isRead: true } : updated;
+            next[index] = updated;
             return sortComments(next);
           });
         },
@@ -253,10 +264,11 @@ export function useBoardComments({
   }, [boardId, currentUserId, enabled]);
 
   const postComment = useCallback(
-    async (body: string): Promise<boolean> => {
+    async (body: string, section: EditorSectionName = 'overview'): Promise<boolean> => {
       const text = body.trim();
       if (!text || !enabled || !currentUserId) return false;
 
+      const normalizedSection = normalizeEditorSection(section);
       const optimisticId = `optimistic-${Date.now()}`;
       const optimistic: BoardComment = {
         id: optimisticId,
@@ -264,6 +276,7 @@ export function useBoardComments({
         userId: currentUserId,
         authorName: authorNameRef.current,
         body: text,
+        section: normalizedSection,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         isRead: true,
@@ -276,7 +289,7 @@ export function useBoardComments({
       try {
         const data = await apiFetch<{ comment: BoardComment }>(`/api/boards/${boardId}/comments`, {
           method: 'POST',
-          body: JSON.stringify({ body: text }),
+          body: JSON.stringify({ body: text, section: normalizedSection }),
         });
 
         authorNameByUserIdRef.current.set(data.comment.userId, data.comment.authorName);

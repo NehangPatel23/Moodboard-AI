@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Frown, Loader2, Smile, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Tooltip } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 import { showToast } from '@/components/shared/toast-store';
 import { setWelcomeSession, welcomeFirstName } from '@/lib/welcome-session';
@@ -401,20 +402,22 @@ export function AuthForm() {
                 aria-describedby={passwordDescribedBy}
                 className={cn('pr-11', fieldErrors.password && authInputErrorClassName)}
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword((value) => !value)}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-                aria-pressed={showPassword}
-                disabled={submitting}
-                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-2xl text-[var(--text-muted)] transition hover:text-[var(--text-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] disabled:opacity-50"
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4.5 w-4.5" aria-hidden="true" />
-                ) : (
-                  <Eye className="h-4.5 w-4.5" aria-hidden="true" />
-                )}
-              </button>
+              <Tooltip content={showPassword ? 'Hide password' : 'Show password'}>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((value) => !value)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPassword}
+                  disabled={submitting}
+                  className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-2xl text-[var(--text-muted)] transition hover:text-[var(--text-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] disabled:opacity-50"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4.5 w-4.5" aria-hidden="true" />
+                  ) : (
+                    <Eye className="h-4.5 w-4.5" aria-hidden="true" />
+                  )}
+                </button>
+              </Tooltip>
             </div>
             {mode === 'sign-up' ? (
               <PasswordRequirements id={passwordRequirementsId} password={password} />

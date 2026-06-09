@@ -1,14 +1,10 @@
 import type { LucideIcon } from 'lucide-react';
 import { Download, Sparkles, Type, Users } from 'lucide-react';
 
-export const LANDING_FEATURE_CHIPS = [
-  'Gemini board generation',
-  'Pexels + Unsplash references',
-  'Team comments & activity',
-  'PNG & PDF export',
-] as const;
+export type LandingFeatureId = 'ai-direction' | 'palette-type' | 'collaboration' | 'export-share';
 
-type LandingFeature = {
+export type LandingFeature = {
+  id: LandingFeatureId;
   title: string;
   description: string;
   icon: LucideIcon;
@@ -18,6 +14,7 @@ type LandingFeature = {
 
 export const landingFeatures: LandingFeature[] = [
   {
+    id: 'ai-direction',
     title: 'AI creative direction',
     description:
       'Turn a prompt into mood, tone, palette, typography, and references with progressive preview.',
@@ -26,6 +23,7 @@ export const landingFeatures: LandingFeature[] = [
     iconTone: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
   },
   {
+    id: 'palette-type',
     title: 'Smart palette & type',
     description: 'Suggest palette and typography from board context with one-click Gemini refresh.',
     icon: Type,
@@ -33,6 +31,7 @@ export const landingFeatures: LandingFeature[] = [
     iconTone: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
   },
   {
+    id: 'collaboration',
     title: 'Real-time collaboration',
     description: 'Invite editors and viewers, live sync, comments with edit, and activity replay.',
     icon: Users,
@@ -40,6 +39,7 @@ export const landingFeatures: LandingFeature[] = [
     iconTone: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
   },
   {
+    id: 'export-share',
     title: 'Export & share',
     description: 'Download JSON, PNG, or PDF moodboards and share boards on Discover.',
     icon: Download,

@@ -193,5 +193,5 @@ src/
 │   └── supabase/
 docs/                  # setup, deploy, ARCHITECTURE, FEATURES, SYSTEMS, ROADMAP, etc.
 scripts/               # setup:supabase, verify:generate, seed-demo
-supabase/migrations/   # 001–021 (collaboration, snapshots, retention, brand strategy)
+supabase/migrations/   # 001–023 (collaboration, snapshots, retention, brand strategy, section comments)
 ```

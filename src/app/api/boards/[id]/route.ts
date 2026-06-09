@@ -58,7 +58,8 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   if (error && isMissingColumnError(error, 'brand_strategy')) {
-    const { brand_strategy: _brandStrategy, ...rowWithoutBrand } = row;
+    const rowWithoutBrand = { ...row };
+    delete (rowWithoutBrand as { brand_strategy?: unknown }).brand_strategy;
     updatePayload = { ...rowWithoutBrand, last_saved_by_name: savedByName };
     ({ data, error } = await admin
       .from('boards')

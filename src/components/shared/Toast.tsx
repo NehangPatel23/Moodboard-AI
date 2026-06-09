@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
+import { Tooltip } from '@/components/ui/tooltip';
 import { dismissToast, getToastSnapshot, subscribeToast } from './toast-store';
 import { CheckCircle2, AlertTriangle, Info, X } from 'lucide-react';
 
@@ -74,14 +75,16 @@ export function Toast() {
             <p className="mt-1 text-sm leading-6 text-(--text)">{toast.message}</p>
           </div>
 
-          <button
-            type="button"
-            onClick={dismissToast}
-            className="shrink-0 rounded-full p-1.5 text-(--text-muted) transition hover:bg-(--surface-subtle) hover:text-(--text-strong)"
-            aria-label="Dismiss toast"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <Tooltip content="Dismiss">
+            <button
+              type="button"
+              onClick={dismissToast}
+              className="shrink-0 rounded-full p-1.5 text-(--text-muted) transition hover:bg-(--surface-subtle) hover:text-(--text-strong)"
+              aria-label="Dismiss toast"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </Tooltip>
         </div>
       </div>
 

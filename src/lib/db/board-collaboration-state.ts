@@ -1,5 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin';
-import { isMissingRelationError } from '@/lib/db/schema-errors';
+import { isMissingColumnError, isMissingRelationError } from '@/lib/db/schema-errors';
 import {
   getCutoffIso,
   isRetentionNever,
@@ -12,6 +12,7 @@ import type { CollaborationItemType } from '@/types/board';
 export type BoardCollaborationState = {
   commentsLastReadAt: string | null;
   activityLastReadAt: string | null;
+  snapshotsLastReadAt: string | null;
 };
 
 export type CollaborationRetentionSettings = Pick<
@@ -22,19 +23,13 @@ export type CollaborationRetentionSettings = Pick<
 type CollaborationStateRow = {
   comments_last_read_at: string | null;
   activity_last_read_at: string | null;
+  snapshots_last_read_at: string | null;
 };
 
-export function isCollaborationItemRead(
-  activityAt: string,
-  lastReadAt: string | null | undefined,
-  readOverride?: boolean | null,
-): boolean {
-  if (readOverride !== null && readOverride !== undefined) {
-    return readOverride;
-  }
-  if (!lastReadAt) return false;
-  return new Date(activityAt).getTime() <= new Date(lastReadAt).getTime();
-}
+export {
+  isCollaborationItemRead,
+  isCollaborationItemReadForViewer,
+} from '@/lib/collaboration-read-state';
 
 export async function clearCommentItemStateOverrides(commentId: string): Promise<void> {
   const admin = createAdminClient();
@@ -194,14 +189,28 @@ export async function getBoardCollaborationState(
   const admin = createAdminClient();
   const { data, error } = await admin
     .from('board_collaboration_state')
-    .select('comments_last_read_at, activity_last_read_at')
+    .select('comments_last_read_at, activity_last_read_at, snapshots_last_read_at')
     .eq('user_id', userId)
     .eq('board_id', boardId)
     .maybeSingle();
 
   if (error) {
     if (isMissingRelationError(error, 'board_collaboration_state')) {
-      return { commentsLastReadAt: null, activityLastReadAt: null };
+      return { commentsLastReadAt: null, activityLastReadAt: null, snapshotsLastReadAt: null };
+    }
+    if (isMissingColumnError(error, 'snapshots_last_read_at')) {
+      const legacy = await admin
+        .from('board_collaboration_state')
+        .select('comments_last_read_at, activity_last_read_at')
+        .eq('user_id', userId)
+        .eq('board_id', boardId)
+        .maybeSingle();
+      const row = legacy.data as Omit<CollaborationStateRow, 'snapshots_last_read_at'> | null;
+      return {
+        commentsLastReadAt: row?.comments_last_read_at ?? null,
+        activityLastReadAt: row?.activity_last_read_at ?? null,
+        snapshotsLastReadAt: null,
+      };
     }
     throw error;
   }
@@ -210,13 +219,14 @@ export async function getBoardCollaborationState(
   return {
     commentsLastReadAt: row?.comments_last_read_at ?? null,
     activityLastReadAt: row?.activity_last_read_at ?? null,
+    snapshotsLastReadAt: row?.snapshots_last_read_at ?? null,
   };
 }
 
 export async function markBoardCollaborationRead(
   userId: string,
   boardId: string,
-  input: { markCommentsRead?: boolean; markActivityRead?: boolean },
+  input: { markCommentsRead?: boolean; markActivityRead?: boolean; markSnapshotsRead?: boolean },
 ): Promise<BoardCollaborationState> {
   const admin = createAdminClient();
   const now = new Date().toISOString();
@@ -225,20 +235,39 @@ export async function markBoardCollaborationRead(
   const nextState: BoardCollaborationState = {
     commentsLastReadAt: input.markCommentsRead ? now : existing.commentsLastReadAt,
     activityLastReadAt: input.markActivityRead ? now : existing.activityLastReadAt,
+    snapshotsLastReadAt: input.markSnapshotsRead ? now : existing.snapshotsLastReadAt,
   };
 
-  const { error } = await admin.from('board_collaboration_state').upsert(
-    {
-      user_id: userId,
-      board_id: boardId,
-      comments_last_read_at: nextState.commentsLastReadAt,
-      activity_last_read_at: nextState.activityLastReadAt,
-      updated_at: now,
-    },
-    { onConflict: 'user_id,board_id' },
-  );
+  const upsertPayload = {
+    user_id: userId,
+    board_id: boardId,
+    comments_last_read_at: nextState.commentsLastReadAt,
+    activity_last_read_at: nextState.activityLastReadAt,
+    snapshots_last_read_at: nextState.snapshotsLastReadAt,
+    updated_at: now,
+  };
+
+  const { error } = await admin.from('board_collaboration_state').upsert(upsertPayload, {
+    onConflict: 'user_id,board_id',
+  });
 
   if (error) {
+    if (isMissingColumnError(error, 'snapshots_last_read_at')) {
+      const { error: legacyError } = await admin.from('board_collaboration_state').upsert(
+        {
+          user_id: userId,
+          board_id: boardId,
+          comments_last_read_at: nextState.commentsLastReadAt,
+          activity_last_read_at: nextState.activityLastReadAt,
+          updated_at: now,
+        },
+        { onConflict: 'user_id,board_id' },
+      );
+      if (legacyError && !isMissingRelationError(legacyError, 'board_collaboration_state')) {
+        throw legacyError;
+      }
+      return { ...nextState, snapshotsLastReadAt: null };
+    }
     if (isMissingRelationError(error, 'board_collaboration_state')) {
       return nextState;
     }
@@ -246,6 +275,29 @@ export async function markBoardCollaborationRead(
   }
 
   return nextState;
+}
+
+export async function countUnreadBoardSnapshots(
+  admin: ReturnType<typeof createAdminClient>,
+  boardId: string,
+  snapshotsLastReadAt: string | null,
+  viewerUserId: string,
+): Promise<number> {
+  const { count, error } = await admin
+    .from('board_snapshots')
+    .select('id', { count: 'exact', head: true })
+    .eq('board_id', boardId)
+    .neq('user_id', viewerUserId)
+    .gt('created_at', snapshotsLastReadAt ?? '1970-01-01T00:00:00.000Z');
+
+  if (error) {
+    if (isMissingRelationError(error, 'board_snapshots')) {
+      return 0;
+    }
+    throw error;
+  }
+
+  return count ?? 0;
 }
 
 export type PurgeResult = {

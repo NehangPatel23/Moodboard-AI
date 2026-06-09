@@ -6,12 +6,14 @@ import { LandingHeader } from '@/components/landing/LandingHeader';
 
 export default function HomePage() {
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col overflow-x-hidden bg-(--background) px-4 pb-16 pt-6 md:px-8 md:pt-10">
+    <main className="landing-page mx-auto flex min-h-screen w-full max-w-7xl flex-col overflow-x-hidden bg-(--background) px-4 pb-20 pt-6 md:px-8 md:pt-10">
       <LandingHeader />
-      <Hero />
-      <FeatureGrid />
-      <ExampleBoardPreview />
-      <CTASection />
+      <div className="mt-6 flex flex-col gap-16 md:mt-8 md:gap-20">
+        <Hero />
+        <FeatureGrid />
+        <ExampleBoardPreview />
+        <CTASection />
+      </div>
     </main>
   );
 }

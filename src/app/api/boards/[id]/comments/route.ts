@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server';
 import { getBoardAccess } from '@/lib/db/board-access';
 import {
   getItemOverrideKey,
-  isCollaborationItemRead,
+  isCollaborationItemReadForViewer,
   prepareCollaborationFetch,
   type CollaborationItemOverride,
 } from '@/lib/db/board-collaboration-state';
+import { normalizeEditorSection, type EditorSectionName } from '@/lib/editor-sections';
 import { getCutoffIso } from '@/lib/retention-duration';
 import { getAuthenticatedUser } from '@/lib/db/auth';
 import { isMissingColumnError } from '@/lib/db/schema-errors';
@@ -22,6 +23,7 @@ type CommentRow = {
   user_id: string;
   body: string;
   author_name?: string | null;
+  section?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -36,6 +38,7 @@ function resolveAuthorName(row: CommentRow, profileMap: Map<string, string>): st
 function rowToComment(
   row: CommentRow,
   authorName: string,
+  viewerUserId: string,
   commentsLastReadAt: string | null,
   override?: CollaborationItemOverride,
 ): BoardComment {
@@ -45,9 +48,16 @@ function rowToComment(
     userId: row.user_id,
     authorName,
     body: row.body,
+    section: normalizeEditorSection(row.section),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    isRead: isCollaborationItemRead(row.updated_at, commentsLastReadAt, override?.isRead),
+    isRead: isCollaborationItemReadForViewer(
+      viewerUserId,
+      row.user_id,
+      row.updated_at,
+      commentsLastReadAt,
+      override?.isRead,
+    ),
     isHidden: override?.isHidden ?? false,
   };
 }
@@ -81,10 +91,10 @@ async function fetchCommentsForBoard(
   };
 
   const { data, error } = await buildQuery(
-    'id, board_id, user_id, body, author_name, created_at, updated_at',
+    'id, board_id, user_id, body, author_name, section, created_at, updated_at',
   );
 
-  if (error && isMissingColumnError(error, 'author_name')) {
+  if (error && (isMissingColumnError(error, 'author_name') || isMissingColumnError(error, 'section'))) {
     const fallback = await buildQuery('id, board_id, user_id, body, created_at, updated_at');
 
     if (fallback.error) {
@@ -108,6 +118,7 @@ async function fetchCommentsForBoard(
       rowToComment(
         row,
         profileMap.get(row.user_id) ?? 'Collaborator',
+        userId,
         readState.commentsLastReadAt,
         itemOverrides.get(getItemOverrideKey('comment', row.id)),
       ),
@@ -141,6 +152,7 @@ async function fetchCommentsForBoard(
     rowToComment(
       row,
       resolveAuthorName(row, profileMap),
+      userId,
       readState.commentsLastReadAt,
       itemOverrides.get(getItemOverrideKey('comment', row.id)),
     ),
@@ -188,9 +200,9 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  let body: { body?: string };
+  let body: { body?: string; section?: EditorSectionName };
   try {
-    body = (await request.json()) as { body?: string };
+    body = (await request.json()) as { body?: string; section?: EditorSectionName };
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
@@ -199,6 +211,8 @@ export async function POST(request: Request, context: RouteContext) {
   if (!text) {
     return NextResponse.json({ error: 'Comment body is required' }, { status: 400 });
   }
+
+  const section = normalizeEditorSection(body.section);
 
   const authorName = profile?.name ?? 'You';
   const admin = createAdminClient();
@@ -209,6 +223,7 @@ export async function POST(request: Request, context: RouteContext) {
     user_id: user.id,
     body: text,
     author_name: authorName,
+    section,
     created_at: now,
     updated_at: now,
   };
@@ -216,8 +231,23 @@ export async function POST(request: Request, context: RouteContext) {
   let { data, error } = await admin
     .from('board_comments')
     .insert(insertWithAuthor)
-    .select('id, board_id, user_id, body, author_name, created_at, updated_at')
+    .select('id, board_id, user_id, body, author_name, section, created_at, updated_at')
     .single();
+
+  if (error && isMissingColumnError(error, 'section')) {
+    ({ data, error } = await admin
+      .from('board_comments')
+      .insert({
+        board_id: id,
+        user_id: user.id,
+        body: text,
+        author_name: authorName,
+        created_at: now,
+        updated_at: now,
+      })
+      .select('id, board_id, user_id, body, author_name, created_at, updated_at')
+      .single());
+  }
 
   if (error && isMissingColumnError(error, 'author_name')) {
     ({ data, error } = await admin
@@ -240,6 +270,7 @@ export async function POST(request: Request, context: RouteContext) {
   const comment = rowToComment(
     data as CommentRow,
     (data as CommentRow).author_name?.trim() || authorName,
+    user.id,
     null,
   );
 

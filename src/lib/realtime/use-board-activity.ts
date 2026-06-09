@@ -8,12 +8,14 @@ import type {
 } from '@supabase/supabase-js';
 import type { BoardActivityEvent } from '@/types/board';
 import { rowToActivity } from '@/lib/db/board-activity';
+import { isCollaborationItemReadForViewer } from '@/lib/collaboration-read-state';
 import { apiFetch } from '@/lib/api-client';
 import { createClient } from '@/lib/supabase/client';
 
 type UseBoardActivityOptions = {
   boardId: string;
   enabled: boolean;
+  currentUserId?: string | null;
   activityLastReadAt?: string | null;
 };
 
@@ -26,15 +28,21 @@ function sortActivity(events: BoardActivityEvent[]): BoardActivityEvent[] {
 export function useBoardActivity({
   boardId,
   enabled,
+  currentUserId = null,
   activityLastReadAt = null,
 }: UseBoardActivityOptions) {
   const [activity, setActivity] = useState<BoardActivityEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const activityLastReadAtRef = useRef(activityLastReadAt);
+  const currentUserIdRef = useRef(currentUserId);
 
   useEffect(() => {
     activityLastReadAtRef.current = activityLastReadAt;
   }, [activityLastReadAt]);
+
+  useEffect(() => {
+    currentUserIdRef.current = currentUserId;
+  }, [currentUserId]);
 
   const refresh = useCallback(async () => {
     if (!enabled) return;
@@ -112,9 +120,12 @@ export function useBoardActivity({
             return sortActivity([
               {
                 ...event,
-                isRead: lastReadAt
-                  ? new Date(event.createdAt).getTime() <= new Date(lastReadAt).getTime()
-                  : false,
+                isRead: isCollaborationItemReadForViewer(
+                  currentUserIdRef.current,
+                  event.userId,
+                  event.createdAt,
+                  lastReadAt,
+                ),
                 isHidden: false,
               },
               ...current,

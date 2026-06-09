@@ -1,19 +1,24 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { GuardedLink } from '@/components/shared/GuardedLink';
 import { Archive, Eye, EyeOff, MessageSquare, Pencil, Trash2, X } from 'lucide-react';
 import type { BoardComment } from '@/types/board';
+import { EditorSectionBadge } from '@/components/board/EditorSectionBadge';
+import {
+  EDITOR_SECTION_META,
+  type EditorSectionName,
+} from '@/lib/editor-sections';
 import { formatDateTime } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { ConfirmationModal } from '@/components/shared/ConfirmationModal';
 import {
-  editorUnreadBadgeClass,
-  editorUnreadItemBorderClass,
-} from '@/components/board/board-editor-styles';
+  collaborationListItemClassName,
+  CollaborationUnseenIndicator,
+} from '@/components/board/CollaborationUnseenIndicator';
 import { showToast } from '@/components/shared/toast-store';
 import { lockBodyScroll } from '@/lib/body-scroll-lock';
 
@@ -29,6 +34,8 @@ type BoardCommentsPanelProps = {
   currentUserId: string | null;
   onClose: () => void;
   onPost: (body: string) => Promise<boolean>;
+  currentSection?: EditorSectionName;
+  onGoToSection?: (section: EditorSectionName) => void;
   onUpdate?: (commentId: string, body: string) => Promise<boolean>;
   onDelete: (commentId: string) => Promise<boolean>;
   onMarkAllRead?: () => Promise<boolean>;
@@ -48,6 +55,8 @@ export function BoardCommentsPanel({
   currentUserId,
   onClose,
   onPost,
+  currentSection = 'overview',
+  onGoToSection,
   onUpdate,
   onDelete,
   onMarkAllRead,
@@ -64,21 +73,26 @@ export function BoardCommentsPanel({
   const [savingEdit, setSavingEdit] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const markedReadRef = useRef(false);
+
+  const isUnreadComment = useCallback(
+    (comment: BoardComment) =>
+      !comment.isHidden && comment.userId !== currentUserId && !comment.isRead,
+    [currentUserId],
+  );
 
   const visibleComments = useMemo(() => {
     if (filter === 'hidden') {
       return comments.filter((comment) => comment.isHidden);
     }
     if (filter === 'unread') {
-      return comments.filter((comment) => !comment.isHidden && !comment.isRead);
+      return comments.filter((comment) => isUnreadComment(comment));
     }
     return comments.filter((comment) => !comment.isHidden);
-  }, [comments, filter]);
+  }, [comments, filter, isUnreadComment]);
 
   const unreadCount = useMemo(
-    () => comments.filter((comment) => !comment.isHidden && !comment.isRead).length,
-    [comments],
+    () => comments.filter((comment) => isUnreadComment(comment)).length,
+    [comments, isUnreadComment],
   );
 
   const hiddenCount = useMemo(
@@ -87,23 +101,15 @@ export function BoardCommentsPanel({
   );
 
   useEffect(() => {
-    if (!open) {
-      markedReadRef.current = false;
-      return;
-    }
+    if (!open) return;
 
     const unlockBodyScroll = lockBodyScroll();
     textareaRef.current?.focus();
 
-    if (onMarkAllRead && !markedReadRef.current) {
-      markedReadRef.current = true;
-      void onMarkAllRead();
-    }
-
     return () => {
       unlockBodyScroll();
     };
-  }, [onMarkAllRead, open]);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -128,6 +134,8 @@ export function BoardCommentsPanel({
   };
 
   if (!open || typeof document === 'undefined') return null;
+
+  const composerSectionMeta = EDITOR_SECTION_META[currentSection];
 
   const handleSubmit = async () => {
     const text = draft.trim();
@@ -198,7 +206,7 @@ export function BoardCommentsPanel({
     if (!onMarkAllRead) return;
     const ok = await onMarkAllRead();
     if (ok) {
-      showToast('Comments marked as read.', 'success');
+      showToast('Comments marked as seen.', 'success');
     }
   };
 
@@ -232,6 +240,19 @@ export function BoardCommentsPanel({
     }
   };
 
+  const handleViewInSection = async (comment: BoardComment) => {
+    if (!onGoToSection) return;
+
+    if (isUnreadComment(comment) && onToggleRead) {
+      const ok = await onToggleRead(comment.id, true);
+      if (!ok) {
+        showToast('Failed to update read state.', 'destructive');
+      }
+    }
+
+    onGoToSection(comment.section);
+  };
+
   return createPortal(
     <>
       <div className="fixed inset-0 z-50 flex justify-end">
@@ -263,6 +284,8 @@ export function BoardCommentsPanel({
               variant="outline"
               size="icon"
               onClick={handleClose}
+              tooltip="Close comments"
+              tooltipSide="bottom"
               className="rounded-full border-(--border) bg-transparent"
               aria-label="Close comments panel"
             >
@@ -306,7 +329,7 @@ export function BoardCommentsPanel({
                 onClick={() => void handleMarkAllRead()}
                 className="ml-auto rounded-full"
               >
-                Mark all as read
+                Mark all as seen
               </Button>
             ) : null}
           </div>
@@ -336,27 +359,23 @@ export function BoardCommentsPanel({
               </div>
             ) : (
               <ul className="space-y-3">
-                {visibleComments.map((comment) => (
+                {visibleComments.map((comment) => {
+                  const unread = isUnreadComment(comment);
+
+                  return (
                   <li
                     key={comment.id}
-                    className={[
-                      'rounded-2xl border bg-(--surface-muted) px-4 py-3',
-                      comment.isRead
-                        ? 'border-(--border)'
-                        : editorUnreadItemBorderClass,
-                    ].join(' ')}
+                    className={collaborationListItemClassName()}
+                    aria-label={unread ? `Unseen comment by ${comment.authorName}` : undefined}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <p className="text-sm font-medium text-(--text-strong)">
                             {comment.authorName}
                           </p>
-                          {!comment.isRead ? (
-                            <span className={editorUnreadBadgeClass}>
-                              New
-                            </span>
-                          ) : null}
+                          <EditorSectionBadge section={comment.section} showIcon />
+                          {unread ? <CollaborationUnseenIndicator /> : null}
                         </div>
                         <p className="text-xs text-(--text-muted)">
                           {formatDateTime(comment.createdAt)}
@@ -371,6 +390,8 @@ export function BoardCommentsPanel({
                               variant="ghost"
                               size="sm"
                               onClick={() => void handleUnhide(comment)}
+                              tooltip="Restore comment to your feed"
+                              tooltipSide="bottom"
                               className="h-8 rounded-full px-2 text-xs"
                             >
                               Restore
@@ -384,6 +405,8 @@ export function BoardCommentsPanel({
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => void handleToggleRead(comment)}
+                                tooltip={comment.isRead ? 'Mark as unread' : 'Mark as read'}
+                                tooltipSide="bottom"
                                 className="h-8 w-8 rounded-full text-(--text-muted) hover:text-(--text-strong)"
                                 aria-label={
                                   comment.isRead
@@ -404,6 +427,8 @@ export function BoardCommentsPanel({
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => void handleHide(comment)}
+                                tooltip="Hide from your view"
+                                tooltipSide="bottom"
                                 className="h-8 w-8 rounded-full text-(--text-muted) hover:text-(--text-strong)"
                                 aria-label={`Hide comment by ${comment.authorName} from your view`}
                               >
@@ -416,6 +441,8 @@ export function BoardCommentsPanel({
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => startEditing(comment)}
+                                tooltip="Edit comment"
+                                tooltipSide="bottom"
                                 className="h-8 w-8 rounded-full text-(--text-muted) hover:text-(--text-strong)"
                                 aria-label={`Edit comment by ${comment.authorName}`}
                               >
@@ -428,6 +455,8 @@ export function BoardCommentsPanel({
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => setPendingDelete(comment)}
+                                tooltip="Delete comment"
+                                tooltipSide="bottom"
                                 className="h-8 w-8 rounded-full text-(--text-muted) hover:text-red-600"
                                 aria-label={`Delete comment by ${comment.authorName}`}
                               >
@@ -469,17 +498,37 @@ export function BoardCommentsPanel({
                         </div>
                       </div>
                     ) : (
-                      <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-(--text)">
-                        {comment.body}
-                      </p>
+                      <>
+                        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-(--text)">
+                          {comment.body}
+                        </p>
+                        {onGoToSection ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => void handleViewInSection(comment)}
+                            tooltip={`Jump to ${EDITOR_SECTION_META[comment.section].label}`}
+                            tooltipSide="bottom"
+                            className="mt-2 h-8 rounded-full px-2 text-xs text-(--text-muted) hover:text-(--text-strong)"
+                          >
+                            View in {EDITOR_SECTION_META[comment.section].label}
+                          </Button>
+                        ) : null}
+                      </>
                     )}
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             )}
           </div>
 
           <footer className="border-t border-(--border) px-5 py-4">
+            <p className="mb-3 text-xs text-(--text-muted)">
+              Commenting from{' '}
+              <span className="font-medium text-(--text-strong)">{composerSectionMeta.label}</span>
+            </p>
             <label htmlFor="board-comment-input" className="sr-only">
               Add a comment
             </label>

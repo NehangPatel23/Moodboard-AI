@@ -22,7 +22,7 @@ flowchart LR
   end
 
   subgraph supabase ["Supabase production"]
-    mig["Run migrations 001–021"]
+    mig["Run migrations 001–023"]
     urls["Auth URL config + redirect URLs"]
     rt["Realtime + RLS policies"]
   end
@@ -108,6 +108,8 @@ After deploying collaboration features, run these in the **production** Supabase
 14. [`supabase/migrations/019_board_member_favorites.sql`](../supabase/migrations/019_board_member_favorites.sql) — per-member favorite state on `board_members` for collaborator dashboards
 15. [`supabase/migrations/020_user_settings_snapshot_limits.sql`](../supabase/migrations/020_user_settings_snapshot_limits.sql) — owner snapshot cap + auto-prune preferences on `user_settings`
 16. [`supabase/migrations/021_board_brand_strategy.sql`](../supabase/migrations/021_board_brand_strategy.sql) — optional `brand_strategy` JSON on `boards` for saved AI brand suggestions
+17. [`supabase/migrations/022_board_comment_section.sql`](../supabase/migrations/022_board_comment_section.sql) — `section` on `board_comments` (overview, palette, typography, references, notes)
+18. [`supabase/migrations/023_snapshots_last_read.sql`](../supabase/migrations/023_snapshots_last_read.sql) — `snapshots_last_read_at` on `board_collaboration_state` for unread snapshot badges
 
 If collaboration was already live, confirm migrations `004` and `005` are applied before `006`.
 
@@ -132,6 +134,31 @@ from information_schema.columns
 where table_schema = 'public'
   and table_name = 'boards'
   and column_name = 'brand_strategy';
+```
+
+Expected: one row per column. Re-deploy Vercel after applying if the app was already live.
+
+## Step 5d — Apply latest migrations (022–023)
+
+If production was deployed before section-linked comments or snapshot unread badges shipped, run these in the **production** Supabase SQL Editor (in order):
+
+1. [`supabase/migrations/022_board_comment_section.sql`](../supabase/migrations/022_board_comment_section.sql)
+2. [`supabase/migrations/023_snapshots_last_read.sql`](../supabase/migrations/023_snapshots_last_read.sql)
+
+Verify columns exist:
+
+```sql
+select column_name
+from information_schema.columns
+where table_schema = 'public'
+  and table_name = 'board_comments'
+  and column_name = 'section';
+
+select column_name
+from information_schema.columns
+where table_schema = 'public'
+  and table_name = 'board_collaboration_state'
+  and column_name = 'snapshots_last_read_at';
 ```
 
 Expected: one row per column. Re-deploy Vercel after applying if the app was already live.

@@ -6,7 +6,7 @@ Back to [README](../README.md) · Features: [FEATURES](FEATURES.md) · Deploy: [
 
 ## Current status
 
-Waves 1–3 and Sprints A–D are **complete**, plus **AI design system export** (Sprint E). The app is a deployed MVP with Supabase persistence, collaboration, AI generation, snapshots, visual export, and developer handoff tokens. Next focus: optional landing/dashboard polish, then remaining Wave 4 growth items.
+Waves 1–3 and Sprints A–F are **complete**, plus **collaboration polish** (Sprint G). The app is a deployed MVP with Supabase persistence, collaboration, AI generation, snapshots, visual export, developer handoff tokens, and public creator profiles. Next focus: optional landing/dashboard polish, then remaining Wave 4 growth items.
 
 ---
 
@@ -38,6 +38,12 @@ Waves 1–3 and Sprints A–D are **complete**, plus **AI design system export**
 | 21 | Design system pass | Presence, dashboard, modal scrims, read-only tokens |
 | 22 | AI brand strategy | `POST /api/generate/brand`, persisted on board (migration `021`) |
 | 23 | AI design system export | CSS, Tailwind, tokens JSON, Markdown + `POST /api/generate/design-system` — see [SYSTEMS](SYSTEMS.md#design-system-export) |
+| 24 | User profiles | `/profile/[id]` public creator page + `GET /api/profile/[id]`; Discover creator links |
+| 25 | Section-linked comments | `section` on `board_comments` (migration `022`); badges, **View in section**, composer context |
+| 26 | Collaboration unseen UX | Yellow-dot unread on comments, activity, snapshots; own-content excluded; explicit mark-read only |
+| 27 | Snapshots unread | `snapshots_last_read_at` on collaboration state (migration `023`); toolbar badge + realtime INSERT |
+| 28 | Custom tooltips | Frosted [`tooltip.tsx`](../src/components/ui/tooltip.tsx) on icon-only controls; sidebar collapsed layout fix |
+| 29 | View mode polish | Deduplicated section headings in read-only / presentation mode |
 
 ### Sprint summary (completed)
 
@@ -48,6 +54,8 @@ Waves 1–3 and Sprints A–D are **complete**, plus **AI design system export**
 | **C** | Design system pass | Tokens + presence/read-only/modals |
 | **D** | AI brand strategy | API + Overview + migration `021` |
 | **E** | AI design system export | ExportModal tab + deterministic + AI token naming |
+| **F** | User profiles | Public profile page + Discover creator links |
+| **G** | Collaboration polish | Section comments (`022`), unseen UX, snapshot unread (`023`), tooltips, view-mode headings |
 
 ---
 
@@ -63,7 +71,6 @@ Waves 1–3 and Sprints A–D are **complete**, plus **AI design system export**
 |---------|--------|
 | Template marketplace | DB, payments, moderation |
 | Advanced reference APIs | Behance, Dribbble (need legitimate APIs) |
-| User profiles (`/profile`) | Public creator pages linked from discover |
 | Pricing / billing | `/pricing` + Stripe |
 
 ---
@@ -78,7 +85,7 @@ Waves 1–3 and Sprints A–D are **complete**, plus **AI design system export**
 | `/pricing` | Subscription plans | Planned |
 | `/help` | Documentation and support | Planned |
 | `/changelog` | Product updates | Planned |
-| `/profile` | User profiles | Planned |
+| `/profile` | User profiles | **Shipped** |
 
 ---
 
@@ -94,7 +101,12 @@ Use these for manual QA after changes:
 - Notifications: remote save toast when draft clean; unread count in tab title + pulsing toolbar badges
 - Brand: **Suggest brand** marks board dirty; Save persists; refresh shows Overview block
 - Design system export: Export modal **Design system** tab shows CSS/Tailwind/JSON/Markdown preview; downloads match preview; **Enhance with AI** works without `GEMINI_API_KEY` (deterministic fallback)
+- Profiles: Discover creator name links to `/profile/[id]`; profile shows workspace identity + shared boards only; private boards hidden
 - Command palette: `⌘K` finds boards; editor actions open Export / Snapshots / Share
+- Section comments: post from a tab → comment shows section badge; **View in section** switches tabs and highlights content (migration `022`)
+- Unseen UX: yellow dot on collaborator comments/activity/snapshots; own posts never unread; mark via read button or **View in section** / **Show on board** / **Mark all as seen** (migration `023` for snapshots)
+- View mode: one section heading per tab — no duplicate titles inside cards
+- Collapsed sidebar: nav icons stack vertically; expand control centered at bottom
 
 ---
 

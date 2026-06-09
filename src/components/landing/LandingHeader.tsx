@@ -22,7 +22,7 @@ export function LandingHeader() {
 
   return (
     <motion.header
-      className="pb-8 md:pb-10"
+      className="pb-0"
       initial={reduceMotion ? false : { opacity: 0, y: -8 }}
       animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
@@ -34,25 +34,31 @@ export function LandingHeader() {
           animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
         >
-          <motion.div
-            className="flex h-12 w-12 items-center justify-center rounded-[1.1rem] border border-(--border) bg-(--surface-elevated) shadow-[0_14px_35px_rgba(15,23,42,0.06)] md:h-14 md:w-14"
-            whileHover={reduceMotion ? undefined : { scale: 1.03 }}
-            transition={{ duration: 0.2 }}
+          <Link
+            href="/"
+            className="group flex min-w-0 items-center gap-4 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)"
+            aria-label="MoodBoard AI home"
           >
-            <AppIcon />
-          </motion.div>
-
-          <div className="min-w-0">
-            <p
-              className="text-2xl leading-none tracking-[-0.055em] text-(--text-strong) md:text-[2.1rem]"
-              style={{ fontFamily: 'var(--font-display), serif' }}
+            <motion.div
+              className="flex h-12 w-12 items-center justify-center rounded-[1.1rem] border border-(--border) bg-(--surface-elevated) shadow-[0_14px_35px_rgba(15,23,42,0.06)] transition group-hover:border-(--text-muted)/30 md:h-14 md:w-14"
+              whileHover={reduceMotion ? undefined : { scale: 1.03 }}
+              transition={{ duration: 0.2 }}
             >
-              MoodBoard AI
-            </p>
-            <p className="mt-2 hidden text-sm leading-6 text-(--text-muted) sm:block">
-              AI creative direction, refined.
-            </p>
-          </div>
+              <AppIcon />
+            </motion.div>
+
+            <div className="min-w-0">
+              <p
+                className="text-2xl leading-none tracking-[-0.055em] text-(--text-strong) transition group-hover:text-(--text-strong) md:text-[2.1rem]"
+                style={{ fontFamily: 'var(--font-display), serif' }}
+              >
+                MoodBoard AI
+              </p>
+              <p className="mt-2 hidden text-sm leading-6 text-(--text-muted) sm:block">
+                AI creative direction, refined.
+              </p>
+            </div>
+          </Link>
         </motion.div>
 
         <motion.nav

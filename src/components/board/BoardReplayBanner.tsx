@@ -9,14 +9,16 @@ import {
 } from '@/components/board/board-editor-styles';
 import { formatDateTime } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Tooltip } from '@/components/ui/tooltip';
 import {
-  EDITOR_SECTION_ORDER,
   getNextReplaySectionIndex,
   getPreviousReplaySectionIndex,
   getReplayNavigationIndex,
   getReplaySectionIndices,
   getReplayStepLabel,
+  EDITOR_SECTION_ORDER,
 } from '@/lib/board-replay';
+import { EDITOR_SECTION_META } from '@/lib/editor-sections';
 
 type BoardReplayBannerProps = {
   event: BoardActivityEvent;
@@ -73,6 +75,8 @@ export function BoardReplayBanner({
                 size="sm"
                 variant="outline"
                 disabled={prevSection === null}
+                tooltip="Previous changed section"
+                tooltipSide="bottom"
                 onClick={() => {
                   if (prevSection !== null) onGoToSection(prevSection);
                 }}
@@ -86,6 +90,8 @@ export function BoardReplayBanner({
                 size="sm"
                 variant="outline"
                 disabled={nextSection === null}
+                tooltip="Next changed section"
+                tooltipSide="bottom"
                 onClick={() => {
                   if (nextSection !== null) onGoToSection(nextSection);
                 }}
@@ -96,7 +102,14 @@ export function BoardReplayBanner({
               </Button>
             </>
           ) : null}
-          <Button type="button" size="sm" onClick={onExit} className="rounded-full">
+          <Button
+            type="button"
+            size="sm"
+            onClick={onExit}
+            tooltip="Exit board replay"
+            tooltipSide="bottom"
+            className="rounded-full"
+          >
             <X className="h-4 w-4" />
             Exit replay
           </Button>
@@ -108,19 +121,24 @@ export function BoardReplayBanner({
           {replaySections.map((index) => {
             const section = EDITOR_SECTION_ORDER[index];
             return (
-              <button
+              <Tooltip
                 key={section}
-                type="button"
-                onClick={() => onGoToSection(index)}
-                className={[
-                  'rounded-full border px-3 py-1 text-xs font-medium capitalize transition',
-                  index === resolvedSectionIndex
-                    ? editorWarningChipActiveClass
-                    : 'border-(--border) bg-(--surface-elevated) text-(--text-muted) hover:text-(--text-strong)',
-                ].join(' ')}
+                content={`Jump to ${EDITOR_SECTION_META[section].label}`}
+                side="bottom"
               >
-                {section}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => onGoToSection(index)}
+                  className={[
+                    'rounded-full border px-3 py-1 text-xs font-medium capitalize transition',
+                    index === resolvedSectionIndex
+                      ? editorWarningChipActiveClass
+                      : 'border-(--border) bg-(--surface-elevated) text-(--text-muted) hover:text-(--text-strong)',
+                  ].join(' ')}
+                >
+                  {section}
+                </button>
+              </Tooltip>
             );
           })}
         </div>
