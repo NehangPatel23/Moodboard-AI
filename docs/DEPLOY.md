@@ -6,6 +6,43 @@
 - GitHub repo connected to Vercel (or use Vercel CLI)
 - Supabase project running
 
+## Deploy pipeline
+
+```mermaid
+flowchart LR
+  subgraph local ["Local"]
+    test["setup:supabase + verify:generate"]
+    push["git push origin main"]
+  end
+
+  subgraph vercel ["Vercel"]
+    build["npm run build"]
+    env["Env vars — Supabase, Gemini, Pexels"]
+    deploy["Production deploy"]
+  end
+
+  subgraph supabase ["Supabase production"]
+    mig["Run migrations 001–021"]
+    urls["Auth URL config + redirect URLs"]
+    rt["Realtime + RLS policies"]
+  end
+
+  subgraph verify ["Post-deploy smoke test"]
+    smoke["Sign in · create board · export · collaborate"]
+  end
+
+  test --> push
+  push --> build
+  env --> build
+  build --> deploy
+  deploy --> mig
+  mig --> urls
+  urls --> rt
+  rt --> smoke
+```
+
+---
+
 ## Step 1 — Push to GitHub
 
 ```bash
@@ -176,3 +213,13 @@ Use this flow when recording or walking through the project:
 7. **Discover** — Visit `/discover` and search public boards.
 
 **Env checklist for demos:** Supabase (required) · Gemini (AI text) · Pexels + Unsplash (stock photos) · Vercel deploy on `main`.
+
+---
+
+## Related documentation
+
+| Doc | Description |
+|-----|-------------|
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Stack and repo layout |
+| [ROADMAP.md](ROADMAP.md) | Shipped features and next priorities |
+| [AGENT_HANDOFF.md](AGENT_HANDOFF.md) | Notes for AI agents / contributors |

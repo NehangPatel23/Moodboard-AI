@@ -4,6 +4,21 @@ Everything **you** must do by hand. The codebase handles the rest.
 
 Use this as your single source of truth after the Supabase + Gemini + Vercel work.
 
+```mermaid
+flowchart TD
+  start(["First-time setup"]) --> env["Copy .env.local.example"]
+  env --> sb["Supabase project + migrations"]
+  sb --> setup["npm run setup:supabase"]
+  setup --> gemini{"Want real AI?"}
+  gemini -->|Yes| key["Add GEMINI_API_KEY"]
+  gemini -->|Optional| photos["Add Pexels / Unsplash keys"]
+  key --> verify["npm run verify:generate"]
+  photos --> verify
+  gemini -->|No| dev["npm run dev — demo fallback works"]
+  verify --> dev
+  dev --> login["Sign in admin@moodboard.ai"]
+```
+
 ---
 
 ## What the code already does (no action needed)
