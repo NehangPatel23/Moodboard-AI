@@ -12,6 +12,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ConfirmationModal } from '@/components/shared/ConfirmationModal';
 import { SnapshotPreviewModal } from '@/components/board/SnapshotPreviewModal';
 import { showToast } from '@/components/shared/toast-store';
+import { editorModalScrimClass, editorPanelScrimClass } from '@/components/board/board-editor-styles';
+import { cn } from '@/lib/utils';
 import { lockBodyScroll } from '@/lib/body-scroll-lock';
 
 type BoardSnapshotsPanelProps = {
@@ -204,7 +206,7 @@ export function BoardSnapshotsPanel({
         <button
           type="button"
           aria-label="Close snapshots"
-          className="absolute inset-0 bg-black/30 backdrop-blur-[1px]"
+          className={cn('absolute inset-0', editorPanelScrimClass)}
           onClick={handleClose}
         />
 
@@ -357,7 +359,12 @@ export function BoardSnapshotsPanel({
       />
 
       {pendingRestore ? (
-        <div className="fixed inset-0 z-[10065] flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm">
+        <div
+          className={cn(
+            'fixed inset-0 z-[10065] flex items-center justify-center px-4',
+            editorModalScrimClass,
+          )}
+        >
           <div className="w-full max-w-md rounded-[2rem] border border-(--border) bg-(--surface) p-6 shadow-[0_30px_80px_rgba(15,23,42,0.15)]">
             <h2 className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)">
               Restore this snapshot?

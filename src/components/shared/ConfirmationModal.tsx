@@ -3,6 +3,8 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { lockBodyScroll } from '@/lib/body-scroll-lock';
+import { editorModalScrimClass } from '@/components/board/board-editor-styles';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
 type ConfirmationModalProps = {
@@ -50,7 +52,10 @@ export function ConfirmationModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[10060] flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm"
+      className={cn(
+        'fixed inset-0 z-[10060] flex items-center justify-center px-4',
+        editorModalScrimClass,
+      )}
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirmation-title"

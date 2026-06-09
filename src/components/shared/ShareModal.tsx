@@ -2,6 +2,8 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { editorModalScrimClass } from '@/components/board/board-editor-styles';
+import { cn } from '@/lib/utils';
 
 type ShareModalProps = {
   open: boolean;
@@ -39,7 +41,10 @@ export function ShareModal({
 
   return (
     <div
-      className="fixed inset-0 z-10050 flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm"
+      className={cn(
+        'fixed inset-0 z-10050 flex items-center justify-center px-4',
+        editorModalScrimClass,
+      )}
       role="dialog"
       aria-modal="true"
       aria-labelledby="share-title"

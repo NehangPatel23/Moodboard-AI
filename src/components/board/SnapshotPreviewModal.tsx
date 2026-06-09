@@ -5,6 +5,8 @@ import type { Board } from '@/types/board';
 import { BoardExportCapture } from '@/components/board/BoardExportCapture';
 import { Button } from '@/components/ui/button';
 import { lockBodyScroll } from '@/lib/body-scroll-lock';
+import { editorModalScrimClass } from '@/components/board/board-editor-styles';
+import { cn } from '@/lib/utils';
 import { useEffect } from 'react';
 
 type SnapshotPreviewModalProps = {
@@ -44,7 +46,10 @@ export function SnapshotPreviewModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[10070] flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm"
+      className={cn(
+        'fixed inset-0 z-[10070] flex items-center justify-center px-4 py-6',
+        editorModalScrimClass,
+      )}
       role="dialog"
       aria-modal="true"
       aria-labelledby="snapshot-preview-title"

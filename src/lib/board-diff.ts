@@ -17,6 +17,15 @@ function joinList(values: string[]): string {
   return values.map((value) => value.trim()).filter(Boolean).join(', ');
 }
 
+function brandStrategySignature(strategy: Board['brandStrategy']): string {
+  if (!strategy) return '';
+  return JSON.stringify({
+    positioning: strategy.positioning.trim(),
+    voice: strategy.voice.trim(),
+    messaging: strategy.messaging.map((item) => item.trim()).filter(Boolean),
+  });
+}
+
 function pushFieldChange(
   changes: BoardActivityChange[],
   input: {
@@ -133,6 +142,18 @@ export function diffBoards(before: Board, after: Board): BoardActivityChange[] {
       summary: 'Updated tags',
       before: joinList(before.tags) || '(empty)',
       after: joinList(after.tags) || '(empty)',
+    });
+  }
+
+  const beforeBrand = brandStrategySignature(before.brandStrategy);
+  const afterBrand = brandStrategySignature(after.brandStrategy);
+  if (beforeBrand !== afterBrand) {
+    pushFieldChange(changes, {
+      section: 'overview',
+      label: 'Brand strategy',
+      summary: afterBrand ? 'Updated brand strategy' : 'Removed brand strategy',
+      before: beforeBrand ? 'Previous brand strategy' : '(empty)',
+      after: afterBrand ? 'Updated brand strategy' : '(empty)',
     });
   }
 

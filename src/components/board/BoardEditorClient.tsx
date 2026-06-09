@@ -60,7 +60,7 @@ import {
   buildReferenceImageUrl,
   sanitizeReferenceItem,
 } from '@/lib/reference-images';
-import { fetchBrandSuggestions, fetchPaletteSuggestions, fetchReferenceImageUpload, fetchTypographySuggestions, type BrandSuggestionResult } from '@/lib/ai';
+import { fetchBrandSuggestions, fetchPaletteSuggestions, fetchReferenceImageUpload, fetchTypographySuggestions } from '@/lib/ai';
 import { useDocumentTitle } from '@/lib/use-document-title';
 import { formatDateTime } from '@/lib/utils';
 import {
@@ -656,7 +656,6 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const [typographyLoading, setTypographyLoading] = useState(false);
   const [paletteLoading, setPaletteLoading] = useState(false);
   const [brandLoading, setBrandLoading] = useState(false);
-  const [brandStrategy, setBrandStrategy] = useState<BrandSuggestionResult | null>(null);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
   const [snapshotsOpen, setSnapshotsOpen] = useState(false);
@@ -1200,7 +1199,14 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     setBrandLoading(true);
     try {
       const result = await fetchBrandSuggestions(editorBoard);
-      setBrandStrategy(result);
+      updateDraft((current) => ({
+        ...current,
+        brandStrategy: {
+          positioning: result.positioning,
+          voice: result.voice,
+          messaging: result.messaging,
+        },
+      }));
 
       if (result.notice) {
         showToast(result.notice, 'default');
@@ -1208,7 +1214,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
       }
 
       showToast(
-        result.source === 'gemini' ? 'Brand strategy suggestions ready.' : 'Demo brand strategy applied.',
+        result.source === 'gemini' ? 'Brand strategy updated. Save to keep it.' : 'Demo brand strategy applied.',
         'success',
       );
     } catch (error) {
@@ -1595,7 +1601,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 </div>
               </div>
 
-              {brandStrategy ? (
+              {editorBoard.brandStrategy ? (
                 <div className="space-y-4 border-t border-(--border) pt-5">
                   <p className={editorLabelClass}>Brand strategy suggestions</p>
                   <div className={`space-y-3 ${editorSubtleSurfaceClass}`}>
@@ -1603,20 +1609,24 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                       <p className="text-xs font-medium uppercase tracking-[0.2em] text-(--text-muted)">
                         Positioning
                       </p>
-                      <p className="mt-2 text-sm leading-6 text-(--text)">{brandStrategy.positioning}</p>
+                      <p className="mt-2 text-sm leading-6 text-(--text)">
+                        {editorBoard.brandStrategy.positioning}
+                      </p>
                     </div>
                     <div>
                       <p className="text-xs font-medium uppercase tracking-[0.2em] text-(--text-muted)">
                         Voice
                       </p>
-                      <p className="mt-2 text-sm leading-6 text-(--text)">{brandStrategy.voice}</p>
+                      <p className="mt-2 text-sm leading-6 text-(--text)">
+                        {editorBoard.brandStrategy.voice}
+                      </p>
                     </div>
                     <div>
                       <p className="text-xs font-medium uppercase tracking-[0.2em] text-(--text-muted)">
                         Messaging pillars
                       </p>
                       <ul className="mt-2 space-y-2">
-                        {brandStrategy.messaging.map((message) => (
+                        {editorBoard.brandStrategy.messaging.map((message) => (
                           <li
                             key={message}
                             className="rounded-full border border-(--border) bg-(--surface-elevated) px-3 py-1.5 text-sm text-(--text)"

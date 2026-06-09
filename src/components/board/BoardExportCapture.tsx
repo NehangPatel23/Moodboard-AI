@@ -148,6 +148,80 @@ export function BoardExportCapture({ board, layout = 'fixed' }: BoardExportCaptu
         </section>
       ) : null}
 
+      {board.brandStrategy ? (
+        <section style={{ marginBottom: '40px' }}>
+          <div data-export-block="brand-strategy">
+            <h2
+              style={{
+                margin: 0,
+                fontSize: '14px',
+                letterSpacing: '0.24em',
+                textTransform: 'uppercase',
+                color: EXPORT_COLORS.subtle,
+              }}
+            >
+              Brand strategy
+            </h2>
+            <div style={{ marginTop: '16px', display: 'grid', gap: '16px' }}>
+              <div>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: '11px',
+                    letterSpacing: '0.18em',
+                    textTransform: 'uppercase',
+                    color: EXPORT_COLORS.subtle,
+                  }}
+                >
+                  Positioning
+                </p>
+                <p style={{ margin: '8px 0 0', fontSize: '15px', lineHeight: 1.7, color: EXPORT_COLORS.text }}>
+                  {board.brandStrategy.positioning}
+                </p>
+              </div>
+              <div>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: '11px',
+                    letterSpacing: '0.18em',
+                    textTransform: 'uppercase',
+                    color: EXPORT_COLORS.subtle,
+                  }}
+                >
+                  Voice
+                </p>
+                <p style={{ margin: '8px 0 0', fontSize: '15px', lineHeight: 1.7, color: EXPORT_COLORS.text }}>
+                  {board.brandStrategy.voice}
+                </p>
+              </div>
+              {board.brandStrategy.messaging.length ? (
+                <div>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: '11px',
+                      letterSpacing: '0.18em',
+                      textTransform: 'uppercase',
+                      color: EXPORT_COLORS.subtle,
+                    }}
+                  >
+                    Messaging pillars
+                  </p>
+                  <ul style={{ margin: '8px 0 0', paddingLeft: '18px', color: EXPORT_COLORS.text }}>
+                    {board.brandStrategy.messaging.map((message) => (
+                      <li key={message} style={{ marginBottom: '6px', fontSize: '15px', lineHeight: 1.6 }}>
+                        {message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       {board.palette.length ? (
         <section style={{ marginBottom: '40px' }}>
           <h2

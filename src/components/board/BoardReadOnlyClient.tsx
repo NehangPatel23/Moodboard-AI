@@ -21,7 +21,9 @@ import { BoardEditorSkeleton } from '@/components/board/BoardEditorSkeleton';
 import { ReferenceImageDisplay } from '@/components/board/ReferenceImageDisplay';
 import {
   editorGhostButtonClass,
+  editorNoteToneCardClass,
   editorPanelClass,
+  editorPrimaryButtonClass,
   editorReferenceCardClass,
   editorSectionClass,
   editorSubtleSurfaceClass,
@@ -235,11 +237,7 @@ function ReadOnlyNoteCard({
   text: string;
   type: NoteType;
 }) {
-  const noteToneClasses: Record<NoteType, string> = {
-    idea: 'border-amber-200 bg-amber-50 dark:border-amber-300/30 dark:bg-amber-300/14',
-    instruction: 'border-sky-200 bg-sky-50 dark:border-sky-300/30 dark:bg-sky-300/14',
-    keyword: 'border-violet-200 bg-violet-50 dark:border-violet-300/30 dark:bg-violet-300/14',
-  };
+  const noteToneClasses = editorNoteToneCardClass;
 
   return (
     <article
@@ -423,7 +421,7 @@ export function BoardReadOnlyClient({ boardId, publicView = false }: BoardReadOn
             <Button
               type="button"
               onClick={() => router.push('/app')}
-              className="rounded-full bg-(--text-strong) text-(--background) hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
+              className={editorPrimaryButtonClass}
             >
               Back to boards
             </Button>

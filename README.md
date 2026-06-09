@@ -3,7 +3,7 @@
 > **Status:** Active Development (MVP + Production Deployed)
 > **Purpose:** GitHub README + internal handoff document for future development, AI agents, and new contributors
 > **Live:** Deployed on Vercel with Supabase + Gemini free tier
-> **Next plan of action:** See [§ Next plan of action](#next-plan-of-action) — Waves 1–3 largely complete; next up: collaboration notifications, snapshot limits, design-system pass.
+> **Next plan of action:** See [§ Next plan of action](#next-plan-of-action) — Sprints A–D complete; next: landing/dashboard polish and Wave 4 growth items.
 
 **Setup guides:** [`docs/MANUAL_SETUP.md`](docs/MANUAL_SETUP.md) · [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md) · [`docs/GEMINI_SETUP.md`](docs/GEMINI_SETUP.md) · [`docs/REFERENCE_PHOTOS.md`](docs/REFERENCE_PHOTOS.md) · [`docs/DEPLOY.md`](docs/DEPLOY.md)
 
@@ -29,7 +29,7 @@ It is currently a working product foundation with:
 - View-only public sharing at `/share/[id]` and discovery at `/discover`
 - Vercel Analytics
 
-The app is not finished. Core UX, persistence, auth, AI text generation, reference photos (Pexels + Unsplash + manual import), public sharing, discovery (featured row + creator names), team collaboration (dashboard filters + per-member favorites), real-time co-editing, board comments (with editing), AI typography suggestions, board snapshots (preview + auto-backup), activity replay, flexible collaboration retention, and visual export (JSON / PNG / PDF with live preview) are in place. **Next:** see [Next plan of action](#next-plan-of-action) — collaboration notifications and snapshot limits.
+The app is not finished. Core UX, persistence, auth, AI text generation, reference photos (Pexels + Unsplash + manual import), public sharing, discovery (featured row + creator names), team collaboration (dashboard filters + per-member favorites), real-time co-editing, board comments (with editing), AI typography/palette/brand suggestions, board snapshots (limits + auto-prune + preview), activity replay, collaboration notifications (remote-save toast + unread tab/pulse), flexible collaboration retention, design-system tokens (editor/presence/dashboard/modals), and visual export (JSON / PNG / PDF with live preview) are in place. **Next:** see [Next plan of action](#next-plan-of-action).
 
 ---
 
@@ -71,7 +71,7 @@ User-scoped data is stored in **Supabase (Postgres + Auth)** with Row Level Secu
 **Setup:** Follow the full guide in [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md). Short version:
 
 1. Create a Supabase project at [supabase.com](https://supabase.com).
-2. Run migrations in [`supabase/migrations/`](supabase/migrations/) through `018` in the SQL Editor (or follow [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md) / [`docs/DEPLOY.md`](docs/DEPLOY.md) for the full ordered list).
+2. Run migrations in [`supabase/migrations/`](supabase/migrations/) through `021` in the SQL Editor (or follow [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md) / [`docs/DEPLOY.md`](docs/DEPLOY.md) for the full ordered list).
 3. Copy API keys into `.env.local` (see [`.env.local.example`](.env.local.example)).
 4. Disable **Confirm email** under Authentication → Providers → Email.
 5. Run `npm run setup:supabase` (verifies tables + seeds demo user).
@@ -254,7 +254,7 @@ src/
 │   └── supabase/
 docs/                  # setup, deploy, Gemini, Pexels guides
 scripts/               # setup:supabase, verify:generate, seed-demo
-supabase/migrations/   # 001–019 (collaboration, snapshots, retention, member favorites)
+supabase/migrations/   # 001–021 (collaboration, snapshots, retention, brand strategy)
 ```
 
 ---
@@ -996,11 +996,27 @@ Featured row on `/discover`, creator names on cards, Open Graph meta on `/share/
 
 **With others** filter (`?visibility=with-others`), Public/Private relabel, `hasCollaborators` on `GET /api/boards`, collaborator badge on [`BoardCard`](src/components/dashboard/BoardCard.tsx), dashboard reload after collaborate actions. Per-member favorites for collaborators (migration `019`, [`POST /api/boards/[id]/favorite`](src/app/api/boards/[id]/favorite/route.ts)).
 
+### 19. Collaboration Notifications — DONE
+
+Remote-save toast when draft is clean ([`BoardEditorClient`](src/components/board/BoardEditorClient.tsx)); unread tab title via [`use-document-title.ts`](src/lib/use-document-title.ts); pulsing toolbar badges on Comments/Activity when panels closed ([`BoardEditorToolbar`](src/components/board/BoardEditorToolbar.tsx)).
+
+### 20. Snapshot Limits — DONE
+
+Owner cap + auto-prune (migration `020`, Settings → Collaboration → Snapshots); enforce on save via [`snapshot-prune.ts`](src/lib/db/snapshot-prune.ts); count/limit UI in [`BoardSnapshotsPanel`](src/components/board/BoardSnapshotsPanel.tsx).
+
+### 21. Design System Pass (Sprint C) — DONE
+
+Semantic tokens in [`board-editor-styles.ts`](src/components/board/board-editor-styles.ts) for presence, dashboard cards, modal scrims, note tones; migrated [`BoardPresenceStrip`](src/components/board/BoardPresenceStrip.tsx), [`BoardReadOnlyClient`](src/components/board/BoardReadOnlyClient.tsx), shared modals.
+
+### 22. AI Brand Strategy — DONE
+
+`POST /api/generate/brand`, **Suggest brand** on Overview, persisted on board as `brandStrategy` (migration `021`); included in visual export.
+
 ---
 
 ## Next plan of action
 
-Four-wave roadmap. **Waves 1–3 are largely complete** (including dashboard sharing filters). Remaining polish and growth items below.
+Four-wave roadmap. **Waves 1–3 and Sprints A–D are complete** (collaboration notifications, snapshot limits, design-system pass, AI brand strategy).
 
 ### Recently completed
 
@@ -1009,58 +1025,36 @@ Four-wave roadmap. **Waves 1–3 are largely complete** (including dashboard sha
 | 1 | Flexible collaboration retention (amount + unit) | Migration `018`, settings UI, [`retention-duration.ts`](src/lib/retention-duration.ts) |
 | 1 | PNG/PDF export fix + tags/notes in visual export | [`export-capture.ts`](src/lib/export-capture.ts), [`export-pdf.ts`](src/lib/export-pdf.ts), [`ExportModal`](src/components/shared/ExportModal.tsx) |
 | 1 | Export live preview (Visual / JSON toggle) | [`ExportModal`](src/components/shared/ExportModal.tsx) |
-| 1 | Production hygiene — migrations `017`–`019` in [`docs/DEPLOY.md`](docs/DEPLOY.md) | Done |
+| 1 | Production hygiene — migrations `017`–`021` in [`docs/DEPLOY.md`](docs/DEPLOY.md) | Done |
 | 2 | Snapshot preview + auto-backup before restore | [`SnapshotPreviewModal`](src/components/board/SnapshotPreviewModal.tsx) |
 | 2 | Section presence highlights + editing badges | [`BoardSectionPresenceBar`](src/components/board/BoardSectionPresenceBar.tsx), editor tab pills |
 | 2 | **Dashboard sharing filters** — With others, Public relabel, collaborator badge | [`BoardFilterBar`](src/components/dashboard/BoardFilterBar.tsx), [`GET /api/boards`](src/app/api/boards/route.ts) |
 | 2 | **Collaborator favorites** on dashboard | Migration `019`, [`POST /api/boards/[id]/favorite`](src/app/api/boards/[id]/favorite/route.ts) |
+| 2 | **Collaboration notifications** — remote-save toast, unread tab + toolbar pulse | [`use-document-title.ts`](src/lib/use-document-title.ts), [`BoardEditorToolbar`](src/components/board/BoardEditorToolbar.tsx) |
+| 2 | **Snapshot limits** — owner cap, auto-prune, panel count UI | Migration `020`, [`snapshot-prune.ts`](src/lib/db/snapshot-prune.ts) |
 | 3 | Command palette v2 (search, section jump, export/share/snapshots) | [`CommandPalette`](src/components/shared/CommandPalette.tsx) |
 | 3 | Discover featured row + creator names + share OG tags | [`discover/page.tsx`](src/app/discover/page.tsx), [`share/[id]/page.tsx`](src/app/share/[id]/page.tsx) |
+| 3 | **Design system pass** — presence, dashboard, modal scrims | [`board-editor-styles.ts`](src/components/board/board-editor-styles.ts) |
+| 4 | **AI brand strategy spike** — suggest + persist on board | Migration `021`, [`POST /api/generate/brand`](src/app/api/generate/brand/route.ts) |
 
 ---
 
 ### Next priorities (recommended order)
 
-#### 1. Collaboration notifications (Wave 2)
-
-Improve awareness when collaborating without opening panels:
-
-- **Remote save toast** — subtle confirmation when a collaborator's save lands and your draft is clean (today: conflict banner only when you have unsaved edits)
-- **Unread pulse** — tab title or toolbar indicator for unread comments/activity when the Comments / Activity panels are closed (build on existing `collaboration-state` API)
-
-**Touch:** [`BoardEditorClient`](src/components/board/BoardEditorClient.tsx), [`RemoteUpdateBanner`](src/components/board/RemoteUpdateBanner.tsx), collaboration state hooks, optional [`use-document-title`](src/lib/) helper.
-
-#### 2. Snapshot retention/limit (Wave 2)
-
-Manual snapshots work; add guardrails for long-lived boards:
-
-- **Max snapshots per board** — owner setting (e.g. 10 / 25 / unlimited)
-- **Auto-prune** — delete oldest snapshots when over limit (optional toggle)
-- Surface count/limit in [`BoardSnapshotsPanel`](src/components/board/BoardSnapshotsPanel.tsx)
-
-**Touch:** new migration for limit preference (or extend `user_settings`), snapshot list API, prune on save.
-
-#### 3. Design system pass (Wave 3 — incremental)
-
-Continue semantic token migration ([`board-editor-styles.ts`](src/components/board/board-editor-styles.ts)):
-
-- Read-only / presentation mode clusters ([`BoardReadOnlyClient`](src/components/board/BoardReadOnlyClient.tsx))
-- Presence components ([`BoardPresenceStrip`](src/components/board/BoardPresenceStrip.tsx), [`BoardSectionPresenceBar`](src/components/board/BoardSectionPresenceBar.tsx))
-- Dashboard cards — reduce hardcoded `[var(--…)]` / slate mixes where tokens exist
-
-No full landing redesign.
-
-#### 4. Landing & dashboard visual polish (optional)
+#### 1. Landing & dashboard visual polish (optional)
 
 Incremental hierarchy/contrast pass on light mode (called out in [§ 8](#8-current-known-problems)); defer full redesign.
 
+#### 2. AI design system export (Wave 4)
+
+Downloadable color + type spec from board (extends existing visual export).
+
 ---
 
-### Wave 4 — Growth (defer until Wave 2–3 polish stable)
+### Wave 4 — Growth (defer until polish stable)
 
 | Feature | Notes |
 |---------|--------|
-| AI brand strategy | Positioning/voice from board context (mirror typography/palette APIs) |
 | AI design system export | Downloadable color + type spec from board |
 | Template marketplace | DB, payments, moderation — deferred |
 | Advanced reference APIs | Behance, Dribbble (need legitimate APIs) |
@@ -1069,23 +1063,24 @@ Incremental hierarchy/contrast pass on light mode (called out in [§ 8](#8-curre
 
 ---
 
-### Suggested sprints
+### Suggested sprints (completed)
 
 | Sprint | Scope | Outcome |
 |--------|--------|---------|
-| **A** | Collaboration notifications | Remote-save feedback + unread pulse when panels closed |
-| **B** | Snapshot retention/limit | Owner cap + optional auto-prune |
-| **C** | Design system pass | Read-only + presence + dashboard token cleanup |
-| **D** | AI brand strategy spike | `POST /api/generate/brand` prototype from board context |
+| **A** | Collaboration notifications | **Done** — remote-save toast + unread tab/pulse |
+| **B** | Snapshot retention/limit | **Done** — migration `020`, cap + auto-prune |
+| **C** | Design system pass | **Done** — tokens + presence/read-only/modals |
+| **D** | AI brand strategy | **Done** — API + Overview + migration `021` |
 
 ### Success checks
 
 - Dashboard: `?visibility=with-others` shows owned boards with members or pending invites; Public/Private unchanged; collaborator badge visible
 - Favorites: collaborator can star a shared board; owner's favorite unchanged on same board
-- Export: preview matches downloaded PNG/PDF; tags + notes included; PDF page breaks keep rows intact
-- Settings: “hide comments after 6 hours” respected after refresh
-- Snapshots: preview before restore; owner can delete; limit enforced when implemented
-- Notifications: remote save surfaces without conflict; unread count visible when panels closed
+- Export: preview matches downloaded PNG/PDF; tags + notes + brand strategy included; PDF page breaks keep rows intact
+- Settings: “hide comments after 6 hours” respected after refresh; snapshot cap + auto-prune in Collaboration
+- Snapshots: preview before restore; owner can delete; limit enforced; auto-prune removes oldest
+- Notifications: remote save surfaces without conflict; unread count in tab title + pulsing toolbar badges when panels closed
+- Brand: **Suggest brand** marks board dirty; Save persists strategy; refresh shows Overview block
 - Command palette: `⌘K` finds boards by partial title; editor actions open Export / Snapshots / Share
 
 ### Out of scope (near term)
@@ -1119,9 +1114,9 @@ Implemented:
 - Empty states
 - Public sharing (`/share/[id]`) and discovery (`/discover`)
 
-Database persistence, Supabase Auth, **progressive AI text generation** (draft → enrich + live preview), **reference photos** (Pexels + Unsplash + manual import), **AI typography & palette suggestions**, **board snapshots** (preview + auto-backup), **flexible collaboration retention**, **visual export** (JSON / PNG / PDF with live preview), theme sync (including TopBar toggle), production deploy, view-only public sharing, discover (featured + creator names), **team collaboration** (With me / With others filters, collaborator favorites), **real-time co-editing** (section presence cues), **board comments with editing**, **activity replay**, and **command palette v2** are implemented.
+Database persistence, Supabase Auth, **progressive AI text generation** (draft → enrich + live preview), **reference photos** (Pexels + Unsplash + manual import), **AI typography, palette & brand suggestions**, **board snapshots** (limits + auto-prune + preview), **collaboration notifications**, **flexible collaboration retention**, **design-system tokens**, **visual export** (JSON / PNG / PDF with live preview), theme sync (including TopBar toggle), production deploy, view-only public sharing, discover (featured + creator names), **team collaboration** (With me / With others filters, collaborator favorites), **real-time co-editing** (section presence cues), **board comments with editing**, **activity replay**, and **command palette v2** are implemented.
 
-**Up next:** [Next plan of action](#next-plan-of-action) — collaboration notifications, snapshot limits, design-system pass.
+**Up next:** [Next plan of action](#next-plan-of-action) — landing/dashboard polish and Wave 4 growth items.
 
 Deferred unless requested:
 
@@ -1153,17 +1148,20 @@ Important context:
 - **Board activity + replay** — Activity panel, structured change replay, read/hide, owner-only delete (migrations `008`–`013`; verify with `npm run verify:collaboration`)
 - **Collaboration retention** — flexible hide/purge units in Settings (migration `018`)
 - **Reference photos** — Pexels → Unsplash → placeholder during enrich + **Find photo**; **Apply URL** / **Upload file** in reference editor. See [`docs/REFERENCE_PHOTOS.md`](docs/REFERENCE_PHOTOS.md)
-- **AI typography** — **Suggest typography** via `POST /api/generate/typography`
-- **Visual export** — JSON / PNG / PDF with live Visual + JSON preview; tags and notes in visual export; block-based PDF page breaks. See [Visual Board Export (Implemented)](#visual-board-export-implemented)
-- **Board snapshots** — save/restore, preview modal, auto-backup before restore (migrations `015`/`017`)
+- **AI typography & palette** — **Suggest typography/palette** via generate APIs
+- **AI brand strategy** — **Suggest brand** on Overview; persisted on board (migration `021`)
+- **Collaboration notifications** — remote-save toast, unread tab title, toolbar pulse
+- **Snapshot limits** — owner cap + auto-prune (migration `020`)
+- **Visual export** — JSON / PNG / PDF with live Visual + JSON preview; tags, notes, and brand strategy in visual export; block-based PDF page breaks. See [Visual Board Export (Implemented)](#visual-board-export-implemented)
+- **Board snapshots** — save/restore, preview modal, auto-backup before restore, count/limit UI (migrations `015`/`017`/`020`)
 - **Command palette v2** — fuzzy board search, editor section jump, Export / Snapshots / Share actions
 - **Share OG tags** — Open Graph meta on `/share/[id]`
-- **Design system Phase 1 + 2:** board editor + collaboration/creation clusters use semantic tokens; `globals.css` board-editor override hacks removed
-- **Next plan of action:** [§ Next plan of action](#next-plan-of-action) — collaboration notifications first, then snapshot limits
+- **Design system Phase 1–3:** board editor + collaboration/creation + presence/dashboard/modal tokens in [`board-editor-styles.ts`](src/components/board/board-editor-styles.ts)
+- **Next plan of action:** [§ Next plan of action](#next-plan-of-action) — landing polish and Wave 4 growth
 - Board editor handles refresh correctly (loads from Supabase after hydration; no false "not found")
 - Settings controls are all wired to real behavior (theme, reduce motion / focus rings, default visibility, presentation mode, workspace identity)
 
-When resuming work, follow [Next plan of action](#next-plan-of-action): **Sprint A** = collaboration notifications, then snapshot limits and design-system pass.
+When resuming work, follow [Next plan of action](#next-plan-of-action): optional landing/dashboard polish, then Wave 4 growth (design-system export, profiles, billing).
 
 ---
 

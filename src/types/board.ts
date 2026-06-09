@@ -111,6 +111,12 @@ export type NoteItem = {
   position?: { x: number; y: number };
 };
 
+export type BrandStrategy = {
+  positioning: string;
+  voice: string;
+  messaging: string[];
+};
+
 export type Board = {
   id: string;
   title: string;
@@ -123,6 +129,7 @@ export type Board = {
   typography: TypographyItem[];
   references: ReferenceItem[];
   notes: NoteItem[];
+  brandStrategy?: BrandStrategy | null;
   createdAt: string;
   updatedAt: string;
   lastSavedByName?: string | null;

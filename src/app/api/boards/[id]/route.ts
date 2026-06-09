@@ -43,15 +43,39 @@ export async function PATCH(request: Request, context: RouteContext) {
   const row = boardToRow(body.board, access.ownerId);
   const savedByName = profile?.name ?? 'Collaborator';
 
+  let updatePayload: Record<string, unknown> = { ...row, last_saved_by_name: savedByName };
+
   let { data, error } = await admin
     .from('boards')
-    .update({ ...row, last_saved_by_name: savedByName })
+    .update(updatePayload)
     .eq('id', id)
     .select('*')
     .maybeSingle();
 
   if (error && isMissingColumnError(error, 'last_saved_by_name')) {
-    ({ data, error } = await admin.from('boards').update(row).eq('id', id).select('*').maybeSingle());
+    updatePayload = { ...row };
+    ({ data, error } = await admin.from('boards').update(updatePayload).eq('id', id).select('*').maybeSingle());
+  }
+
+  if (error && isMissingColumnError(error, 'brand_strategy')) {
+    const { brand_strategy: _brandStrategy, ...rowWithoutBrand } = row;
+    updatePayload = { ...rowWithoutBrand, last_saved_by_name: savedByName };
+    ({ data, error } = await admin
+      .from('boards')
+      .update(updatePayload)
+      .eq('id', id)
+      .select('*')
+      .maybeSingle());
+
+    if (error && isMissingColumnError(error, 'last_saved_by_name')) {
+      updatePayload = rowWithoutBrand;
+      ({ data, error } = await admin
+        .from('boards')
+        .update(updatePayload)
+        .eq('id', id)
+        .select('*')
+        .maybeSingle());
+    }
   }
 
   if (error) {

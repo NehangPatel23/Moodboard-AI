@@ -70,8 +70,34 @@ After deploying collaboration features, run these in the **production** Supabase
 13. [`supabase/migrations/018_user_settings_retention_duration.sql`](../supabase/migrations/018_user_settings_retention_duration.sql) — flexible collaboration retention (`collaboration_retention` JSON with amount + unit)
 14. [`supabase/migrations/019_board_member_favorites.sql`](../supabase/migrations/019_board_member_favorites.sql) — per-member favorite state on `board_members` for collaborator dashboards
 15. [`supabase/migrations/020_user_settings_snapshot_limits.sql`](../supabase/migrations/020_user_settings_snapshot_limits.sql) — owner snapshot cap + auto-prune preferences on `user_settings`
+16. [`supabase/migrations/021_board_brand_strategy.sql`](../supabase/migrations/021_board_brand_strategy.sql) — optional `brand_strategy` JSON on `boards` for saved AI brand suggestions
 
 If collaboration was already live, confirm migrations `004` and `005` are applied before `006`.
+
+## Step 5c — Apply latest migrations (020–021)
+
+If production was deployed before snapshot limits or brand strategy shipped, run these in the **production** Supabase SQL Editor (in order):
+
+1. [`supabase/migrations/020_user_settings_snapshot_limits.sql`](../supabase/migrations/020_user_settings_snapshot_limits.sql)
+2. [`supabase/migrations/021_board_brand_strategy.sql`](../supabase/migrations/021_board_brand_strategy.sql)
+
+Verify columns exist:
+
+```sql
+select column_name
+from information_schema.columns
+where table_schema = 'public'
+  and table_name = 'user_settings'
+  and column_name in ('snapshot_max_per_board', 'snapshot_auto_prune');
+
+select column_name
+from information_schema.columns
+where table_schema = 'public'
+  and table_name = 'boards'
+  and column_name = 'brand_strategy';
+```
+
+Expected: one row per column. Re-deploy Vercel after applying if the app was already live.
 
 > **Presence:** By default the app uses a public Realtime presence channel so collaborators show up without extra setup. If you disable **Allow public access** under Supabase **Project Settings → Realtime**, run migration `016` and set `NEXT_PUBLIC_SUPABASE_REALTIME_PRIVATE=true` in Vercel.
 
@@ -108,6 +134,11 @@ Confirm **Production** env vars on Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUB
 | Per-item hide / Hidden filter | Hide removes item from your view only; restore from Hidden filter |
 | Owner comment/activity delete | Trash visible only for owners; non-owners use Hide; app confirmation modal |
 | Settings → Collaboration | Hide/purge retention with minutes/hours/days/weeks (migration 018) |
+| Settings → Collaboration → Snapshots | Max snapshots per board + auto-prune toggle (migration 020) |
+| Board editor → Overview → **Suggest brand** | Strategy block appears; Save persists; refresh keeps content (migration 021) |
+| Board editor → **Snapshots** with cap = 10, auto-prune on | Saving 11th snapshot prunes oldest; panel shows `X of 10` |
+| Two browsers — clean draft + remote save | Browser B shows toast (not conflict banner) |
+| Unread comments with panels closed | Tab title `(N)` prefix; toolbar badges pulse |
 | Reference editor → **Find photo** | Pexels or Unsplash photo (or demo placeholder); source badge shows correctly |
 | Reference editor → **Apply URL** | Custom `https://` image applied and persists after save |
 | Reference editor → **Upload file** | Image stored in Supabase; persists after save (requires migration 014) |

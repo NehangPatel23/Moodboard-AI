@@ -13,6 +13,7 @@ export type BoardRow = {
   typography: Board['typography'];
   references: Board['references'];
   notes: Board['notes'];
+  brand_strategy?: Board['brandStrategy'] | null;
   is_favorite: boolean;
   visibility: BoardVisibility;
   created_at: string;
@@ -33,6 +34,7 @@ export function rowToBoard(row: BoardRow): Board {
     typography: row.typography ?? [],
     references: row.references ?? [],
     notes: row.notes ?? [],
+    brandStrategy: row.brand_strategy ?? null,
     isFavorite: row.is_favorite,
     visibility: row.visibility,
     createdAt: row.created_at,
@@ -55,6 +57,7 @@ export function boardToRow(board: Board, userId: string): BoardRow {
     typography: board.typography,
     references: board.references,
     notes: board.notes,
+    brand_strategy: board.brandStrategy ?? null,
     is_favorite: board.isFavorite,
     visibility: board.visibility,
     created_at: board.createdAt,

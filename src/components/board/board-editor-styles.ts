@@ -54,6 +54,12 @@ export const editorReferenceCardClass =
 export const editorModalPanelClass =
   'flex w-full max-w-6xl flex-col overflow-hidden rounded-4xl border border-(--border) bg-(--surface-elevated) text-(--text) shadow-[var(--shadow-elevated)]';
 
+export const editorModalScrimClass =
+  'bg-slate-950/45 backdrop-blur-sm';
+
+export const editorPanelScrimClass =
+  'bg-black/30 backdrop-blur-[1px]';
+
 /** Collaboration / status surfaces */
 export const editorUnreadBadgeClass =
   'rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-900 dark:bg-amber-900/40 dark:text-amber-100';
@@ -67,6 +73,14 @@ export const editorPresenceEditingClass =
 export const editorPresenceViewingDotClass = 'bg-(--text-muted)/40';
 
 export const editorPresenceEditingDotClass = 'bg-emerald-500';
+
+export const editorPresenceAvatarClass =
+  'flex shrink-0 items-center justify-center rounded-full border-2 font-semibold text-(--text-strong) shadow-sm';
+
+export const editorPresenceAvatarBorderClass = 'border-white dark:border-(--background)';
+
+export const editorPresenceAvatarCurrentClass =
+  'border-(--text-strong) ring-2 ring-(--text-strong)/15';
 
 export const presenceAccentColors = [
   '#cbd5e1',
@@ -153,6 +167,12 @@ export const editorSettingsNestedClass =
   'rounded-3xl border border-(--border) bg-(--surface-subtle) p-4';
 
 export const editorSettingsFieldClass = editorFieldClass;
+
+export const editorNoteToneCardClass: Record<'idea' | 'instruction' | 'keyword', string> = {
+  idea: 'border-amber-200 bg-amber-50 dark:border-amber-300/30 dark:bg-amber-300/14',
+  instruction: 'border-sky-200 bg-sky-50 dark:border-sky-300/30 dark:bg-sky-300/14',
+  keyword: 'border-violet-200 bg-violet-50 dark:border-violet-300/30 dark:bg-violet-300/14',
+};
 
 /** Creation flow (shared with board editor tokens) */
 export const creationSectionClass =

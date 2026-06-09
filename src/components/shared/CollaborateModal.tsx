@@ -12,6 +12,7 @@ import { ConfirmationModal } from '@/components/shared/ConfirmationModal';
 import { showToast } from '@/components/shared/toast-store';
 import { isValidEmail } from '@/lib/auth-validation';
 import { authInputErrorClassName } from '@/lib/auth-validation';
+import { editorModalScrimClass } from '@/components/board/board-editor-styles';
 
 type CollaborateModalProps = {
   open: boolean;
@@ -239,7 +240,10 @@ export function CollaborateModal({
 
   return (
     <div
-      className="fixed inset-0 z-10050 flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm"
+      className={cn(
+        'fixed inset-0 z-10050 flex items-center justify-center px-4',
+        editorModalScrimClass,
+      )}
       role="dialog"
       aria-modal="true"
       aria-labelledby="collaborate-title"

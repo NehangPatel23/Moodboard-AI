@@ -9,6 +9,8 @@ import { BoardExportCapture } from '@/components/board/BoardExportCapture';
 import { captureExportBlocks, captureExportPng, EXPORT_CAPTURE_WIDTH } from '@/lib/export-capture';
 import { buildPdfFromExportBlocks } from '@/lib/export-pdf';
 import { showToast } from '@/components/shared/toast-store';
+import { editorModalScrimClass } from '@/components/board/board-editor-styles';
+import { cn } from '@/lib/utils';
 
 type ExportFormat = 'json' | 'png' | 'pdf';
 type PreviewFormat = 'visual' | 'json';
@@ -139,7 +141,10 @@ export function ExportModal({
   return (
     <>
       <div
-        className="fixed inset-0 z-[10050] flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm"
+        className={cn(
+          'fixed inset-0 z-[10050] flex items-center justify-center px-4 py-6',
+          editorModalScrimClass,
+        )}
         role="dialog"
         aria-modal="true"
         aria-labelledby="export-title"

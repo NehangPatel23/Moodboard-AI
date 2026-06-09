@@ -6,7 +6,9 @@ import type { BoardRole } from '@/types/board';
 import { cn } from '@/lib/utils';
 import type { BoardPresenceUser } from '@/lib/realtime/use-board-realtime';
 import {
-  editorPresenceEditingClass,
+  editorPresenceAvatarBorderClass,
+  editorPresenceAvatarClass,
+  editorPresenceAvatarCurrentClass,
   editorPresenceEditingDotClass,
   editorPresenceViewingDotClass,
   presenceAccentColors,
@@ -67,11 +69,9 @@ function PresenceAvatar({
   return (
     <div
       className={cn(
-        'flex shrink-0 items-center justify-center rounded-full border-2 font-semibold text-slate-900 shadow-sm',
+        editorPresenceAvatarClass,
         dimension,
-        isCurrentUser
-          ? 'border-(--text-strong) ring-2 ring-(--text-strong)/15'
-          : 'border-white dark:border-slate-900',
+        isCurrentUser ? editorPresenceAvatarCurrentClass : editorPresenceAvatarBorderClass,
       )}
       style={{ backgroundColor: accentForUser(user.userId) }}
       aria-hidden="true"
