@@ -1,6 +1,7 @@
 'use client';
 
 import type { BoardPresenceUser } from '@/lib/realtime/use-board-realtime';
+import { editorPresenceEditingClass } from '@/components/board/board-editor-styles';
 import { cn } from '@/lib/utils';
 
 type BoardSectionPresenceBarProps = {
@@ -44,7 +45,7 @@ export function BoardSectionPresenceBar({
         {label}
       </p>
       {editingOthers.length > 0 ? (
-        <span className="rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+        <span className={editorPresenceEditingClass}>
           {editingOthers.length === 1
             ? `${editingOthers[0].name} is editing`
             : `${editingOthers.length} editing`}

@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { GenerationSourceBadge } from '@/components/creation/GenerationSourceBadge';
 import { BoardPresenceStrip } from '@/components/board/BoardPresenceStrip';
-import { editorLabelClass } from '@/components/board/board-editor-styles';
+import { editorLabelClass, editorToolbarUnreadBadgeClass } from '@/components/board/board-editor-styles';
 import type { BoardPresenceUser } from '@/lib/realtime/use-board-realtime';
 import type { BoardVisibility } from '@/types/board';
 
@@ -39,6 +39,7 @@ type BoardEditorToolbarProps = {
   isDirty: boolean;
   unreadCommentsCount: number;
   unreadActivityCount: number;
+  reduceMotionEnabled?: boolean;
   onlineUsers: BoardPresenceUser[];
   currentUserId: string | null;
   commentsOpen: boolean;
@@ -69,6 +70,7 @@ function ToolbarAction({
   icon,
   active = false,
   badgeCount = 0,
+  badgePulse = false,
   onClick,
   buttonRef,
   className,
@@ -78,6 +80,7 @@ function ToolbarAction({
   icon: ReactNode;
   active?: boolean;
   badgeCount?: number;
+  badgePulse?: boolean;
   onClick: () => void;
   buttonRef?: RefObject<HTMLButtonElement | null>;
   className?: string;
@@ -104,7 +107,9 @@ function ToolbarAction({
       {icon}
       <span className="hidden sm:inline">{label}</span>
       {badgeCount > 0 ? (
-        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-semibold text-white sm:ml-0.5">
+        <span
+          className={cn(editorToolbarUnreadBadgeClass, badgePulse && 'animate-pulse')}
+        >
           {badgeCount}
         </span>
       ) : null}
@@ -155,6 +160,7 @@ export function BoardEditorToolbar({
   isDirty,
   unreadCommentsCount,
   unreadActivityCount,
+  reduceMotionEnabled = false,
   onlineUsers,
   currentUserId,
   commentsOpen,
@@ -252,6 +258,7 @@ export function BoardEditorToolbar({
                       icon={<MessageSquare className="h-4 w-4 shrink-0" />}
                       active={commentsOpen}
                       badgeCount={unreadCommentsCount}
+                      badgePulse={!reduceMotionEnabled && !commentsOpen && unreadCommentsCount > 0}
                       onClick={onOpenComments}
                       buttonRef={commentsButtonRef}
                     />
@@ -262,6 +269,7 @@ export function BoardEditorToolbar({
                       icon={<History className="h-4 w-4 shrink-0" />}
                       active={activityOpen}
                       badgeCount={unreadActivityCount}
+                      badgePulse={!reduceMotionEnabled && !activityOpen && unreadActivityCount > 0}
                       onClick={onOpenActivity}
                       buttonRef={activityButtonRef}
                     />

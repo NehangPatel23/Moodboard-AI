@@ -5,6 +5,12 @@ import { ChevronDown, Eye, Pencil } from 'lucide-react';
 import type { BoardRole } from '@/types/board';
 import { cn } from '@/lib/utils';
 import type { BoardPresenceUser } from '@/lib/realtime/use-board-realtime';
+import {
+  editorPresenceEditingClass,
+  editorPresenceEditingDotClass,
+  editorPresenceViewingDotClass,
+  presenceAccentColors,
+} from '@/components/board/board-editor-styles';
 
 type BoardPresenceStripProps = {
   users: BoardPresenceUser[];
@@ -19,7 +25,7 @@ function initialsFromName(name: string): string {
   return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase();
 }
 
-const ACCENT_COLORS = ['#cbd5e1', '#fcd34d', '#86efac', '#93c5fd', '#f9a8d4', '#c4b5fd'];
+const ACCENT_COLORS = [...presenceAccentColors];
 
 function accentForUser(userId: string): string {
   let hash = 0;
@@ -114,7 +120,7 @@ function PresenceUserRow({
       <span
         className={cn(
           'mt-2 h-2 w-2 shrink-0 rounded-full',
-          user.status === 'editing' ? 'bg-emerald-500' : 'bg-(--text-muted)/40',
+          user.status === 'editing' ? editorPresenceEditingDotClass : editorPresenceViewingDotClass,
         )}
         aria-hidden="true"
       />

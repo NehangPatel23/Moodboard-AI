@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server';
 import { getBoardAccess } from '@/lib/db/board-access';
 import { getAuthenticatedUser } from '@/lib/db/auth';
 import { isMissingRelationError } from '@/lib/db/schema-errors';
+import {
+  countBoardSnapshots,
+  getSnapshotLimitSettingsForOwner,
+  pruneBoardSnapshots,
+} from '@/lib/db/snapshot-prune';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { Board, BoardSnapshot } from '@/types/board';
 
@@ -45,22 +50,46 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 
   const admin = createAdminClient();
-  const { data, error } = await admin
+  const ownerId = access.ownerId;
+  const limitSettings = ownerId
+    ? await getSnapshotLimitSettingsForOwner(admin, ownerId)
+    : { maxPerBoard: 25, autoPrune: true };
+
+  let query = admin
     .from('board_snapshots')
     .select('id, board_id, user_id, actor_name, label, board_data, created_at')
     .eq('board_id', id)
-    .order('created_at', { ascending: false })
-    .limit(50);
+    .order('created_at', { ascending: false });
+
+  if (limitSettings.maxPerBoard > 0) {
+    query = query.limit(limitSettings.maxPerBoard);
+  } else {
+    query = query.limit(200);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     if (isMissingRelationError(error, 'board_snapshots')) {
-      return NextResponse.json({ snapshots: [] });
+      return NextResponse.json({
+        snapshots: [],
+        count: 0,
+        limit: limitSettings.maxPerBoard,
+        autoPrune: limitSettings.autoPrune,
+      });
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
   const snapshots = ((data ?? []) as SnapshotRow[]).map(rowToSnapshot);
-  return NextResponse.json({ snapshots });
+  const count = await countBoardSnapshots(admin, id);
+
+  return NextResponse.json({
+    snapshots,
+    count,
+    limit: limitSettings.maxPerBoard,
+    autoPrune: limitSettings.autoPrune,
+  });
 }
 
 export async function POST(request: Request, context: RouteContext) {
@@ -88,6 +117,25 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   const admin = createAdminClient();
+  const ownerId = access.ownerId;
+  if (!ownerId) {
+    return NextResponse.json({ error: 'Board owner not found' }, { status: 404 });
+  }
+
+  const limitSettings = await getSnapshotLimitSettingsForOwner(admin, ownerId);
+
+  if (limitSettings.maxPerBoard > 0 && !limitSettings.autoPrune) {
+    const currentCount = await countBoardSnapshots(admin, id);
+    if (currentCount >= limitSettings.maxPerBoard) {
+      return NextResponse.json(
+        {
+          error: `Snapshot limit reached (${limitSettings.maxPerBoard}). Delete old snapshots or enable auto-prune in Settings.`,
+        },
+        { status: 409 },
+      );
+    }
+  }
+
   const actorName = profile?.name ?? 'Collaborator';
   const label = body.label?.trim() || null;
 
@@ -113,8 +161,23 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  const snapshotId = (data as SnapshotRow).id;
+  let pruned = 0;
+
+  if (limitSettings.autoPrune && limitSettings.maxPerBoard > 0) {
+    pruned = await pruneBoardSnapshots(admin, id, limitSettings.maxPerBoard, snapshotId);
+  }
+
+  const count = await countBoardSnapshots(admin, id);
+
   return NextResponse.json(
-    { snapshot: rowToSnapshot(data as SnapshotRow) },
+    {
+      snapshot: rowToSnapshot(data as SnapshotRow),
+      pruned,
+      count,
+      limit: limitSettings.maxPerBoard,
+      autoPrune: limitSettings.autoPrune,
+    },
     { status: 201 },
   );
 }

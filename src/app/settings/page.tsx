@@ -44,6 +44,7 @@ import {
   type RetentionUnit,
 } from '@/lib/retention-duration';
 import type { Board, BoardVisibility } from '@/types/board';
+import { SNAPSHOT_LIMIT_OPTIONS } from '@/lib/settings-defaults';
 import { Monitor, Moon, SunMedium } from 'lucide-react';
 
 type SettingsNavItem = {
@@ -258,6 +259,39 @@ function RetentionSelect({
           </select>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function SnapshotLimitSelect({
+  label,
+  description,
+  value,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <div className="rounded-3xl border border-(--border) bg-(--surface) p-4">
+      <div className="space-y-1">
+        <p className="text-sm font-medium text-(--text-strong)">{label}</p>
+        <p className="text-sm leading-6 text-(--text-muted)">{description}</p>
+      </div>
+      <select
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+        aria-label={label}
+        className="mt-3 h-11 w-full rounded-2xl border border-(--border) bg-(--surface-elevated) px-4 text-sm text-(--text) outline-none focus:ring-2 focus:ring-(--ring) sm:max-w-xs"
+      >
+        {SNAPSHOT_LIMIT_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
@@ -1038,6 +1072,29 @@ export default function SettingsPage() {
                 description="Permanently removes old save history from boards you own, including replay details."
                 value={settings.purgeActivityAfter}
                 onChange={(value) => updateSetting('purgeActivityAfter', value)}
+              />
+
+              <div className="border-t border-(--border) pt-4">
+                <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
+                  Snapshots (owners)
+                </p>
+                <p className="mt-2 text-sm leading-6 text-(--text-muted)">
+                  Control how many snapshots each of your boards can keep. Collaborators follow your
+                  limits on boards you own.
+                </p>
+              </div>
+
+              <SnapshotLimitSelect
+                label="Maximum snapshots per board"
+                description="When a limit is set, older snapshots can be removed automatically or block new saves."
+                value={settings.snapshotMaxPerBoard}
+                onChange={(value) => updateSetting('snapshotMaxPerBoard', value)}
+              />
+              <ToggleRow
+                label="Auto-prune oldest snapshots"
+                description="When enabled, saving a new snapshot removes the oldest ones beyond your limit. When disabled, new saves are blocked at the limit."
+                enabled={settings.snapshotAutoPrune}
+                onToggle={() => updateSetting('snapshotAutoPrune', !settings.snapshotAutoPrune)}
               />
             </div>
           </SettingsSection>

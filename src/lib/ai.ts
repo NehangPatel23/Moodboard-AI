@@ -112,6 +112,32 @@ export async function fetchPaletteSuggestions(
   });
 }
 
+export type BrandSuggestionResult = {
+  positioning: string;
+  voice: string;
+  messaging: string[];
+  source: 'gemini' | 'mock';
+  notice?: string;
+};
+
+export async function fetchBrandSuggestions(
+  board: Pick<Board, 'id' | 'title' | 'prompt' | 'mood' | 'summary' | 'tone' | 'tags' | 'palette'>,
+): Promise<BrandSuggestionResult> {
+  return apiFetch<BrandSuggestionResult>('/api/generate/brand', {
+    method: 'POST',
+    body: JSON.stringify({
+      boardId: board.id,
+      title: board.title,
+      prompt: board.prompt,
+      mood: board.mood,
+      summary: board.summary,
+      tone: board.tone,
+      tags: board.tags,
+      palette: board.palette,
+    }),
+  });
+}
+
 export async function fetchGeneratedBoardDraft(prompt: string): Promise<GeneratedBoardDraft> {
   return apiFetch<GeneratedBoardDraft>('/api/generate/draft', {
     method: 'POST',

@@ -24,7 +24,16 @@ export type AppSettings = {
   activityHideAfter: RetentionDuration;
   purgeCommentsAfter: RetentionDuration;
   purgeActivityAfter: RetentionDuration;
+  snapshotMaxPerBoard: number;
+  snapshotAutoPrune: boolean;
 };
+
+export const SNAPSHOT_LIMIT_OPTIONS = [
+  { value: 10, label: '10 per board' },
+  { value: 25, label: '25 per board' },
+  { value: 50, label: '50 per board' },
+  { value: 0, label: 'Unlimited' },
+] as const;
 
 export const WORKSPACE_AVATAR_ACCENTS = [
   '#cbd5e1',
@@ -84,4 +93,6 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   activityHideAfter: NEVER_RETENTION,
   purgeCommentsAfter: NEVER_RETENTION,
   purgeActivityAfter: NEVER_RETENTION,
+  snapshotMaxPerBoard: 25,
+  snapshotAutoPrune: true,
 };

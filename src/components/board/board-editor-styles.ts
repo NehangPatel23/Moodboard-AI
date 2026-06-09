@@ -58,6 +58,35 @@ export const editorModalPanelClass =
 export const editorUnreadBadgeClass =
   'rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-900 dark:bg-amber-900/40 dark:text-amber-100';
 
+export const editorToolbarUnreadBadgeClass =
+  'inline-flex min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-semibold text-white sm:ml-0.5';
+
+export const editorPresenceEditingClass =
+  'rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300';
+
+export const editorPresenceViewingDotClass = 'bg-(--text-muted)/40';
+
+export const editorPresenceEditingDotClass = 'bg-emerald-500';
+
+export const presenceAccentColors = [
+  '#cbd5e1',
+  '#fcd34d',
+  '#86efac',
+  '#93c5fd',
+  '#f9a8d4',
+  '#c4b5fd',
+] as const;
+
+export const dashboardCardClass =
+  'group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-4xl border border-(--border) bg-(--surface) shadow-[var(--shadow-card)] transition duration-300 hover:-translate-y-1.5 hover:shadow-[var(--shadow-elevated)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)';
+
+export const dashboardFavoriteStarActiveClass = 'fill-amber-400 text-amber-400';
+
+export const dashboardPreviewFallbackHex = '#e5e2e1';
+
+export const dashboardPreviewLabelClass =
+  'rounded-full bg-white/80 px-2.5 py-1 text-[10px] font-medium text-(--text-strong)';
+
 export const editorUnreadItemBorderClass = 'border-l-4 border-l-amber-500 border-(--border)';
 
 export const editorReplayActiveBorderClass = 'border-amber-400/80 ring-1 ring-amber-400/40';

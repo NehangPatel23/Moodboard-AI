@@ -28,6 +28,8 @@ export type UserSettingsRow = {
   purge_comments_after_days?: number;
   purge_activity_after_days?: number;
   collaboration_retention?: unknown;
+  snapshot_max_per_board?: number;
+  snapshot_auto_prune?: boolean;
   updated_at: string;
 };
 
@@ -62,6 +64,14 @@ export function rowToSettings(row: UserSettingsRow): AppSettings {
     activityHideAfter: retention.activityHide ?? NEVER_RETENTION,
     purgeCommentsAfter: retention.purgeComments ?? NEVER_RETENTION,
     purgeActivityAfter: retention.purgeActivity ?? NEVER_RETENTION,
+    snapshotMaxPerBoard:
+      typeof row.snapshot_max_per_board === 'number'
+        ? row.snapshot_max_per_board
+        : DEFAULT_APP_SETTINGS.snapshotMaxPerBoard,
+    snapshotAutoPrune:
+      typeof row.snapshot_auto_prune === 'boolean'
+        ? row.snapshot_auto_prune
+        : DEFAULT_APP_SETTINGS.snapshotAutoPrune,
   };
 }
 
@@ -83,6 +93,8 @@ export function settingsToRow(settings: AppSettings, userId: string): Omit<UserS
     purge_comments_after_days: legacyDaysFromRetention(settings.purgeCommentsAfter),
     purge_activity_after_days: legacyDaysFromRetention(settings.purgeActivityAfter),
     collaboration_retention: collaborationRetentionToJson(settings),
+    snapshot_max_per_board: settings.snapshotMaxPerBoard,
+    snapshot_auto_prune: settings.snapshotAutoPrune,
   };
 }
 

@@ -60,7 +60,8 @@ import {
   buildReferenceImageUrl,
   sanitizeReferenceItem,
 } from '@/lib/reference-images';
-import { fetchPaletteSuggestions, fetchReferenceImageUpload, fetchTypographySuggestions } from '@/lib/ai';
+import { fetchBrandSuggestions, fetchPaletteSuggestions, fetchReferenceImageUpload, fetchTypographySuggestions, type BrandSuggestionResult } from '@/lib/ai';
+import { useDocumentTitle } from '@/lib/use-document-title';
 import { formatDateTime } from '@/lib/utils';
 import {
   getFirstReplaySectionIndex,
@@ -101,6 +102,7 @@ import {
   editorLabelClass,
   editorPanelClass,
   editorSelectClass,
+  editorSubtleSurfaceClass,
 } from '@/components/board/board-editor-styles';
 
 type BoardEditorClientProps = {
@@ -653,6 +655,8 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const skipInitialSectionScroll = useRef(true);
   const [typographyLoading, setTypographyLoading] = useState(false);
   const [paletteLoading, setPaletteLoading] = useState(false);
+  const [brandLoading, setBrandLoading] = useState(false);
+  const [brandStrategy, setBrandStrategy] = useState<BrandSuggestionResult | null>(null);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
   const [snapshotsOpen, setSnapshotsOpen] = useState(false);
@@ -708,6 +712,8 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
       setSaveStatus('Saved');
       setPendingRemoteBoard(null);
       setPendingRemoteSavedByName(null);
+      const savedBy = savedByName?.trim() || 'A collaborator';
+      showToast(`${savedBy} saved changes. Your board was updated.`, 'default');
     },
     [boardId, isDirty],
   );
@@ -778,6 +784,9 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     () => activity.filter((event) => !event.isHidden && !event.isRead).length,
     [activity],
   );
+
+  const tabUnreadCount = unreadCommentsCount + unreadActivityCount;
+  useDocumentTitle(editorBoard?.title ?? 'Board', tabUnreadCount);
 
   useEffect(() => {
     if (generationSource === 'gemini') {
@@ -1185,6 +1194,31 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     }
   };
 
+  const handleSuggestBrand = async () => {
+    if (!editorBoard) return;
+
+    setBrandLoading(true);
+    try {
+      const result = await fetchBrandSuggestions(editorBoard);
+      setBrandStrategy(result);
+
+      if (result.notice) {
+        showToast(result.notice, 'default');
+        return;
+      }
+
+      showToast(
+        result.source === 'gemini' ? 'Brand strategy suggestions ready.' : 'Demo brand strategy applied.',
+        'success',
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Brand suggestion failed';
+      showToast(message, 'destructive');
+    } finally {
+      setBrandLoading(false);
+    }
+  };
+
   const handleAddReference = () => {
     updateDraft((current) => ({
       ...current,
@@ -1325,6 +1359,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
           isDirty={isDirty}
           unreadCommentsCount={unreadCommentsCount}
           unreadActivityCount={unreadActivityCount}
+          reduceMotionEnabled={settings.reduceMotionEnabled}
           onlineUsers={onlineUsers}
           currentUserId={auth.user?.id ?? null}
           commentsOpen={commentsOpen}
@@ -1469,13 +1504,24 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
       <div ref={sectionContentRef} className="space-y-6 scroll-mt-28">
         {activeSection === 'overview' ? (
           <Card className={panelClass}>
-            <CardHeader>
-              <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)">
-                Direction, tone, and summary
-              </CardTitle>
-              <CardDescription className="max-w-2xl text-(--text-muted)">
-                Adjust the core idea before refining palette, type, and references.
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between gap-4">
+              <div>
+                <CardTitle className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)">
+                  Direction, tone, and summary
+                </CardTitle>
+                <CardDescription className="max-w-2xl text-(--text-muted)">
+                  Adjust the core idea before refining palette, type, and references.
+                </CardDescription>
+              </div>
+
+              {canMutateBoard ? (
+                <AiGenerateButton
+                  loading={brandLoading}
+                  onClick={() => void handleSuggestBrand()}
+                  idleLabel="Suggest brand"
+                  loadingLabel="Suggesting…"
+                />
+              ) : null}
             </CardHeader>
 
             <CardContent className="space-y-5">
@@ -1548,6 +1594,41 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                   />
                 </div>
               </div>
+
+              {brandStrategy ? (
+                <div className="space-y-4 border-t border-(--border) pt-5">
+                  <p className={editorLabelClass}>Brand strategy suggestions</p>
+                  <div className={`space-y-3 ${editorSubtleSurfaceClass}`}>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-[0.2em] text-(--text-muted)">
+                        Positioning
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-(--text)">{brandStrategy.positioning}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-[0.2em] text-(--text-muted)">
+                        Voice
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-(--text)">{brandStrategy.voice}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-[0.2em] text-(--text-muted)">
+                        Messaging pillars
+                      </p>
+                      <ul className="mt-2 space-y-2">
+                        {brandStrategy.messaging.map((message) => (
+                          <li
+                            key={message}
+                            className="rounded-full border border-(--border) bg-(--surface-elevated) px-3 py-1.5 text-sm text-(--text)"
+                          >
+                            {message}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         ) : null}

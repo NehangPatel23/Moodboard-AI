@@ -143,6 +143,14 @@ function normalizeSettings(value: unknown): AppSettings {
     purgeActivityAfter:
       legacyRetention.purgeActivityAfter ??
       normalizeRetentionDuration(parsed.purgeActivityAfter),
+    snapshotMaxPerBoard:
+      typeof parsed.snapshotMaxPerBoard === 'number' && parsed.snapshotMaxPerBoard >= 0
+        ? parsed.snapshotMaxPerBoard
+        : DEFAULT_APP_SETTINGS.snapshotMaxPerBoard,
+    snapshotAutoPrune:
+      typeof parsed.snapshotAutoPrune === 'boolean'
+        ? parsed.snapshotAutoPrune
+        : DEFAULT_APP_SETTINGS.snapshotAutoPrune,
   };
 }
 

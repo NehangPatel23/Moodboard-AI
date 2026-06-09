@@ -34,6 +34,9 @@ export function BoardSnapshotsPanel({
   returnFocusRef,
 }: BoardSnapshotsPanelProps) {
   const [snapshots, setSnapshots] = useState<BoardSnapshot[]>([]);
+  const [snapshotCount, setSnapshotCount] = useState(0);
+  const [snapshotLimit, setSnapshotLimit] = useState(25);
+  const [snapshotAutoPrune, setSnapshotAutoPrune] = useState(true);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
@@ -47,16 +50,28 @@ export function BoardSnapshotsPanel({
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await apiFetch<{ snapshots: BoardSnapshot[] }>(
-        `/api/boards/${board.id}/snapshots`,
-      );
+      const data = await apiFetch<{
+        snapshots: BoardSnapshot[];
+        count: number;
+        limit: number;
+        autoPrune: boolean;
+      }>(`/api/boards/${board.id}/snapshots`);
       setSnapshots(data.snapshots);
+      setSnapshotCount(data.count);
+      setSnapshotLimit(data.limit);
+      setSnapshotAutoPrune(data.autoPrune);
     } catch {
       setSnapshots([]);
+      setSnapshotCount(0);
     } finally {
       setLoading(false);
     }
   }, [board.id]);
+
+  const atSnapshotLimit =
+    snapshotLimit > 0 && !snapshotAutoPrune && snapshotCount >= snapshotLimit;
+  const limitLabel =
+    snapshotLimit > 0 ? `${snapshotCount} of ${snapshotLimit} snapshots` : `${snapshotCount} snapshots (unlimited)`;
 
   useEffect(() => {
     if (!open) return;
@@ -100,18 +115,28 @@ export function BoardSnapshotsPanel({
 
     setSaving(true);
     try {
-      const data = await apiFetch<{ snapshot: BoardSnapshot }>(
-        `/api/boards/${board.id}/snapshots`,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            board,
-            label: labelDraft.trim() || undefined,
-          }),
-        },
-      );
-      setSnapshots((current) => [data.snapshot, ...current]);
+      const data = await apiFetch<{
+        snapshot: BoardSnapshot;
+        pruned?: number;
+        count: number;
+        limit: number;
+        autoPrune: boolean;
+      }>(`/api/boards/${board.id}/snapshots`, {
+        method: 'POST',
+        body: JSON.stringify({
+          board,
+          label: labelDraft.trim() || undefined,
+        }),
+      });
+      await refresh();
       setLabelDraft('');
+      if (data.pruned && data.pruned > 0) {
+        showToast(
+          `Snapshot saved. ${data.pruned} older snapshot${data.pruned === 1 ? '' : 's'} removed to stay within your limit.`,
+          'default',
+        );
+        return;
+      }
       showToast('Snapshot saved.', 'success');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to save snapshot';
@@ -197,6 +222,10 @@ export function BoardSnapshotsPanel({
               <h2 id="board-snapshots-title" className="mt-1 text-lg font-semibold text-(--text-strong)">
                 {board.title}
               </h2>
+              <p className="mt-1 text-xs text-(--text-muted)">{limitLabel}</p>
+              {snapshotLimit > 0 && snapshotAutoPrune ? (
+                <p className="text-xs text-(--text-muted)">Oldest snapshots auto-remove when over limit.</p>
+              ) : null}
             </div>
             <Button
               type="button"
@@ -225,12 +254,17 @@ export function BoardSnapshotsPanel({
               <Button
                 type="button"
                 onClick={() => void handleSaveSnapshot()}
-                disabled={saving}
+                disabled={saving || atSnapshotLimit}
                 className="w-full rounded-full"
               >
                 <Camera className="h-4 w-4" />
-                {saving ? 'Saving…' : 'Save snapshot'}
+                {saving ? 'Saving…' : atSnapshotLimit ? 'Snapshot limit reached' : 'Save snapshot'}
               </Button>
+              {atSnapshotLimit ? (
+                <p className="text-xs leading-5 text-(--text-muted)">
+                  Delete old snapshots or enable auto-prune in Settings to save more.
+                </p>
+              ) : null}
             </div>
           ) : null}
 

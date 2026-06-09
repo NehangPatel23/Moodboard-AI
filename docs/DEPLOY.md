@@ -69,6 +69,7 @@ After deploying collaboration features, run these in the **production** Supabase
 12. [`supabase/migrations/017_board_snapshots_owner_delete.sql`](../supabase/migrations/017_board_snapshots_owner_delete.sql) — owner-only delete policy on `board_snapshots`
 13. [`supabase/migrations/018_user_settings_retention_duration.sql`](../supabase/migrations/018_user_settings_retention_duration.sql) — flexible collaboration retention (`collaboration_retention` JSON with amount + unit)
 14. [`supabase/migrations/019_board_member_favorites.sql`](../supabase/migrations/019_board_member_favorites.sql) — per-member favorite state on `board_members` for collaborator dashboards
+15. [`supabase/migrations/020_user_settings_snapshot_limits.sql`](../supabase/migrations/020_user_settings_snapshot_limits.sql) — owner snapshot cap + auto-prune preferences on `user_settings`
 
 If collaboration was already live, confirm migrations `004` and `005` are applied before `006`.
 

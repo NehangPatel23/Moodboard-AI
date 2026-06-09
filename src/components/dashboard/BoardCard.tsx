@@ -8,6 +8,12 @@ import { Eye, Globe, Lock, PencilLine, Star, Users } from 'lucide-react';
 import { toggleFavoriteById } from '@/lib/board-store';
 import { showToast } from '@/components/shared/toast-store';
 import { resolveReferenceImageUrl } from '@/lib/reference-images';
+import {
+  dashboardCardClass,
+  dashboardFavoriteStarActiveClass,
+  dashboardPreviewFallbackHex,
+  dashboardPreviewLabelClass,
+} from '@/components/board/board-editor-styles';
 
 type BoardCardProps = {
   board: Board;
@@ -22,7 +28,7 @@ function getTileStyle(
   tile: Board['references'][number] | null,
   index: number,
 ): CSSProperties {
-  const paletteFallback = board.palette[index % Math.max(board.palette.length, 1)]?.hex ?? '#e5e2e1';
+  const paletteFallback = board.palette[index % Math.max(board.palette.length, 1)]?.hex ?? dashboardPreviewFallbackHex;
 
   if (tile) {
     const imageUrl = resolveReferenceImageUrl(tile, board, index);
@@ -76,7 +82,7 @@ export function BoardCard({ board }: BoardCardProps) {
       onClick={openBoard}
       onKeyDown={handleKeyDown}
       aria-label={`Open ${board.title}`}
-      className="group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-4xl border border-[var(--border)] bg-[var(--surface)] shadow-[0_22px_50px_rgba(15,23,42,0.10)] transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_32px_70px_rgba(15,23,42,0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
+      className={dashboardCardClass}
     >
       <button
         type="button"
@@ -90,7 +96,7 @@ export function BoardCard({ board }: BoardCardProps) {
         className="absolute right-4 top-4 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] shadow-sm transition hover:bg-[var(--surface-elevated)] hover:shadow-md"
       >
         {board.isFavorite ? (
-          <Star className="h-4.5 w-4.5 fill-amber-400 text-amber-400" />
+          <Star className={`h-4.5 w-4.5 ${dashboardFavoriteStarActiveClass}`} />
         ) : (
           <Star className="h-4.5 w-4.5 text-[var(--text-muted)]" />
         )}
@@ -127,7 +133,7 @@ export function BoardCard({ board }: BoardCardProps) {
 
               {!tile?.imageUrl ? (
                 <div className="absolute inset-0 flex items-end p-3">
-                  <span className="rounded-full bg-white/80 px-2.5 py-1 text-[10px] font-medium text-slate-700">
+                  <span className={dashboardPreviewLabelClass}>
                     {board.palette[index % Math.max(board.palette.length, 1)]?.label ?? 'Studio'}
                   </span>
                 </div>
