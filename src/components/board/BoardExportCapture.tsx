@@ -1,92 +1,416 @@
 'use client';
 
-import type { Board } from '@/types/board';
+import type { Board, NoteType } from '@/types/board';
 import { getReferenceSourceLabel } from '@/lib/reference-source-label';
+import { EXPORT_BACKGROUND_COLOR, EXPORT_CAPTURE_WIDTH } from '@/lib/export-capture';
 
 type BoardExportCaptureProps = {
   board: Board;
+  layout?: 'fixed' | 'fluid';
 };
 
-export function BoardExportCapture({ board }: BoardExportCaptureProps) {
+const EXPORT_COLORS = {
+  background: EXPORT_BACKGROUND_COLOR,
+  text: '#1a1816',
+  muted: '#6f675d',
+  subtle: '#8a8175',
+  border: '#d8d0c4',
+  surface: '#ffffff',
+  surfaceSubtle: '#ece7df',
+} as const;
+
+const serif = 'Georgia, "Times New Roman", serif';
+
+function chunkItems<T>(items: T[], size: number): T[][] {
+  const rows: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    rows.push(items.slice(index, index + size));
+  }
+  return rows;
+}
+
+function noteTypeLabel(type: NoteType): string {
+  if (type === 'instruction') return 'Instruction';
+  if (type === 'keyword') return 'Keyword';
+  return 'Idea';
+}
+
+export function BoardExportCapture({ board, layout = 'fixed' }: BoardExportCaptureProps) {
+  const isFluid = layout === 'fluid';
+
   return (
     <div
       data-board-export
-      className="w-[1200px] bg-[#f7f4ef] p-12 text-[#1a1816]"
-      style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
+      style={{
+        width: isFluid ? '100%' : EXPORT_CAPTURE_WIDTH,
+        maxWidth: isFluid ? '100%' : EXPORT_CAPTURE_WIDTH,
+        boxSizing: 'border-box',
+        padding: '48px',
+        fontFamily: serif,
+        backgroundColor: EXPORT_COLORS.background,
+        color: EXPORT_COLORS.text,
+      }}
     >
-      <header className="mb-10 border-b border-[#d8d0c4] pb-8">
-        <p className="text-xs uppercase tracking-[0.32em] text-[#8a8175]">MoodBoard AI</p>
-        <h1 className="mt-3 text-5xl leading-tight tracking-tight">{board.title}</h1>
+      <header
+        data-export-block="header"
+        style={{ marginBottom: '40px', paddingBottom: '32px', borderBottom: `1px solid ${EXPORT_COLORS.border}` }}
+      >
+        <p
+          style={{
+            margin: 0,
+            fontSize: '12px',
+            letterSpacing: '0.32em',
+            textTransform: 'uppercase',
+            color: EXPORT_COLORS.subtle,
+          }}
+        >
+          MoodBoard AI
+        </p>
+        <h1
+          style={{
+            margin: '12px 0 0',
+            fontSize: '48px',
+            lineHeight: 1.1,
+            letterSpacing: '-0.02em',
+            fontWeight: 400,
+          }}
+        >
+          {board.title}
+        </h1>
         {board.summary ? (
-          <p className="mt-4 max-w-3xl text-lg leading-8 text-[#5c554c]">{board.summary}</p>
+          <p
+            style={{
+              margin: '16px 0 0',
+              maxWidth: '768px',
+              fontSize: '18px',
+              lineHeight: 1.75,
+              color: EXPORT_COLORS.muted,
+            }}
+          >
+            {board.summary}
+          </p>
         ) : null}
-        <div className="mt-4 flex flex-wrap gap-3 text-sm text-[#6f675d]">
+        <div
+          style={{
+            marginTop: '16px',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '12px',
+            fontSize: '14px',
+            color: EXPORT_COLORS.muted,
+          }}
+        >
           {board.mood ? <span>Mood: {board.mood}</span> : null}
           {board.tone.length ? <span>Tone: {board.tone.join(', ')}</span> : null}
         </div>
       </header>
 
-      {board.palette.length ? (
-        <section className="mb-10">
-          <h2 className="mb-4 text-sm uppercase tracking-[0.24em] text-[#8a8175]">Palette</h2>
-          <div className="grid grid-cols-4 gap-4">
-            {board.palette.map((color) => (
-              <div key={color.id} className="overflow-hidden rounded-2xl border border-[#d8d0c4]">
-                <div className="h-24" style={{ backgroundColor: color.hex }} />
-                <div className="space-y-1 bg-white p-3">
-                  <p className="text-sm font-medium">{color.label}</p>
-                  <p className="font-mono text-xs text-[#6f675d]">{color.hex}</p>
-                  {color.usage ? <p className="text-xs text-[#8a8175]">{color.usage}</p> : null}
-                </div>
-              </div>
-            ))}
+      {board.tags.length ? (
+        <section style={{ marginBottom: '40px' }}>
+          <div data-export-block="tags">
+            <h2
+              style={{
+                margin: 0,
+                fontSize: '14px',
+                letterSpacing: '0.24em',
+                textTransform: 'uppercase',
+                color: EXPORT_COLORS.subtle,
+              }}
+            >
+              Tags
+            </h2>
+            <div
+              style={{
+                marginTop: '16px',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '10px',
+              }}
+            >
+              {board.tags.map((tag) => (
+                <span
+                  key={tag}
+                  style={{
+                    display: 'inline-block',
+                    padding: '8px 14px',
+                    borderRadius: '999px',
+                    border: `1px solid ${EXPORT_COLORS.border}`,
+                    backgroundColor: EXPORT_COLORS.surface,
+                    fontSize: '14px',
+                    color: EXPORT_COLORS.text,
+                  }}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
           </div>
+        </section>
+      ) : null}
+
+      {board.palette.length ? (
+        <section style={{ marginBottom: '40px' }}>
+          <h2
+            data-export-block="palette-heading"
+            style={{
+              margin: '0 0 16px',
+              fontSize: '14px',
+              letterSpacing: '0.24em',
+              textTransform: 'uppercase',
+              color: EXPORT_COLORS.subtle,
+            }}
+          >
+            Palette
+          </h2>
+          {chunkItems(board.palette, 4).map((row, rowIndex, rows) => (
+            <div
+              key={`palette-row-${rowIndex}`}
+              data-export-block={`palette-row-${rowIndex}`}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                gap: '16px',
+                marginBottom: rowIndex < rows.length - 1 ? '16px' : '40px',
+              }}
+            >
+              {row.map((color) => (
+                <div
+                  key={color.id}
+                  style={{
+                    overflow: 'hidden',
+                    borderRadius: '16px',
+                    border: `1px solid ${EXPORT_COLORS.border}`,
+                  }}
+                >
+                  <div style={{ height: '96px', backgroundColor: color.hex }} />
+                  <div style={{ padding: '12px', backgroundColor: EXPORT_COLORS.surface }}>
+                    <p style={{ margin: 0, fontSize: '14px', fontWeight: 500 }}>{color.label}</p>
+                    <p
+                      style={{
+                        margin: '4px 0 0',
+                        fontFamily: 'ui-monospace, monospace',
+                        fontSize: '12px',
+                        color: EXPORT_COLORS.muted,
+                      }}
+                    >
+                      {color.hex}
+                    </p>
+                    {color.usage ? (
+                      <p style={{ margin: '4px 0 0', fontSize: '12px', color: EXPORT_COLORS.subtle }}>
+                        {color.usage}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
         </section>
       ) : null}
 
       {board.typography.length ? (
-        <section className="mb-10">
-          <h2 className="mb-4 text-sm uppercase tracking-[0.24em] text-[#8a8175]">Typography</h2>
-          <div className="grid gap-4 md:grid-cols-3">
-            {board.typography.map((item) => (
-              <div key={item.id} className="rounded-2xl border border-[#d8d0c4] bg-white p-5">
-                <p className="text-xs uppercase tracking-[0.2em] text-[#8a8175]">{item.role}</p>
-                <p className="mt-2 text-2xl">{item.fontName}</p>
-                {item.note ? <p className="mt-2 text-sm text-[#6f675d]">{item.note}</p> : null}
-              </div>
-            ))}
-          </div>
+        <section style={{ marginBottom: '40px' }}>
+          <h2
+            data-export-block="typography-heading"
+            style={{
+              margin: '0 0 16px',
+              fontSize: '14px',
+              letterSpacing: '0.24em',
+              textTransform: 'uppercase',
+              color: EXPORT_COLORS.subtle,
+            }}
+          >
+            Typography
+          </h2>
+          {chunkItems(board.typography, 3).map((row, rowIndex, rows) => (
+            <div
+              key={`typography-row-${rowIndex}`}
+              data-export-block={`typography-row-${rowIndex}`}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                gap: '16px',
+                marginBottom: rowIndex < rows.length - 1 ? '16px' : '40px',
+              }}
+            >
+              {row.map((item) => (
+                <div
+                  key={item.id}
+                  style={{
+                    borderRadius: '16px',
+                    padding: '20px',
+                    border: `1px solid ${EXPORT_COLORS.border}`,
+                    backgroundColor: EXPORT_COLORS.surface,
+                  }}
+                >
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: '12px',
+                      letterSpacing: '0.2em',
+                      textTransform: 'uppercase',
+                      color: EXPORT_COLORS.subtle,
+                    }}
+                  >
+                    {item.role}
+                  </p>
+                  <p style={{ margin: '8px 0 0', fontSize: '24px' }}>{item.fontName}</p>
+                  {item.note ? (
+                    <p style={{ margin: '8px 0 0', fontSize: '14px', color: EXPORT_COLORS.muted }}>
+                      {item.note}
+                    </p>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          ))}
         </section>
       ) : null}
 
       {board.references.length ? (
-        <section>
-          <h2 className="mb-4 text-sm uppercase tracking-[0.24em] text-[#8a8175]">References</h2>
-          <div className="grid grid-cols-3 gap-4">
-            {board.references.map((reference) => (
-              <div key={reference.id} className="overflow-hidden rounded-2xl border border-[#d8d0c4] bg-white">
-                {reference.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={reference.imageUrl}
-                    alt={reference.title}
-                    className="aspect-[4/3] w-full object-cover"
-                    crossOrigin="anonymous"
-                  />
-                ) : (
-                  <div className="flex aspect-[4/3] items-center justify-center bg-[#ece7df] text-sm text-[#8a8175]">
-                    No image
+        <section style={{ marginBottom: board.notes.length ? '40px' : 0 }}>
+          <h2
+            data-export-block="references-heading"
+            style={{
+              margin: '0 0 16px',
+              fontSize: '14px',
+              letterSpacing: '0.24em',
+              textTransform: 'uppercase',
+              color: EXPORT_COLORS.subtle,
+            }}
+          >
+            References
+          </h2>
+          {chunkItems(board.references, 3).map((row, rowIndex, rows) => (
+            <div
+              key={`references-row-${rowIndex}`}
+              data-export-block={`references-row-${rowIndex}`}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                gap: '16px',
+                marginBottom: rowIndex < rows.length - 1 ? '16px' : 0,
+              }}
+            >
+              {row.map((reference) => (
+                <div
+                  key={reference.id}
+                  style={{
+                    overflow: 'hidden',
+                    borderRadius: '16px',
+                    border: `1px solid ${EXPORT_COLORS.border}`,
+                    backgroundColor: EXPORT_COLORS.surface,
+                  }}
+                >
+                  {reference.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={reference.imageUrl}
+                      alt={reference.title}
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        aspectRatio: '4 / 3',
+                        objectFit: 'cover',
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        aspectRatio: '4 / 3',
+                        fontSize: '14px',
+                        backgroundColor: EXPORT_COLORS.surfaceSubtle,
+                        color: EXPORT_COLORS.subtle,
+                      }}
+                    >
+                      No image
+                    </div>
+                  )}
+                  <div style={{ padding: '16px' }}>
+                    <p style={{ margin: 0, fontWeight: 500 }}>{reference.title}</p>
+                    <p
+                      style={{
+                        margin: '4px 0 0',
+                        fontSize: '12px',
+                        letterSpacing: '0.16em',
+                        textTransform: 'uppercase',
+                        color: EXPORT_COLORS.subtle,
+                      }}
+                    >
+                      {reference.category} ·{' '}
+                      {getReferenceSourceLabel(reference.source, reference.imageUrl)}
+                    </p>
                   </div>
-                )}
-                <div className="space-y-1 p-4">
-                  <p className="font-medium">{reference.title}</p>
-                  <p className="text-xs uppercase tracking-[0.16em] text-[#8a8175]">
-                    {reference.category} · {getReferenceSourceLabel(reference.source, reference.imageUrl)}
+                </div>
+              ))}
+            </div>
+          ))}
+        </section>
+      ) : null}
+
+      {board.notes.length ? (
+        <section>
+          <h2
+            data-export-block="notes-heading"
+            style={{
+              margin: '0 0 16px',
+              fontSize: '14px',
+              letterSpacing: '0.24em',
+              textTransform: 'uppercase',
+              color: EXPORT_COLORS.subtle,
+            }}
+          >
+            Notes
+          </h2>
+          {chunkItems(board.notes, 2).map((row, rowIndex, rows) => (
+            <div
+              key={`notes-row-${rowIndex}`}
+              data-export-block={`notes-row-${rowIndex}`}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                gap: '16px',
+                marginBottom: rowIndex < rows.length - 1 ? '16px' : 0,
+              }}
+            >
+              {row.map((note) => (
+                <div
+                  key={note.id}
+                  style={{
+                    borderRadius: '16px',
+                    padding: '20px',
+                    border: `1px solid ${EXPORT_COLORS.border}`,
+                    backgroundColor: EXPORT_COLORS.surface,
+                  }}
+                >
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: '12px',
+                      letterSpacing: '0.2em',
+                      textTransform: 'uppercase',
+                      color: EXPORT_COLORS.subtle,
+                    }}
+                  >
+                    {noteTypeLabel(note.type)}
+                  </p>
+                  <p
+                    style={{
+                      margin: '8px 0 0',
+                      fontSize: '14px',
+                      lineHeight: 1.6,
+                      color: EXPORT_COLORS.text,
+                    }}
+                  >
+                    {note.text}
                   </p>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ))}
         </section>
       ) : null}
     </div>

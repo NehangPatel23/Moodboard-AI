@@ -1,4 +1,5 @@
 import type { BoardVisibility } from '@/types/board';
+import { NEVER_RETENTION, type RetentionDuration } from '@/lib/retention-duration';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 export type ResolvedTheme = 'light' | 'dark';
@@ -19,10 +20,10 @@ export type AppSettings = {
   reduceMotionEnabled: boolean;
   focusRingsEnabled: boolean;
   themeMode: ThemeMode;
-  commentsHideAfterDays: number;
-  activityHideAfterDays: number;
-  purgeCommentsAfterDays: number;
-  purgeActivityAfterDays: number;
+  commentsHideAfter: RetentionDuration;
+  activityHideAfter: RetentionDuration;
+  purgeCommentsAfter: RetentionDuration;
+  purgeActivityAfter: RetentionDuration;
 };
 
 export const WORKSPACE_AVATAR_ACCENTS = [
@@ -79,8 +80,8 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   reduceMotionEnabled: false,
   focusRingsEnabled: true,
   themeMode: 'system',
-  commentsHideAfterDays: 0,
-  activityHideAfterDays: 0,
-  purgeCommentsAfterDays: 0,
-  purgeActivityAfterDays: 0,
+  commentsHideAfter: NEVER_RETENTION,
+  activityHideAfter: NEVER_RETENTION,
+  purgeCommentsAfter: NEVER_RETENTION,
+  purgeActivityAfter: NEVER_RETENTION,
 };

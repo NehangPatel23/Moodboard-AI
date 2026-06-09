@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getBoardAccess } from '@/lib/db/board-access';
 import {
-  getHideCutoffIso,
   getItemOverrideKey,
   isCollaborationItemRead,
   prepareCollaborationFetch,
   type CollaborationItemOverride,
 } from '@/lib/db/board-collaboration-state';
+import { getCutoffIso } from '@/lib/retention-duration';
 import { getAuthenticatedUser } from '@/lib/db/auth';
 import { isMissingColumnError } from '@/lib/db/schema-errors';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -64,7 +64,7 @@ async function fetchCommentsForBoard(
   );
 
   const admin = createAdminClient();
-  const hideCutoff = getHideCutoffIso(retention.commentsHideAfterDays);
+  const hideCutoff = getCutoffIso(retention.commentsHideAfter);
 
   const buildQuery = (select: string) => {
     let query = admin

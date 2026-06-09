@@ -1,5 +1,11 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isMissingRelationError } from '@/lib/db/schema-errors';
+import {
+  getCutoffIso,
+  isRetentionNever,
+  NEVER_RETENTION,
+  parseCollaborationRetentionJson,
+} from '@/lib/retention-duration';
 import type { AppSettings } from '@/lib/settings-defaults';
 import type { CollaborationItemType } from '@/types/board';
 
@@ -10,10 +16,7 @@ export type BoardCollaborationState = {
 
 export type CollaborationRetentionSettings = Pick<
   AppSettings,
-  | 'commentsHideAfterDays'
-  | 'activityHideAfterDays'
-  | 'purgeCommentsAfterDays'
-  | 'purgeActivityAfterDays'
+  'commentsHideAfter' | 'activityHideAfter' | 'purgeCommentsAfter' | 'purgeActivityAfter'
 >;
 
 type CollaborationStateRow = {
@@ -140,17 +143,6 @@ export async function upsertItemState(
   return next;
 }
 
-export function getHideCutoffIso(days: number): string | null {
-  if (days <= 0) return null;
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - days);
-  return cutoff.toISOString();
-}
-
-export function getPurgeCutoffIso(days: number): string | null {
-  return getHideCutoffIso(days);
-}
-
 export async function getUserRetentionSettings(
   userId: string,
 ): Promise<CollaborationRetentionSettings> {
@@ -158,17 +150,17 @@ export async function getUserRetentionSettings(
   const { data, error } = await admin
     .from('user_settings')
     .select(
-      'comments_hide_after_days, activity_hide_after_days, purge_comments_after_days, purge_activity_after_days',
+      'comments_hide_after_days, activity_hide_after_days, purge_comments_after_days, purge_activity_after_days, collaboration_retention',
     )
     .eq('user_id', userId)
     .maybeSingle();
 
   if (error || !data) {
     return {
-      commentsHideAfterDays: 0,
-      activityHideAfterDays: 0,
-      purgeCommentsAfterDays: 0,
-      purgeActivityAfterDays: 0,
+      commentsHideAfter: NEVER_RETENTION,
+      activityHideAfter: NEVER_RETENTION,
+      purgeCommentsAfter: NEVER_RETENTION,
+      purgeActivityAfter: NEVER_RETENTION,
     };
   }
 
@@ -177,13 +169,21 @@ export async function getUserRetentionSettings(
     activity_hide_after_days?: number;
     purge_comments_after_days?: number;
     purge_activity_after_days?: number;
+    collaboration_retention?: unknown;
   };
 
+  const retention = parseCollaborationRetentionJson(row.collaboration_retention, {
+    commentsHideAfterDays: row.comments_hide_after_days,
+    activityHideAfterDays: row.activity_hide_after_days,
+    purgeCommentsAfterDays: row.purge_comments_after_days,
+    purgeActivityAfterDays: row.purge_activity_after_days,
+  });
+
   return {
-    commentsHideAfterDays: row.comments_hide_after_days ?? 0,
-    activityHideAfterDays: row.activity_hide_after_days ?? 0,
-    purgeCommentsAfterDays: row.purge_comments_after_days ?? 0,
-    purgeActivityAfterDays: row.purge_activity_after_days ?? 0,
+    commentsHideAfter: retention.commentsHide ?? NEVER_RETENTION,
+    activityHideAfter: retention.activityHide ?? NEVER_RETENTION,
+    purgeCommentsAfter: retention.purgeComments ?? NEVER_RETENTION,
+    purgeActivityAfter: retention.purgeActivity ?? NEVER_RETENTION,
   };
 }
 
@@ -274,7 +274,8 @@ export async function prepareCollaborationFetch(
   let purgeResult: PurgeResult | null = null;
   if (
     isOwner &&
-    (retention.purgeCommentsAfterDays > 0 || retention.purgeActivityAfterDays > 0)
+    (!isRetentionNever(retention.purgeCommentsAfter) ||
+      !isRetentionNever(retention.purgeActivityAfter))
   ) {
     purgeResult = await purgeBoardCollaborationHistory(boardId, retention);
   }
@@ -290,7 +291,7 @@ export async function purgeBoardCollaborationHistory(
   let purgedComments = 0;
   let purgedActivity = 0;
 
-  const commentsCutoff = getPurgeCutoffIso(retention.purgeCommentsAfterDays);
+  const commentsCutoff = getCutoffIso(retention.purgeCommentsAfter);
   if (commentsCutoff) {
     const { data, error } = await admin
       .from('board_comments')
@@ -304,7 +305,7 @@ export async function purgeBoardCollaborationHistory(
     }
   }
 
-  const activityCutoff = getPurgeCutoffIso(retention.purgeActivityAfterDays);
+  const activityCutoff = getCutoffIso(retention.purgeActivityAfter);
   if (activityCutoff) {
     const { data, error } = await admin
       .from('board_activity')

@@ -96,6 +96,12 @@ export function DiscoverBoardCard({ board }: DiscoverBoardCardProps) {
         <p className="mt-2 line-clamp-3 text-sm leading-6 text-(--text-muted)">{board.summary}</p>
 
         <p className="mt-auto pt-6 text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
+          {board.creatorName ? (
+            <>
+              By {board.creatorName}
+              <span className="mx-2">·</span>
+            </>
+          ) : null}
           Updated {formatDateTime(board.updatedAt)}
         </p>
       </div>

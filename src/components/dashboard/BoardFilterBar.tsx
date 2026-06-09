@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
 export type BoardSort = 'recent' | 'favorite';
-export type VisibilityFilter = 'all' | 'shared' | 'private' | 'collaborating';
+export type VisibilityFilter = 'all' | 'shared' | 'private' | 'collaborating' | 'with-others';
 export type AccessFilter = 'all' | 'edit' | 'view';
 
 type BoardFilterBarProps = {
@@ -54,8 +54,10 @@ function getFilterSummary(visibility: VisibilityFilter, access: AccessFilter): s
   const visibilityLabel =
     visibility === 'collaborating'
       ? 'With me'
+      : visibility === 'with-others'
+        ? 'With others'
       : visibility === 'shared'
-        ? 'Shared'
+        ? 'Public'
         : visibility === 'private'
           ? 'Private'
           : 'All boards';
@@ -203,17 +205,24 @@ function BoardFilterMenu({
               icon={<Users className="h-4 w-4" />}
             />
             <FilterOption
+              active={visibility === 'with-others'}
+              onClick={() => handleVisibilityChange('with-others')}
+              label="With others"
+              description="Boards you've shared with collaborators"
+              icon={<Users className="h-4 w-4" />}
+            />
+            <FilterOption
               active={visibility === 'shared'}
               onClick={() => handleVisibilityChange('shared')}
-              label="Shared"
-              description="Your public boards"
+              label="Public"
+              description="Your boards listed on Discover"
               icon={<Globe className="h-4 w-4" />}
             />
             <FilterOption
               active={visibility === 'private'}
               onClick={() => handleVisibilityChange('private')}
               label="Private"
-              description="Only visible to you"
+              description="Not listed on Discover"
               icon={<Lock className="h-4 w-4" />}
             />
           </div>

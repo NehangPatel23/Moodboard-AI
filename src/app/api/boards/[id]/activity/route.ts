@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server';
 import { getBoardAccess } from '@/lib/db/board-access';
 import { rowToActivity } from '@/lib/db/board-activity';
 import {
-  getHideCutoffIso,
   getItemOverrideKey,
   isCollaborationItemRead,
   prepareCollaborationFetch,
 } from '@/lib/db/board-collaboration-state';
+import { getCutoffIso } from '@/lib/retention-duration';
 import { getAuthenticatedUser } from '@/lib/db/auth';
 import { isMissingColumnError, isMissingRelationError } from '@/lib/db/schema-errors';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -35,7 +35,7 @@ export async function GET(_request: Request, context: RouteContext) {
     id,
     access.role === 'owner',
   );
-  const hideCutoff = getHideCutoffIso(retention.activityHideAfterDays);
+  const hideCutoff = getCutoffIso(retention.activityHideAfter);
 
   let data: Record<string, unknown>[] | null = null;
   let error: { message?: string } | null = null;

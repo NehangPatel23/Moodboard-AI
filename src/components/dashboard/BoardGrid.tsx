@@ -86,6 +86,9 @@ export function BoardGrid({ sort, visibility, access }: BoardGridProps) {
       if (visibility === 'collaborating') {
         return board.role === 'editor' || board.role === 'viewer';
       }
+      if (visibility === 'with-others') {
+        return (!board.role || board.role === 'owner') && board.hasCollaborators === true;
+      }
       if (visibility === 'shared' || visibility === 'private') {
         return (!board.role || board.role === 'owner') && board.visibility === visibility;
       }
@@ -101,13 +104,31 @@ export function BoardGrid({ sort, visibility, access }: BoardGridProps) {
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
   if (!visibleBoards.length) {
-    const visibilityLabel = visibility === 'shared' ? 'shared' : 'private';
+    const visibilityLabel =
+      visibility === 'shared'
+        ? 'public'
+        : visibility === 'with-others'
+          ? 'shared with others'
+          : visibility === 'private'
+            ? 'private'
+            : visibility;
 
     if (sort === 'favorite' && visibility !== 'all') {
       return (
         <EmptyGallery
           title={`No favorite ${visibilityLabel} boards yet.`}
           description={`You have no favorite ${visibilityLabel} boards. Adjust the filters or favorite a board to see it here.`}
+          actionHref="/app"
+          actionLabel="Clear filters"
+        />
+      );
+    }
+
+    if (visibility === 'with-others') {
+      return (
+        <EmptyGallery
+          title="No boards shared with others yet."
+          description="Invite collaborators from a board's Collaborate menu. Boards with members or pending invites will appear here."
           actionHref="/app"
           actionLabel="Clear filters"
         />

@@ -129,6 +129,9 @@ export type Board = {
   isFavorite: boolean;
   visibility: BoardVisibility;
   role?: BoardRole;
+  creatorName?: string;
+  /** Computed on owned boards from GET /api/boards — true when members or pending invites exist. */
+  hasCollaborators?: boolean;
 };
 
 export type BoardSnapshot = {

@@ -66,6 +66,9 @@ After deploying collaboration features, run these in the **production** Supabase
 9. [`supabase/migrations/014_reference_uploads_storage.sql`](../supabase/migrations/014_reference_uploads_storage.sql) — public `reference-uploads` bucket for manual reference image uploads
 10. [`supabase/migrations/015_board_snapshots.sql`](../supabase/migrations/015_board_snapshots.sql) — `board_snapshots` table for manual save and restore
 11. [`supabase/migrations/016_board_realtime_presence.sql`](../supabase/migrations/016_board_realtime_presence.sql) — RLS on `realtime.messages` for board presence channels (required when Realtime **Allow public access** is disabled)
+12. [`supabase/migrations/017_board_snapshots_owner_delete.sql`](../supabase/migrations/017_board_snapshots_owner_delete.sql) — owner-only delete policy on `board_snapshots`
+13. [`supabase/migrations/018_user_settings_retention_duration.sql`](../supabase/migrations/018_user_settings_retention_duration.sql) — flexible collaboration retention (`collaboration_retention` JSON with amount + unit)
+14. [`supabase/migrations/019_board_member_favorites.sql`](../supabase/migrations/019_board_member_favorites.sql) — per-member favorite state on `board_members` for collaborator dashboards
 
 If collaboration was already live, confirm migrations `004` and `005` are applied before `006`.
 
@@ -103,7 +106,7 @@ Confirm **Production** env vars on Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUB
 | Comments / Activity unread badges | New items show unread styling; Eye/EyeOff toggles per item; opening panel marks all read |
 | Per-item hide / Hidden filter | Hide removes item from your view only; restore from Hidden filter |
 | Owner comment/activity delete | Trash visible only for owners; non-owners use Hide; app confirmation modal |
-| Settings → Collaboration | Hide/purge retention controls persist |
+| Settings → Collaboration | Hide/purge retention with minutes/hours/days/weeks (migration 018) |
 | Reference editor → **Find photo** | Pexels or Unsplash photo (or demo placeholder); source badge shows correctly |
 | Reference editor → **Apply URL** | Custom `https://` image applied and persists after save |
 | Reference editor → **Upload file** | Image stored in Supabase; persists after save (requires migration 014) |
@@ -111,8 +114,8 @@ Confirm **Production** env vars on Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUB
 | Board editor → Export → **Download PNG** | PNG moodboard downloads with palette, typography, references |
 | Board editor → Export → **Download PDF** | PDF moodboard downloads scaled to A4 |
 | Board editor → **Suggest palette** | Palette rows update (Gemini or demo fallback) |
-| Board editor → **Snapshots** → Save / Restore | Snapshot persists; restore replaces board and logs activity (migration 015) |
-| Two browsers on same board — section presence | Collaborator section shown in presence strip and section bar |
+| Board editor → **Snapshots** → Save / Restore / Preview | Snapshot persists; preview before restore; restore replaces board and logs activity (migrations 015–017) |
+| Two browsers on same board — section presence | Collaborator section shown in presence strip, section bar, and section highlight |
 | Comment author → Edit | Inline edit saves; shows “(edited)”; syncs via Realtime UPDATE |
 | `PATCH /api/boards/[id]/comments/[commentId]` without auth | 401 Unauthorized |
 

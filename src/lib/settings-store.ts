@@ -13,6 +13,8 @@ import {
   type WorkspaceAvatar,
   type WorkspaceAvatarGroup,
 } from '@/lib/settings-defaults';
+import { migrateLegacySettingsParsed } from '@/lib/db/settings-mappers';
+import { normalizeRetentionDuration } from '@/lib/retention-duration';
 
 export type {
   AppSettings,
@@ -94,16 +96,9 @@ export function getWorkspaceInitials(name: string): string {
   return `${words[0][0]}${words[words.length - 1][0]}`.toUpperCase();
 }
 
-function normalizeRetentionDays(value: unknown): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return 0;
-  const rounded = Math.floor(value);
-  if (rounded < 0) return 0;
-  if (rounded > 3650) return 3650;
-  return rounded;
-}
-
 function normalizeSettings(value: unknown): AppSettings {
-  const parsed = (value ?? {}) as Partial<AppSettings>;
+  const parsed = (value ?? {}) as Partial<AppSettings> & Record<string, unknown>;
+  const legacyRetention = migrateLegacySettingsParsed(parsed);
 
   return {
     workspaceName: normalizeText(
@@ -136,10 +131,18 @@ function normalizeSettings(value: unknown): AppSettings {
         ? parsed.focusRingsEnabled
         : DEFAULT_APP_SETTINGS.focusRingsEnabled,
     themeMode: normalizeThemeMode(parsed.themeMode),
-    commentsHideAfterDays: normalizeRetentionDays(parsed.commentsHideAfterDays),
-    activityHideAfterDays: normalizeRetentionDays(parsed.activityHideAfterDays),
-    purgeCommentsAfterDays: normalizeRetentionDays(parsed.purgeCommentsAfterDays),
-    purgeActivityAfterDays: normalizeRetentionDays(parsed.purgeActivityAfterDays),
+    commentsHideAfter:
+      legacyRetention.commentsHideAfter ??
+      normalizeRetentionDuration(parsed.commentsHideAfter),
+    activityHideAfter:
+      legacyRetention.activityHideAfter ??
+      normalizeRetentionDuration(parsed.activityHideAfter),
+    purgeCommentsAfter:
+      legacyRetention.purgeCommentsAfter ??
+      normalizeRetentionDuration(parsed.purgeCommentsAfter),
+    purgeActivityAfter:
+      legacyRetention.purgeActivityAfter ??
+      normalizeRetentionDuration(parsed.purgeActivityAfter),
   };
 }
 

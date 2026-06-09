@@ -35,6 +35,14 @@ import {
   type ThemeMode,
 } from '@/lib/settings-store';
 import { WorkspaceAvatar } from '@/components/layout/WorkspaceAvatar';
+import {
+  clampRetentionDuration,
+  isRetentionNever,
+  NEVER_RETENTION,
+  RETENTION_UNITS,
+  type RetentionDuration,
+  type RetentionUnit,
+} from '@/lib/retention-duration';
 import type { Board, BoardVisibility } from '@/types/board';
 import { Monitor, Moon, SunMedium } from 'lucide-react';
 
@@ -167,13 +175,6 @@ function ToggleRow({
   );
 }
 
-const RETENTION_DAY_OPTIONS = [
-  { value: 0, label: 'Never' },
-  { value: 7, label: '7 days' },
-  { value: 30, label: '30 days' },
-  { value: 90, label: '90 days' },
-] as const;
-
 function RetentionSelect({
   label,
   description,
@@ -182,27 +183,81 @@ function RetentionSelect({
 }: {
   label: string;
   description: string;
-  value: number;
-  onChange: (value: number) => void;
+  value: RetentionDuration;
+  onChange: (value: RetentionDuration) => void;
 }) {
+  const enabled = !isRetentionNever(value);
+
+  function handleToggle(nextEnabled: boolean) {
+    if (!nextEnabled) {
+      onChange(NEVER_RETENTION);
+      return;
+    }
+
+    onChange(
+      clampRetentionDuration({
+        amount: value.amount > 0 ? value.amount : 7,
+        unit: value.unit ?? 'days',
+      }),
+    );
+  }
+
+  function handleAmountChange(event: ChangeEvent<HTMLInputElement>) {
+    const amount = Number(event.target.value);
+    if (!Number.isFinite(amount)) return;
+    onChange(clampRetentionDuration({ amount, unit: value.unit }));
+  }
+
+  function handleUnitChange(event: ChangeEvent<HTMLSelectElement>) {
+    onChange(
+      clampRetentionDuration({
+        amount: value.amount > 0 ? value.amount : 1,
+        unit: event.target.value as RetentionUnit,
+      }),
+    );
+  }
+
   return (
     <div className="rounded-3xl border border-(--border) bg-(--surface) p-4">
       <div className="space-y-1">
         <p className="text-sm font-medium text-(--text-strong)">{label}</p>
         <p className="text-sm leading-6 text-(--text-muted)">{description}</p>
       </div>
-      <select
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
-        className="mt-3 h-11 w-full rounded-2xl border border-(--border) bg-(--surface-elevated) px-4 text-sm text-(--text) outline-none focus:ring-2 focus:ring-(--ring)"
-        aria-label={label}
-      >
-        {RETENTION_DAY_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+
+      <label className="mt-3 flex items-center gap-2 text-sm text-(--text-strong)">
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(event) => handleToggle(event.target.checked)}
+          className="h-4 w-4 rounded border-(--border)"
+        />
+        Enable limit
+      </label>
+
+      {enabled ? (
+        <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_10rem]">
+          <Input
+            type="number"
+            min={1}
+            value={value.amount}
+            onChange={handleAmountChange}
+            aria-label={`${label} amount`}
+            className="h-11 rounded-2xl border-(--border) bg-(--surface-elevated)"
+          />
+          <select
+            value={value.unit}
+            onChange={handleUnitChange}
+            aria-label={`${label} unit`}
+            className="h-11 rounded-2xl border border-(--border) bg-(--surface-elevated) px-4 text-sm text-(--text) outline-none focus:ring-2 focus:ring-(--ring)"
+          >
+            {RETENTION_UNITS.map((unit) => (
+              <option key={unit} value={unit}>
+                {unit}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -952,14 +1007,14 @@ export default function SettingsPage() {
               <RetentionSelect
                 label="Hide comments older than"
                 description="Older comments stay on the board for collaborators but disappear from your panels."
-                value={settings.commentsHideAfterDays}
-                onChange={(value) => updateSetting('commentsHideAfterDays', value)}
+                value={settings.commentsHideAfter}
+                onChange={(value) => updateSetting('commentsHideAfter', value)}
               />
               <RetentionSelect
                 label="Hide activity older than"
                 description="Older save history stays on the board for collaborators but disappears from your activity panel."
-                value={settings.activityHideAfterDays}
-                onChange={(value) => updateSetting('activityHideAfterDays', value)}
+                value={settings.activityHideAfter}
+                onChange={(value) => updateSetting('activityHideAfter', value)}
               />
 
               <div className="border-t border-(--border) pt-4">
@@ -975,14 +1030,14 @@ export default function SettingsPage() {
               <RetentionSelect
                 label="Delete comments older than"
                 description="Permanently removes old comments from boards you own. Use with care on shared boards."
-                value={settings.purgeCommentsAfterDays}
-                onChange={(value) => updateSetting('purgeCommentsAfterDays', value)}
+                value={settings.purgeCommentsAfter}
+                onChange={(value) => updateSetting('purgeCommentsAfter', value)}
               />
               <RetentionSelect
                 label="Delete activity older than"
                 description="Permanently removes old save history from boards you own, including replay details."
-                value={settings.purgeActivityAfterDays}
-                onChange={(value) => updateSetting('purgeActivityAfterDays', value)}
+                value={settings.purgeActivityAfter}
+                onChange={(value) => updateSetting('purgeActivityAfter', value)}
               />
             </div>
           </SettingsSection>

@@ -6,11 +6,14 @@ import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import {
   ArrowRight,
+  Camera,
   Copy,
+  Download,
   FileText,
   LayoutDashboard,
   Search,
   Settings2,
+  Share2,
   Sparkles,
   SquarePen,
   SquarePlus,
@@ -31,6 +34,7 @@ import {
 } from '@/lib/board-store';
 import { cn } from '@/lib/utils';
 import { guardedRouterPush } from '@/lib/board-editor-navigation-guard';
+import { dispatchEditorQuickAction } from '@/lib/editor-quick-actions';
 
 type CommandItem = {
   id: string;
@@ -60,6 +64,14 @@ const FOCUSABLE_SELECTOR = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(', ');
 
+const EDITOR_SECTION_COMMANDS = [
+  { id: 'section-overview', label: 'Overview', index: 0, keywords: ['overview', 'direction', 'summary'] },
+  { id: 'section-palette', label: 'Palette', index: 1, keywords: ['palette', 'color', 'colors'] },
+  { id: 'section-typography', label: 'Typography', index: 2, keywords: ['typography', 'fonts', 'type'] },
+  { id: 'section-references', label: 'References', index: 3, keywords: ['references', 'images', 'photos'] },
+  { id: 'section-notes', label: 'Notes', index: 4, keywords: ['notes', 'ideas'] },
+] as const;
+
 function normalize(value: string): string {
   return value.trim().toLowerCase();
 }
@@ -67,8 +79,9 @@ function normalize(value: string): string {
 function matchesQuery(item: CommandItem, query: string): boolean {
   if (!query) return true;
 
+  const tokens = normalize(query).split(/\s+/).filter(Boolean);
   const haystack = [item.title, item.description, ...item.keywords].join(' ').toLowerCase();
-  return haystack.includes(query);
+  return tokens.every((token) => haystack.includes(token));
 }
 
 function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
@@ -137,10 +150,17 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
       .filter((board) => {
         if (!q) return true;
-        const haystack = [board.title, board.summary, board.prompt, ...board.tags].join(' ').toLowerCase();
-        return haystack.includes(q);
+        const item: CommandItem = {
+          id: `board-${board.id}`,
+          title: board.title,
+          description: board.summary,
+          keywords: [board.title, board.summary, board.prompt, ...board.tags, ...board.tone],
+          icon: null,
+          onSelect: () => undefined,
+        };
+        return matchesQuery(item, q);
       })
-      .slice(0, q ? 8 : 5)
+      .slice(0, q ? 12 : 5)
       .map<CommandItem>((board) => ({
         id: `board-${board.id}`,
         title: `Open ${board.title}`,
@@ -198,6 +218,46 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
         ].filter((item) => matchesQuery(item, q))
       : [];
 
+    const editorSectionItems: CommandItem[] = currentBoard
+      ? EDITOR_SECTION_COMMANDS.map((section) => ({
+          id: section.id,
+          title: `Jump to ${section.label}`,
+          description: `Open the ${section.label.toLowerCase()} section in the board editor.`,
+          keywords: ['section', 'jump', section.label, ...section.keywords],
+          icon: <ArrowRight className="h-4 w-4" />,
+          onSelect: () => dispatchEditorQuickAction({ action: 'jump-section', sectionIndex: section.index }),
+        })).filter((item) => matchesQuery(item, q))
+      : [];
+
+    const editorActionItems: CommandItem[] = currentBoard
+      ? [
+          {
+            id: 'editor-export',
+            title: 'Export board',
+            description: 'Download JSON, PNG, or PDF for the current board.',
+            keywords: ['export', 'download', 'png', 'pdf'],
+            icon: <Download className="h-4 w-4" />,
+            onSelect: () => dispatchEditorQuickAction({ action: 'export' }),
+          },
+          {
+            id: 'editor-snapshots',
+            title: 'Open snapshots',
+            description: 'Save, preview, or restore board snapshots.',
+            keywords: ['snapshots', 'backup', 'restore'],
+            icon: <Camera className="h-4 w-4" />,
+            onSelect: () => dispatchEditorQuickAction({ action: 'snapshots' }),
+          },
+          {
+            id: 'editor-share',
+            title: 'Share board',
+            description: 'Manage collaborators and public sharing.',
+            keywords: ['share', 'collaborate', 'invite'],
+            icon: <Share2 className="h-4 w-4" />,
+            onSelect: () => dispatchEditorQuickAction({ action: 'share' }),
+          },
+        ].filter((item) => matchesQuery(item, q))
+      : [];
+
     const actionItems: CommandItem[] = [
       {
         id: 'open-command-palette',
@@ -224,6 +284,14 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
 
     if (currentBoardItems.length > 0) {
       output.push({ title: 'Current board', items: currentBoardItems });
+    }
+
+    if (editorSectionItems.length > 0) {
+      output.push({ title: 'Editor sections', items: editorSectionItems });
+    }
+
+    if (editorActionItems.length > 0) {
+      output.push({ title: 'Editor actions', items: editorActionItems });
     }
 
     if (actionItems.length > 0) {

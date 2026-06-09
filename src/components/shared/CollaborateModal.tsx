@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Copy, Loader2, Trash2, UserPlus } from 'lucide-react';
 import { apiFetch } from '@/lib/api-client';
+import { reloadBoards } from '@/lib/board-store';
 import type { BoardInvite, BoardMember, BoardMemberRole } from '@/types/board';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -173,6 +174,7 @@ export function CollaborateModal({
           `${response.member.name || response.member.email} now has ${accessLabel(response.member.role)} access.`,
           'success',
         );
+        void reloadBoards();
       } else {
         setInvites((current) => [response.invite, ...current]);
         setLastInvitePath(response.invitePath);
@@ -181,6 +183,7 @@ export function CollaborateModal({
           `Invite created for ${response.invite.email} with ${accessLabel(response.invite.role)} access.`,
           'success',
         );
+        void reloadBoards();
       }
     } catch (error) {
       setPeopleError(error instanceof Error ? error.message : 'Failed to send invite');
@@ -215,6 +218,7 @@ export function CollaborateModal({
           'success',
         );
       }
+      void reloadBoards();
       setPendingRemoval(null);
     } catch (error) {
       setPeopleError(error instanceof Error ? error.message : 'Failed to complete removal');

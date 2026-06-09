@@ -7,6 +7,7 @@ import { DiscoverBoardCard } from '@/components/discover/DiscoverBoardCard';
 import { useGatedHref } from '@/components/auth/use-gated-href';
 import { Input } from '@/components/ui/input';
 import type { Board } from '@/types/board';
+import { getRemainingDiscoverBoards, pickFeaturedBoards } from '@/lib/discover-featured';
 
 const outerPanelClass =
   'rounded-[2.5rem] border border-(--border) bg-(--surface-elevated) shadow-[0_24px_60px_rgba(15,23,42,0.06)] dark:shadow-[0_24px_60px_rgba(0,0,0,0.22)]';
@@ -79,6 +80,14 @@ export default function DiscoverPage() {
   const filteredBoards = useMemo(
     () => boards.filter((board) => boardMatchesQuery(board, normalizedQuery)),
     [boards, normalizedQuery],
+  );
+  const featuredBoards = useMemo(
+    () => (normalizedQuery ? [] : pickFeaturedBoards(filteredBoards)),
+    [filteredBoards, normalizedQuery],
+  );
+  const remainingBoards = useMemo(
+    () => (normalizedQuery ? filteredBoards : getRemainingDiscoverBoards(filteredBoards, featuredBoards)),
+    [featuredBoards, filteredBoards, normalizedQuery],
   );
 
   return (
@@ -160,11 +169,25 @@ export default function DiscoverPage() {
 
         {!loading && !error && filteredBoards.length > 0 ? (
           <>
+            {featuredBoards.length > 0 ? (
+              <div className="space-y-4">
+                <div>
+                  <p className={sectionLabelClass}>Featured</p>
+                  <h2 className="mt-2 text-2xl text-(--text-strong)">Curated public boards</h2>
+                </div>
+                <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                  {featuredBoards.map((board) => (
+                    <DiscoverBoardCard key={`featured-${board.id}`} board={board} />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
             <p className="text-sm text-(--text-muted)">
               {filteredBoards.length} public board{filteredBoards.length === 1 ? '' : 's'}
             </p>
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {filteredBoards.map((board) => (
+              {remainingBoards.map((board) => (
                 <DiscoverBoardCard key={board.id} board={board} />
               ))}
             </div>

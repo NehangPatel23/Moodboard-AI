@@ -365,6 +365,42 @@ export function duplicateBoardById(boardId: string): Board | null {
 }
 
 export function toggleFavoriteById(boardId: string): Board | null {
+  const boards = loadBoards();
+  const index = boards.findIndex((board) => board.id === boardId);
+  if (index === -1) return null;
+
+  const current = boards[index];
+  const isCollaborator = current.role === 'editor' || current.role === 'viewer';
+
+  if (isCollaborator) {
+    const previous = boards;
+    const updated = { ...cloneBoard(current), isFavorite: !current.isFavorite };
+    const nextBoards = boards.slice();
+    nextBoards[index] = updated;
+    cachedBoards = nextBoards;
+    notifyBoardsChanged();
+
+    if (activeUserId) {
+      void apiFetch<{ isFavorite: boolean }>(`/api/boards/${boardId}/favorite`, { method: 'POST' })
+        .then((data) => {
+          const currentBoards = loadBoards();
+          const currentIndex = currentBoards.findIndex((board) => board.id === boardId);
+          if (currentIndex === -1) return;
+          const synced = currentBoards.slice();
+          synced[currentIndex] = { ...synced[currentIndex], isFavorite: data.isFavorite };
+          cachedBoards = synced;
+          notifyBoardsChanged();
+        })
+        .catch(() => {
+          cachedBoards = previous;
+          notifyBoardsChanged();
+          void showPersistError('Failed to update favorite.');
+        });
+    }
+
+    return updated;
+  }
+
   return updateBoard(boardId, (board) => ({ ...board, isFavorite: !board.isFavorite }));
 }
 

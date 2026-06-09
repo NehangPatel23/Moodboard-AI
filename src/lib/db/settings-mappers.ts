@@ -3,6 +3,12 @@ import {
   type AppSettings,
   type ThemeMode,
 } from '@/lib/settings-defaults';
+import {
+  collaborationRetentionToJson,
+  NEVER_RETENTION,
+  parseCollaborationRetentionJson,
+  retentionFromLegacyDays,
+} from '@/lib/retention-duration';
 import type { BoardVisibility } from '@/types/board';
 
 export type UserSettingsRow = {
@@ -21,10 +27,26 @@ export type UserSettingsRow = {
   activity_hide_after_days?: number;
   purge_comments_after_days?: number;
   purge_activity_after_days?: number;
+  collaboration_retention?: unknown;
   updated_at: string;
 };
 
+function legacyDaysFromRetention(duration: AppSettings['commentsHideAfter']): number {
+  if (!duration || duration.amount <= 0) return 0;
+  if (duration.unit === 'days') return duration.amount;
+  if (duration.unit === 'weeks') return duration.amount * 7;
+  return 0;
+}
+
 export function rowToSettings(row: UserSettingsRow): AppSettings {
+  const legacy = {
+    commentsHideAfterDays: row.comments_hide_after_days,
+    activityHideAfterDays: row.activity_hide_after_days,
+    purgeCommentsAfterDays: row.purge_comments_after_days,
+    purgeActivityAfterDays: row.purge_activity_after_days,
+  };
+  const retention = parseCollaborationRetentionJson(row.collaboration_retention, legacy);
+
   return {
     workspaceName: row.workspace_name,
     workspaceTagline: row.workspace_tagline,
@@ -36,10 +58,10 @@ export function rowToSettings(row: UserSettingsRow): AppSettings {
     reduceMotionEnabled: row.reduce_motion_enabled,
     focusRingsEnabled: row.focus_rings_enabled,
     themeMode: row.theme_mode,
-    commentsHideAfterDays: row.comments_hide_after_days ?? 0,
-    activityHideAfterDays: row.activity_hide_after_days ?? 0,
-    purgeCommentsAfterDays: row.purge_comments_after_days ?? 0,
-    purgeActivityAfterDays: row.purge_activity_after_days ?? 0,
+    commentsHideAfter: retention.commentsHide ?? NEVER_RETENTION,
+    activityHideAfter: retention.activityHide ?? NEVER_RETENTION,
+    purgeCommentsAfter: retention.purgeComments ?? NEVER_RETENTION,
+    purgeActivityAfter: retention.purgeActivity ?? NEVER_RETENTION,
   };
 }
 
@@ -56,13 +78,47 @@ export function settingsToRow(settings: AppSettings, userId: string): Omit<UserS
     reduce_motion_enabled: settings.reduceMotionEnabled,
     focus_rings_enabled: settings.focusRingsEnabled,
     theme_mode: settings.themeMode,
-    comments_hide_after_days: settings.commentsHideAfterDays,
-    activity_hide_after_days: settings.activityHideAfterDays,
-    purge_comments_after_days: settings.purgeCommentsAfterDays,
-    purge_activity_after_days: settings.purgeActivityAfterDays,
+    comments_hide_after_days: legacyDaysFromRetention(settings.commentsHideAfter),
+    activity_hide_after_days: legacyDaysFromRetention(settings.activityHideAfter),
+    purge_comments_after_days: legacyDaysFromRetention(settings.purgeCommentsAfter),
+    purge_activity_after_days: legacyDaysFromRetention(settings.purgeActivityAfter),
+    collaboration_retention: collaborationRetentionToJson(settings),
   };
 }
 
 export function defaultSettingsRow(userId: string): Omit<UserSettingsRow, 'updated_at'> {
   return settingsToRow(DEFAULT_APP_SETTINGS, userId);
+}
+
+export function migrateLegacySettingsParsed(parsed: Record<string, unknown>): Partial<AppSettings> {
+  const commentsHideAfterDays =
+    typeof parsed.commentsHideAfterDays === 'number' ? parsed.commentsHideAfterDays : undefined;
+  const activityHideAfterDays =
+    typeof parsed.activityHideAfterDays === 'number' ? parsed.activityHideAfterDays : undefined;
+  const purgeCommentsAfterDays =
+    typeof parsed.purgeCommentsAfterDays === 'number' ? parsed.purgeCommentsAfterDays : undefined;
+  const purgeActivityAfterDays =
+    typeof parsed.purgeActivityAfterDays === 'number' ? parsed.purgeActivityAfterDays : undefined;
+
+  const hasLegacy =
+    commentsHideAfterDays !== undefined ||
+    activityHideAfterDays !== undefined ||
+    purgeCommentsAfterDays !== undefined ||
+    purgeActivityAfterDays !== undefined;
+
+  if (!hasLegacy) return {};
+
+  const retention = parseCollaborationRetentionJson(parsed.collaborationRetention, {
+    commentsHideAfterDays,
+    activityHideAfterDays,
+    purgeCommentsAfterDays,
+    purgeActivityAfterDays,
+  });
+
+  return {
+    commentsHideAfter: retention.commentsHide ?? retentionFromLegacyDays(commentsHideAfterDays ?? 0),
+    activityHideAfter: retention.activityHide ?? retentionFromLegacyDays(activityHideAfterDays ?? 0),
+    purgeCommentsAfter: retention.purgeComments ?? retentionFromLegacyDays(purgeCommentsAfterDays ?? 0),
+    purgeActivityAfter: retention.purgeActivity ?? retentionFromLegacyDays(purgeActivityAfterDays ?? 0),
+  };
 }

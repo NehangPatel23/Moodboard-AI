@@ -29,6 +29,7 @@ import { useBoardCollaborationState } from '@/lib/realtime/use-board-collaborati
 import type { BlockedNavigation } from '@/lib/board-editor-navigation-guard';
 import { useBoardEditorNavigationGuard } from '@/lib/use-board-editor-navigation-guard';
 import { lockBodyScroll } from '@/lib/body-scroll-lock';
+import { subscribeEditorQuickAction } from '@/lib/editor-quick-actions';
 import {
   DEFAULT_APP_SETTINGS,
   readAppSettings,
@@ -242,6 +243,8 @@ function EditorTabPill({
   index,
   replayHighlight = false,
   replayDisabled = false,
+  collaboratorActive = false,
+  collaboratorEditing = false,
 }: {
   label: string;
   description: string;
@@ -251,6 +254,8 @@ function EditorTabPill({
   index: number;
   replayHighlight?: boolean;
   replayDisabled?: boolean;
+  collaboratorActive?: boolean;
+  collaboratorEditing?: boolean;
 }) {
   return (
     <button
@@ -266,11 +271,22 @@ function EditorTabPill({
         'hover:bg-(--surface-subtle)',
         active ? 'bg-(--surface-subtle) shadow-sm' : '',
         replayHighlight ? 'border-amber-400/70 ring-1 ring-amber-400/30' : '',
+        collaboratorActive && !replayHighlight
+          ? 'border-emerald-400/70 ring-1 ring-emerald-400/30'
+          : '',
         replayDisabled ? 'cursor-not-allowed opacity-45 hover:bg-(--surface)' : '',
       ].join(' ')}
     >
       {replayHighlight ? (
         <span className="absolute right-3 top-3 h-2 w-2 rounded-full bg-amber-500" aria-hidden="true" />
+      ) : collaboratorActive ? (
+        <span
+          className={[
+            'absolute right-3 top-3 h-2 w-2 rounded-full',
+            collaboratorEditing ? 'bg-emerald-500' : 'bg-sky-500',
+          ].join(' ')}
+          aria-hidden="true"
+        />
       ) : null}
       <div
         className={[
@@ -768,6 +784,34 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
       showToast('Board generated with Gemini.', 'success');
     }
   }, [generationSource]);
+
+  useEffect(() => {
+    return subscribeEditorQuickAction((detail) => {
+      if (detail.action === 'jump-section' && typeof detail.sectionIndex === 'number') {
+        setActiveSectionIndex(detail.sectionIndex);
+        return;
+      }
+
+      if (detail.action === 'export') {
+        setExportOpen(true);
+        return;
+      }
+
+      if (detail.action === 'snapshots') {
+        setSnapshotsOpen(true);
+        return;
+      }
+
+      if (detail.action === 'share') {
+        const owner = (boardRole ?? 'owner') === 'owner';
+        if (!owner) {
+          showToast('Only the board owner can manage sharing.', 'destructive');
+          return;
+        }
+        setShareOpen(true);
+      }
+    });
+  }, [boardRole]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -1370,6 +1414,14 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 const meta = EDITOR_SECTION_META[section];
                 const hasReplayChanges =
                   isReplayMode && sectionHasReplayChanges(replayChanges, section);
+                const othersOnSection = onlineUsers.filter(
+                  (user) =>
+                    user.userId !== auth.user?.id && user.sectionIndex === index,
+                );
+                const collaboratorActive = othersOnSection.length > 0;
+                const collaboratorEditing = othersOnSection.some(
+                  (user) => user.status === 'editing',
+                );
                 return (
                   <EditorTabPill
                     key={section}
@@ -1379,6 +1431,8 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                     active={index === activeSectionIndex}
                     replayHighlight={hasReplayChanges}
                     replayDisabled={isReplayMode && !hasReplayChanges}
+                    collaboratorActive={!isReplayMode && collaboratorActive}
+                    collaboratorEditing={!isReplayMode && collaboratorEditing}
                     onClick={() => {
                       if (isReplayMode) {
                         if (hasReplayChanges) {

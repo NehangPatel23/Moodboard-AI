@@ -1,12 +1,36 @@
 import { NextResponse } from 'next/server';
 import { boardToRow, rowToBoard } from '@/lib/db/board-mappers';
 import { getAuthenticatedUser } from '@/lib/db/auth';
+import { isMissingColumnError } from '@/lib/db/schema-errors';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { Board, BoardRole } from '@/types/board';
 
 function withRole(board: ReturnType<typeof rowToBoard>, role: BoardRole): Board {
   return { ...board, role };
 }
+
+function buildCollaboratorCounts(
+  memberRows: Array<{ board_id: string }> | null,
+  inviteRows: Array<{ board_id: string }> | null,
+): Map<string, number> {
+  const counts = new Map<string, number>();
+
+  for (const row of memberRows ?? []) {
+    counts.set(row.board_id, (counts.get(row.board_id) ?? 0) + 1);
+  }
+
+  for (const row of inviteRows ?? []) {
+    counts.set(row.board_id, (counts.get(row.board_id) ?? 0) + 1);
+  }
+
+  return counts;
+}
+
+type MembershipRow = {
+  board_id: string;
+  role: string;
+  is_favorite?: boolean;
+};
 
 export async function GET() {
   const { user } = await getAuthenticatedUser();
@@ -26,13 +50,49 @@ export async function GET() {
     return NextResponse.json({ error: ownedError.message }, { status: 500 });
   }
 
-  const { data: memberships, error: membershipError } = await admin
+  let memberships: MembershipRow[] | null = null;
+  let membershipError = null as { message: string } | null;
+
+  const membershipsWithFavorite = await admin
     .from('board_members')
-    .select('board_id, role')
+    .select('board_id, role, is_favorite')
     .eq('user_id', user.id);
+
+  if (membershipsWithFavorite.error && isMissingColumnError(membershipsWithFavorite.error, 'is_favorite')) {
+    const membershipsWithoutFavorite = await admin
+      .from('board_members')
+      .select('board_id, role')
+      .eq('user_id', user.id);
+    memberships = membershipsWithoutFavorite.data;
+    membershipError = membershipsWithoutFavorite.error;
+  } else {
+    memberships = membershipsWithFavorite.data as MembershipRow[] | null;
+    membershipError = membershipsWithFavorite.error;
+  }
 
   if (membershipError) {
     return NextResponse.json({ error: membershipError.message }, { status: 500 });
+  }
+
+  const ownedIds = (ownedRows ?? []).map((row) => row.id as string);
+  let collaboratorCounts = new Map<string, number>();
+
+  if (ownedIds.length > 0) {
+    const [{ data: memberRows, error: memberCountError }, { data: inviteRows, error: inviteCountError }] =
+      await Promise.all([
+        admin.from('board_members').select('board_id').in('board_id', ownedIds),
+        admin.from('board_invites').select('board_id').eq('status', 'pending').in('board_id', ownedIds),
+      ]);
+
+    if (memberCountError) {
+      return NextResponse.json({ error: memberCountError.message }, { status: 500 });
+    }
+
+    if (inviteCountError) {
+      return NextResponse.json({ error: inviteCountError.message }, { status: 500 });
+    }
+
+    collaboratorCounts = buildCollaboratorCounts(memberRows, inviteRows);
   }
 
   let memberBoards: Board[] = [];
@@ -50,15 +110,22 @@ export async function GET() {
     }
 
     memberBoards = (memberRows ?? []).map((row) => {
-      const membership = memberships.find((item) => item.board_id === row.id);
+      const membership = memberships.find((item) => item.board_id === row.id) as MembershipRow | undefined;
       const role = membership?.role === 'editor' || membership?.role === 'viewer'
         ? membership.role
         : 'viewer';
-      return withRole(rowToBoard(row), role);
+      const board = rowToBoard(row);
+      const memberFavorite = membership && 'is_favorite' in membership ? membership.is_favorite === true : false;
+      return withRole({ ...board, isFavorite: memberFavorite }, role);
     });
   }
 
-  const ownedBoards = (ownedRows ?? []).map((row) => withRole(rowToBoard(row), 'owner'));
+  const ownedBoards = (ownedRows ?? []).map((row) => {
+    const board = withRole(rowToBoard(row), 'owner');
+    const collaboratorCount = collaboratorCounts.get(row.id as string) ?? 0;
+    return collaboratorCount > 0 ? { ...board, hasCollaborators: true } : board;
+  });
+
   const merged = [...ownedBoards, ...memberBoards].sort(
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
   );

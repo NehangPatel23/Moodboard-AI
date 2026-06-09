@@ -21,7 +21,8 @@ export function DashboardClient() {
   const visibility: VisibilityFilter =
     visibilityParam === 'shared' ||
     visibilityParam === 'private' ||
-    visibilityParam === 'collaborating'
+    visibilityParam === 'collaborating' ||
+    visibilityParam === 'with-others'
       ? visibilityParam
       : 'all';
 

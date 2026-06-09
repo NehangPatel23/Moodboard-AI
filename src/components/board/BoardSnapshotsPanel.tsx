@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Camera, RotateCcw, Trash2, X } from 'lucide-react';
+import { Camera, Eye, RotateCcw, Trash2, X } from 'lucide-react';
 import type { Board, BoardSnapshot } from '@/types/board';
 import { apiFetch } from '@/lib/api-client';
 import { formatDateTime } from '@/lib/utils';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ConfirmationModal } from '@/components/shared/ConfirmationModal';
+import { SnapshotPreviewModal } from '@/components/board/SnapshotPreviewModal';
 import { showToast } from '@/components/shared/toast-store';
 import { lockBodyScroll } from '@/lib/body-scroll-lock';
 
@@ -40,6 +41,8 @@ export function BoardSnapshotsPanel({
   const [labelDraft, setLabelDraft] = useState('');
   const [pendingRestore, setPendingRestore] = useState<BoardSnapshot | null>(null);
   const [pendingDelete, setPendingDelete] = useState<BoardSnapshot | null>(null);
+  const [previewSnapshot, setPreviewSnapshot] = useState<BoardSnapshot | null>(null);
+  const [autoBackupBeforeRestore, setAutoBackupBeforeRestore] = useState(true);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -73,7 +76,7 @@ export function BoardSnapshotsPanel({
     if (!open) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !pendingRestore && !pendingDelete) {
+      if (event.key === 'Escape' && !pendingRestore && !pendingDelete && !previewSnapshot) {
         event.preventDefault();
         onClose();
       }
@@ -83,7 +86,7 @@ export function BoardSnapshotsPanel({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [onClose, open, pendingDelete, pendingRestore]);
+  }, [onClose, open, pendingDelete, pendingRestore, previewSnapshot]);
 
   const handleClose = () => {
     setPendingRestore(null);
@@ -123,6 +126,16 @@ export function BoardSnapshotsPanel({
 
     setRestoringId(pendingRestore.id);
     try {
+      if (autoBackupBeforeRestore) {
+        await apiFetch<{ snapshot: BoardSnapshot }>(`/api/boards/${board.id}/snapshots`, {
+          method: 'POST',
+          body: JSON.stringify({
+            board,
+            label: 'Auto-backup before restore',
+          }),
+        });
+      }
+
       const data = await apiFetch<{ board: Board }>(
         `/api/boards/${board.id}/snapshots/${pendingRestore.id}/restore`,
         { method: 'POST' },
@@ -263,17 +276,32 @@ export function BoardSnapshotsPanel({
                       ) : null}
                     </div>
                     {canEdit ? (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        disabled={restoringId === snapshot.id || deletingId === snapshot.id}
-                        onClick={() => setPendingRestore(snapshot)}
-                        className="mt-3 rounded-full"
-                      >
-                        <RotateCcw className="h-4 w-4" />
-                        {restoringId === snapshot.id ? 'Restoring…' : 'Restore'}
-                      </Button>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setPreviewSnapshot(snapshot)}
+                          className="rounded-full"
+                        >
+                          <Eye className="h-4 w-4" />
+                          Preview
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={restoringId === snapshot.id || deletingId === snapshot.id}
+                          onClick={() => {
+                            setAutoBackupBeforeRestore(true);
+                            setPendingRestore(snapshot);
+                          }}
+                          className="rounded-full"
+                        >
+                          <RotateCcw className="h-4 w-4" />
+                          {restoringId === snapshot.id ? 'Restoring…' : 'Restore'}
+                        </Button>
+                      </div>
                     ) : null}
                   </li>
                 ))}
@@ -294,15 +322,47 @@ export function BoardSnapshotsPanel({
         onCancel={() => setPendingDelete(null)}
       />
 
-      <ConfirmationModal
-        open={pendingRestore !== null}
-        title="Restore this snapshot?"
-        description="This replaces the current board content for everyone. Your unsaved local edits will be lost."
-        confirmLabel="Restore snapshot"
-        cancelLabel="Cancel"
-        destructive
-        onConfirm={() => void handleConfirmRestore()}
-        onCancel={() => setPendingRestore(null)}
+      {pendingRestore ? (
+        <div className="fixed inset-0 z-[10065] flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-[2rem] border border-(--border) bg-(--surface) p-6 shadow-[0_30px_80px_rgba(15,23,42,0.15)]">
+            <h2 className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)">
+              Restore this snapshot?
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-(--text-muted)">
+              This replaces the current board content for everyone. Your unsaved local edits will be lost.
+            </p>
+            <label className="mt-4 flex items-start gap-2 text-sm text-(--text-strong)">
+              <input
+                type="checkbox"
+                checked={autoBackupBeforeRestore}
+                onChange={(event) => setAutoBackupBeforeRestore(event.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-(--border)"
+              />
+              Save an auto-backup of the current board before restoring
+            </label>
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              <Button type="button" variant="outline" onClick={() => setPendingRestore(null)} className="rounded-full">
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={restoringId !== null}
+                onClick={() => void handleConfirmRestore()}
+                className="rounded-full"
+              >
+                {restoringId ? 'Restoring…' : 'Restore snapshot'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <SnapshotPreviewModal
+        open={previewSnapshot !== null}
+        board={previewSnapshot?.boardData ?? board}
+        title={previewSnapshot?.label?.trim() || 'Untitled snapshot'}
+        onClose={() => setPreviewSnapshot(null)}
       />
     </>,
     document.body,
