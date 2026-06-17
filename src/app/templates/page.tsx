@@ -28,17 +28,22 @@ import {
   subscribeTemplateMetadata,
 } from '@/lib/template-metadata';
 import type { Board, BoardTemplate } from '@/types/board';
+import {
+  appModalScrimClass,
+  appOutlineButtonClass,
+  appPrimaryButtonClass,
+  appSoftPanelClass,
+  appSectionClass,
+  appSwatchInsetClass,
+} from '@/components/shared/app-surface-styles';
 
-const outerPanelClass =
-  'rounded-[2.5rem] border border-(--border) bg-(--surface-elevated) shadow-[0_24px_60px_rgba(15,23,42,0.06)] dark:shadow-[0_24px_60px_rgba(0,0,0,0.22)]';
+const outerPanelClass = appSectionClass;
 
-const softPanelClass = 'rounded-[1.35rem] border border-(--border) bg-(--surface-soft)';
+const softPanelClass = appSoftPanelClass;
 
-const primaryButtonClass =
-  'rounded-full bg-(--text-strong) px-5 text-(--background)! shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60';
+const primaryButtonClass = appPrimaryButtonClass;
 
-const outlineButtonClass =
-  'rounded-full border border-(--border) bg-(--surface) px-4 text-(--text) transition hover:bg-(--surface-subtle) hover:text-(--text-strong) dark:bg-[rgba(255,255,255,0.04)] dark:text-(--text) dark:hover:bg-[rgba(255,255,255,0.08)] dark:hover:text-(--text-strong)';
+const outlineButtonClass = appOutlineButtonClass;
 
 /** Keep the completed preview visible before navigating to the editor. */
 const BOARD_READY_REDIRECT_MS = 4000;
@@ -168,7 +173,7 @@ function TemplateSwatchStrip({ palette }: { palette?: BoardTemplate['palette'] }
       {swatches.map((item) => (
         <div
           key={`${item.label}-${item.hex}`}
-          className="h-11 flex-1 rounded-xl shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+          className={`h-11 flex-1 rounded-xl ${appSwatchInsetClass}`}
           style={{ backgroundColor: item.hex }}
         />
       ))}
@@ -303,7 +308,7 @@ function TemplatePreviewModal({
         aria-label="Close preview"
         onClick={isCreating ? undefined : onClose}
         disabled={isCreating}
-        className="absolute inset-0 cursor-default bg-black/50 backdrop-blur-sm disabled:cursor-not-allowed"
+        className={`absolute inset-0 cursor-default ${appModalScrimClass} disabled:cursor-not-allowed`}
       />
 
       <div className={cn(outerPanelClass, 'relative z-10 flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden')}>
@@ -341,7 +346,7 @@ function TemplatePreviewModal({
           </div>
 
           <DetailSection label="Prompt">
-            <p className="rounded-3xl border border-(--border) bg-(--surface) p-4 text-sm leading-6 text-(--text) dark:bg-[rgba(255,255,255,0.03)]">
+            <p className="rounded-3xl border border-(--border) bg-(--surface-subtle) p-4 text-sm leading-6 text-(--text)">
               {template.prompt}
             </p>
           </DetailSection>
@@ -375,7 +380,7 @@ function TemplatePreviewModal({
                 {template.notes.slice(0, 3).map((item) => (
                   <li
                     key={`${template.id}-${item.type}-${item.text}`}
-                    className="rounded-[1.25rem] border border-(--border) bg-(--surface) p-3 text-sm leading-6 text-(--text) dark:bg-[rgba(255,255,255,0.03)]"
+                    className="rounded-[1.25rem] border border-(--border) bg-(--surface-subtle) p-3 text-sm leading-6 text-(--text)"
                   >
                     {item.text}
                   </li>

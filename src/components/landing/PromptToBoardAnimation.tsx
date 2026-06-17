@@ -270,7 +270,7 @@ export function PromptToBoardAnimation() {
                             : { opacity: 0, scale: 0.82 }
                         }
                         transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                        className="h-8 w-8 rounded-xl border border-(--border) shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]"
+                        className={`h-8 w-8 rounded-xl border border-(--border) shadow-[var(--inset-highlight)]`}
                         style={{ backgroundColor: color.hex }}
                         title={color.label}
                       />

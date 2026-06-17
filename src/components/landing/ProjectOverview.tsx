@@ -10,9 +10,15 @@ import {
 } from 'lucide-react';
 import { AboutFooterActions, AboutHeroActions } from '@/components/landing/AboutPageActions';
 import { landingFeatures } from '@/components/landing/landing-features';
+import {
+  appElevatedCardClass,
+  appFeatureCardClass,
+  appHeroGradientClass,
+  appHeroSectionClass,
+  appSectionLabelClass,
+} from '@/components/shared/app-surface-styles';
 
-const sectionLabelClass =
-  'text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)';
+const sectionLabelClass = appSectionLabelClass;
 
 const TECH_STACK = [
   { label: 'Next.js 16', detail: 'App Router' },
@@ -128,11 +134,11 @@ export function ProjectOverview() {
     <div className="space-y-16 pb-8 pt-2 md:space-y-20 md:pb-12 md:pt-4">
       <section
         aria-labelledby="about-heading"
-        className="relative overflow-hidden rounded-[2.5rem] border border-(--border) bg-(--surface-elevated) p-6 shadow-[0_24px_60px_rgba(15,23,42,0.06)] md:p-10 dark:shadow-[0_24px_60px_rgba(0,0,0,0.22)]"
+        className={appHeroSectionClass}
       >
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_0%_0%,rgba(184,216,252,0.24),transparent_55%),radial-gradient(90%_70%_at_100%_0%,rgba(212,200,245,0.20),transparent_50%),radial-gradient(80%_60%_at_50%_100%,rgba(200,240,216,0.16),transparent_55%)]"
+          className={`pointer-events-none absolute inset-0 ${appHeroGradientClass}`}
         />
 
         <div className="relative grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
@@ -190,7 +196,7 @@ export function ProjectOverview() {
           {WORKFLOW_STEPS.map((item, index) => (
             <li
               key={item.step}
-              className="relative overflow-hidden rounded-[1.75rem] border border-(--border) bg-(--surface-elevated) p-5 shadow-[0_16px_40px_rgba(15,23,42,0.05)]"
+              className={`relative overflow-hidden p-5 ${appFeatureCardClass}`}
             >
               <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
                 Step {item.step}
@@ -231,7 +237,7 @@ export function ProjectOverview() {
             return (
               <article
                 key={feature.title}
-                className="overflow-hidden rounded-[1.75rem] border border-(--border) bg-(--surface-elevated) shadow-[0_16px_40px_rgba(15,23,42,0.05)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_50px_rgba(15,23,42,0.08)]"
+                className={appElevatedCardClass}
               >
                 <div className={`h-1.5 ${feature.accent}`} />
                 <div className="flex flex-col gap-4 p-5">
@@ -258,7 +264,7 @@ export function ProjectOverview() {
             return (
               <article
                 key={item.title}
-                className="overflow-hidden rounded-[1.75rem] border border-(--border) bg-(--surface-soft)/80 shadow-[0_12px_32px_rgba(15,23,42,0.04)]"
+                className="overflow-hidden rounded-[1.75rem] border border-(--border) bg-(--surface-soft)/80 shadow-[var(--shadow-card)]"
               >
                 <div className={`h-1.5 ${item.accent}`} />
                 <div className="flex flex-col gap-4 p-5">
@@ -297,7 +303,7 @@ export function ProjectOverview() {
             return (
               <article
                 key={card.title}
-                className="rounded-[1.75rem] border border-(--border) bg-(--surface-elevated) p-6 shadow-[0_16px_40px_rgba(15,23,42,0.05)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_50px_rgba(15,23,42,0.08)]"
+                className={`p-6 ${appFeatureCardClass}`}
               >
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-(--border) bg-(--surface-soft) text-(--text-strong)">
                   <Icon className="h-5 w-5" aria-hidden="true" />
@@ -364,7 +370,7 @@ export function ProjectOverview() {
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-(--border) bg-(--surface-elevated) p-6 text-center shadow-[0_20px_50px_rgba(15,23,42,0.06)] md:p-10">
+      <section className={`rounded-[2rem] border border-(--border) bg-(--surface-elevated) p-6 text-center shadow-[var(--shadow-card)] md:p-10`}>
         <p className={sectionLabelClass}>Try it yourself</p>
         <h2 className="mt-3 [font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong) md:text-4xl">
           See the workflow in action

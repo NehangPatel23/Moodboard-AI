@@ -5,12 +5,15 @@ import { ArrowRight, Sparkles } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useGatedHref } from '@/components/auth/use-gated-href';
 import {
-  displayHeadingClass,
-  heroGradientClass,
-  outlineButtonClass,
-  primaryButtonClass,
-  sectionLabelClass,
-} from '@/components/landing/landing-styles';
+  appDisplayHeadingClass,
+  appGlassPanelClass,
+  appHeroGradientClass,
+  appHeroSectionClass,
+  appOutlineButtonClass,
+  appPrimaryButtonClass,
+  appSectionLabelClass,
+  appSwatchInsetClass,
+} from '@/components/shared/app-surface-styles';
 
 function MoodBoardMark({ className = 'h-8 w-8' }: { className?: string }) {
   return (
@@ -52,13 +55,13 @@ function DecorativeOrbitVisual() {
       </div>
 
       <motion.div
-        className="absolute left-6 top-6 z-20 rounded-[1.75rem] border border-(--border) bg-(--surface)! px-5 py-5 shadow-[0_18px_40px_rgba(15,23,42,0.08)] backdrop-blur-sm dark:bg-[rgba(15,23,42,0.92)] lg:left-10 lg:top-8 lg:px-6 lg:py-6"
+        className={`absolute left-6 top-6 z-20 px-5 py-5 lg:left-10 lg:top-8 lg:px-6 lg:py-6 ${appGlassPanelClass}`}
         initial={false}
         animate={reduceMotion ? undefined : { y: [0, -5, 0], rotate: [-0.35, 0.35, -0.35] }}
         transition={reduceMotion ? undefined : { duration: 8, repeat: Infinity, ease: 'easeInOut' }}
       >
         <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-[1.15rem] border border-(--border) bg-(--surface-elevated) text-(--text-strong) shadow-[0_10px_24px_rgba(15,23,42,0.06)] dark:bg-white/5">
+          <div className="flex h-16 w-16 items-center justify-center rounded-[1.15rem] border border-(--border) bg-(--surface-elevated) text-(--text-strong) shadow-[var(--shadow-card)]">
             <MoodBoardMark className="h-8 w-8" />
           </div>
 
@@ -70,13 +73,13 @@ function DecorativeOrbitVisual() {
       </motion.div>
 
       <motion.div
-        className="absolute right-6 top-24 z-30 w-68 rounded-4xl border border-(--border) bg-(--surface)! px-5 py-5 shadow-[0_18px_40px_rgba(15,23,42,0.08)] backdrop-blur-sm dark:bg-[rgba(15,23,42,0.9)] lg:right-14 lg:top-28 lg:w-76 lg:px-6 lg:py-6"
+        className={`absolute right-6 top-24 z-30 w-68 px-5 py-5 lg:right-14 lg:top-28 lg:w-76 lg:px-6 lg:py-6 ${appGlassPanelClass}`}
         initial={false}
         animate={reduceMotion ? undefined : { y: [0, 5, 0], rotate: [0.4, -0.4, 0.4] }}
         transition={reduceMotion ? undefined : { duration: 9, repeat: Infinity, ease: 'easeInOut' }}
       >
         <div className="flex items-center justify-between gap-4">
-          <p className={sectionLabelClass}>Visual language</p>
+          <p className={appSectionLabelClass}>Visual language</p>
           <span className="h-2 w-12 rounded-full border border-(--border) bg-(--surface-soft)" />
         </div>
 
@@ -84,7 +87,7 @@ function DecorativeOrbitVisual() {
           {['#F7F2EB', '#A8B5A2', '#B89A6A', '#2D2A26'].map((color) => (
             <span
               key={color}
-              className="h-14 rounded-2xl border border-(--border) shadow-[inset_0_1px_0_rgba(255,255,255,0.58),0_1px_0_rgba(255,255,255,0.2)]"
+              className={`h-14 rounded-2xl border border-(--border) ${appSwatchInsetClass}`}
               style={{ backgroundColor: color }}
             />
           ))}
@@ -101,13 +104,13 @@ function DecorativeOrbitVisual() {
       </motion.div>
 
       <motion.div
-        className="absolute left-6 bottom-6 z-10 w-60 rounded-[1.75rem] border border-(--border) bg-(--surface)! px-5 py-5 shadow-[0_18px_40px_rgba(15,23,42,0.08)] backdrop-blur-sm dark:bg-[rgba(15,23,42,0.9)] lg:left-10 lg:bottom-8 lg:w-[16rem] lg:px-6 lg:py-6"
+        className={`absolute left-6 bottom-6 z-10 w-60 px-5 py-5 lg:left-10 lg:bottom-8 lg:w-[16rem] lg:px-6 lg:py-6 ${appGlassPanelClass}`}
         initial={false}
         animate={reduceMotion ? undefined : { y: [0, -4, 0], x: [0, 4, 0] }}
         transition={reduceMotion ? undefined : { duration: 7.5, repeat: Infinity, ease: 'easeInOut' }}
       >
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-(--border) bg-(--surface-elevated) text-(--text-strong) dark:bg-white/5">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-(--border) bg-(--surface-elevated) text-(--text-strong)">
             <div className="flex gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-(--text-strong) opacity-35" />
               <span className="h-2.5 w-2.5 rounded-full bg-(--text-strong) opacity-55" />
@@ -138,11 +141,11 @@ export function CTASection() {
       transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
     >
       <motion.div
-        className="relative overflow-hidden rounded-[2.5rem] border border-(--border) bg-(--surface-elevated) px-6 py-10 shadow-[0_24px_60px_rgba(15,23,42,0.06)] md:px-10 md:py-12 dark:shadow-[0_24px_60px_rgba(0,0,0,0.22)] lg:grid lg:grid-cols-[0.92fr_1.08fr] lg:items-center lg:gap-10"
+        className={`relative overflow-hidden px-6 py-10 md:px-10 md:py-12 lg:grid lg:grid-cols-[0.92fr_1.08fr] lg:items-center lg:gap-10 ${appHeroSectionClass}`}
         whileHover={reduceMotion ? undefined : { y: -4 }}
         transition={{ duration: 0.2 }}
       >
-        <div aria-hidden="true" className={heroGradientClass} />
+        <div aria-hidden="true" className={appHeroGradientClass} />
 
         <motion.div
           className="relative max-w-2xl space-y-5"
@@ -151,10 +154,10 @@ export function CTASection() {
           viewport={{ once: true, amount: 0.2 }}
           transition={{ duration: 0.75, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
         >
-          <p className={sectionLabelClass}>Get started</p>
+          <p className={appSectionLabelClass}>Get started</p>
           <h2
             id="landing-cta-heading"
-            className={`text-3xl md:text-4xl ${displayHeadingClass}`}
+            className={`text-3xl md:text-4xl ${appDisplayHeadingClass}`}
           >
             Start with a prompt. Leave with a creative direction.
           </h2>
@@ -164,7 +167,7 @@ export function CTASection() {
           </p>
 
           <div className="flex flex-wrap gap-3 pt-1">
-            <Link href={beginBoardHref} className={primaryButtonClass}>
+            <Link href={beginBoardHref} className={appPrimaryButtonClass}>
               <Sparkles className="h-4 w-4" aria-hidden="true" />
               Begin your first board
               <ArrowRight
@@ -172,7 +175,7 @@ export function CTASection() {
                 aria-hidden="true"
               />
             </Link>
-            <Link href="/about" className={outlineButtonClass}>
+            <Link href="/about" className={appOutlineButtonClass}>
               Learn more
             </Link>
           </div>

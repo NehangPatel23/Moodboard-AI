@@ -6,7 +6,7 @@ Back to [README](../README.md) · Features: [FEATURES](FEATURES.md) · Deploy: [
 
 ## Current status
 
-Waves 1–3 and Sprints A–F are **complete**, plus **collaboration polish** (Sprint G). The app is a deployed MVP with Supabase persistence, collaboration, AI generation, snapshots, visual export, developer handoff tokens, and public creator profiles. Next focus: optional landing/dashboard polish, then remaining Wave 4 growth items.
+Waves 1–3 and Sprints A–H are **complete**. The app is a deployed MVP with Supabase persistence, collaboration, AI generation, snapshots, visual export, developer handoff tokens, public creator profiles, and a tokenized app-wide visual polish pass. Next focus: Sprint I small product features or Wave 4 growth items.
 
 ---
 
@@ -44,6 +44,7 @@ Waves 1–3 and Sprints A–F are **complete**, plus **collaboration polish** (S
 | 27 | Snapshots unread | `snapshots_last_read_at` on collaboration state (migration `023`); toolbar badge + realtime INSERT |
 | 28 | Custom tooltips | Frosted [`tooltip.tsx`](../src/components/ui/tooltip.tsx) on icon-only controls; sidebar collapsed layout fix |
 | 29 | View mode polish | Deduplicated section headings in read-only / presentation mode |
+| 30 | Visual polish pass | Shared [`app-surface-styles.ts`](../src/components/shared/app-surface-styles.ts); tokenized landing, dashboard, discover, templates, settings; light-mode hierarchy improvements |
 
 ### Sprint summary (completed)
 
@@ -56,12 +57,14 @@ Waves 1–3 and Sprints A–F are **complete**, plus **collaboration polish** (S
 | **E** | AI design system export | ExportModal tab + deterministic + AI token naming |
 | **F** | User profiles | Public profile page + Discover creator links |
 | **G** | Collaboration polish | Section comments (`022`), unseen UX, snapshot unread (`023`), tooltips, view-mode headings |
+| **H** | Visual polish | App-wide surface tokens, shadow/CSS var cleanup, light-mode contrast |
 
 ---
 
 ## Next priorities
 
-1. **Landing & dashboard visual polish** (optional) — hierarchy/contrast on light mode; full redesign remains deferred. See [DEVELOPMENT](DEVELOPMENT.md#current-known-problems).
+1. **Sprint I (pick one)** — `/changelog` page, command palette template navigation, or `/explore` inspiration feed
+2. **Wave 4 growth** (defer until ready) — template marketplace, Stripe billing
 
 ---
 
@@ -107,6 +110,7 @@ Use these for manual QA after changes:
 - Unseen UX: yellow dot on collaborator comments/activity/snapshots; own posts never unread; mark via read button or **View in section** / **Show on board** / **Mark all as seen** (migration `023` for snapshots)
 - View mode: one section heading per tab — no duplicate titles inside cards
 - Collapsed sidebar: nav icons stack vertically; expand control centered at bottom
+- Visual polish: landing, dashboard, discover, templates, and settings use shared surface tokens; light mode has clearer card hierarchy (`--surface-elevated` on white cards)
 
 ---
 

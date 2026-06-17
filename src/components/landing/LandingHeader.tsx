@@ -12,8 +12,9 @@ import {
   subscribeAuth,
 } from '@/lib/auth-store';
 
-const primaryPillClass =
-  'group inline-flex h-11 items-center gap-2 rounded-full border border-transparent bg-[var(--text-strong)]! px-5 text-sm font-medium text-[var(--background)]! shadow-[0_12px_30px_rgba(15,23,42,0.14)] transition-[transform,background-color,box-shadow,color] duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_36px_rgba(15,23,42,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] dark:border-white/10 dark:bg-white! dark:text-slate-950!';
+import { appPrimaryButtonClass } from '@/components/shared/app-surface-styles';
+
+const primaryPillClass = appPrimaryButtonClass;
 
 export function LandingHeader() {
   const reduceMotion = useReducedMotion();
@@ -40,7 +41,7 @@ export function LandingHeader() {
             aria-label="MoodBoard AI home"
           >
             <motion.div
-              className="flex h-12 w-12 items-center justify-center rounded-[1.1rem] border border-(--border) bg-(--surface-elevated) shadow-[0_14px_35px_rgba(15,23,42,0.06)] transition group-hover:border-(--text-muted)/30 md:h-14 md:w-14"
+              className="flex h-12 w-12 items-center justify-center rounded-[1.1rem] border border-(--border) bg-(--surface-elevated) shadow-[var(--shadow-card)] transition group-hover:border-(--text-muted)/30 md:h-14 md:w-14"
               whileHover={reduceMotion ? undefined : { scale: 1.03 }}
               transition={{ duration: 0.2 }}
             >

@@ -36,7 +36,7 @@ function EmptyGallery({
       aria-label="Empty board gallery"
       className="flex items-center justify-center py-8"
     >
-      <div className="w-full max-w-3xl rounded-[2.5rem] border border-(--border) bg-(--surface) p-8 text-center shadow-[0_24px_60px_rgba(15,23,42,0.08)] backdrop-blur md:p-12">
+      <div className="w-full max-w-3xl rounded-[2.5rem] border border-(--border) bg-(--surface) p-8 text-center shadow-[var(--shadow-card)] backdrop-blur md:p-12">
         <div className="mx-auto mb-8 grid max-w-2xl grid-cols-3 gap-3">
           <div className="h-28 rounded-3xl bg-(--surface-subtle)" />
           <div className="h-28 rounded-3xl bg-(--surface-muted)" />

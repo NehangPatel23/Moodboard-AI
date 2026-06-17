@@ -1,8 +1,9 @@
 import { Skeleton } from '@/components/ui/skeleton';
+import { creationPanelClass } from '@/components/board/board-editor-styles';
 
 export function GenerationLoader() {
   return (
-    <div className="overflow-hidden rounded-4xl border border-slate-200 bg-white/85 p-6 shadow-sm dark:border-white/10 dark:bg-[rgba(15,23,42,0.82)] dark:shadow-[0_24px_60px_rgba(0,0,0,0.22)]">
+    <div className={`overflow-hidden p-6 ${creationPanelClass}`}>
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-3 lg:max-w-xl">
           <Skeleton className="h-4 w-32" />

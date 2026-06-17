@@ -1,15 +1,15 @@
 import { landingFeatures } from '@/components/landing/landing-features';
 import { CapabilitiesWorkflow } from '@/components/landing/CapabilitiesWorkflow';
-import { displayHeadingClass, sectionLabelClass } from '@/components/landing/landing-styles';
+import { appDisplayHeadingClass, appFeatureCardClass, appSectionLabelClass } from '@/components/shared/app-surface-styles';
 
 export function FeatureGrid() {
   return (
     <section className="space-y-8" aria-labelledby="capabilities-heading">
       <div className="max-w-2xl">
-        <p className={sectionLabelClass}>Capabilities</p>
+        <p className={appSectionLabelClass}>Capabilities</p>
         <h2
           id="capabilities-heading"
-          className={`mt-2 text-3xl md:text-4xl ${displayHeadingClass}`}
+          className={`mt-2 text-3xl md:text-4xl ${appDisplayHeadingClass}`}
         >
           Everything you need to shape a direction
         </h2>
@@ -25,7 +25,7 @@ export function FeatureGrid() {
           return (
             <article
               key={feature.id}
-              className="group overflow-hidden rounded-[1.75rem] border border-(--border) bg-(--surface-elevated) shadow-[0_16px_40px_rgba(15,23,42,0.05)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_50px_rgba(15,23,42,0.08)]"
+              className={appFeatureCardClass}
             >
               <div className={`h-1.5 ${feature.accent}`} />
 

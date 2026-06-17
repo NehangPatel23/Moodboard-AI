@@ -68,7 +68,7 @@ flowchart TD
 - **Visual export** — JSON / PNG / PDF with live preview; brand strategy in visual export. See [SYSTEMS](SYSTEMS.md#visual-board-export).
 - **Design system export** — CSS, Tailwind, tokens JSON, Markdown from Export modal; optional AI token naming via `POST /api/generate/design-system`.
 - **User profiles** — `/profile/[id]` public creator page; `GET /api/profile/[id]`; Discover creator name links.
-- **Design tokens** — [`board-editor-styles.ts`](../src/components/board/board-editor-styles.ts) (editor, presence, dashboard, modals).
+- **Design tokens** — [`board-editor-styles.ts`](../src/components/board/board-editor-styles.ts) (editor, presence, dashboard, modals); [`app-surface-styles.ts`](../src/components/shared/app-surface-styles.ts) (landing, discover, templates, settings shells).
 - **Tooltips** — [`tooltip.tsx`](../src/components/ui/tooltip.tsx) + `Button` `tooltip` prop. Use `triggerClassName="block w-full"` when wrapping full-width grid/card triggers; default wrapper is `inline-flex` (breaks vertical nav lists if parent is not `flex-col`).
 - **View mode** — [`BoardReadOnlyClient.tsx`](../src/components/board/BoardReadOnlyClient.tsx): one section heading per tab; no duplicate card titles.
 - Board editor loads from Supabase after hydration (no false "not found").

@@ -6,12 +6,13 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useGatedHref } from '@/components/auth/use-gated-href';
 import { PromptToBoardAnimation } from '@/components/landing/PromptToBoardAnimation';
 import {
-  displayHeadingClass,
-  heroGradientClass,
-  outlineButtonClass,
-  primaryButtonClass,
-  sectionLabelClass,
-} from '@/components/landing/landing-styles';
+  appDisplayHeadingClass,
+  appHeroGradientClass,
+  appHeroSectionClass,
+  appOutlineButtonClass,
+  appPrimaryButtonClass,
+  appSectionLabelClass,
+} from '@/components/shared/app-surface-styles';
 
 export function Hero() {
   const reduceMotion = useReducedMotion();
@@ -21,9 +22,9 @@ export function Hero() {
   return (
     <section
       aria-labelledby="landing-hero-heading"
-      className="relative overflow-hidden rounded-[2.5rem] border border-(--border) bg-(--surface-elevated) p-6 shadow-[0_24px_60px_rgba(15,23,42,0.06)] md:p-10 dark:shadow-[0_24px_60px_rgba(0,0,0,0.22)]"
+      className={appHeroSectionClass}
     >
-      <div aria-hidden="true" className={heroGradientClass} />
+      <div aria-hidden="true" className={appHeroGradientClass} />
 
       <div className="relative grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-12">
         <motion.div
@@ -33,11 +34,11 @@ export function Hero() {
           viewport={{ once: true, amount: 0.35 }}
           transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
         >
-          <p className={sectionLabelClass}>Creative direction</p>
+          <p className={appSectionLabelClass}>Creative direction</p>
 
           <motion.h1
             id="landing-hero-heading"
-            className={`max-w-xl text-[clamp(2.5rem,5vw,3.75rem)] leading-[0.98] ${displayHeadingClass}`}
+            className={`max-w-xl text-[clamp(2.5rem,5vw,3.75rem)] leading-[0.98] ${appDisplayHeadingClass}`}
             initial={reduceMotion ? false : { opacity: 0, y: 14 }}
             whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.35 }}
@@ -65,7 +66,7 @@ export function Hero() {
             viewport={{ once: true, amount: 0.35 }}
             transition={{ duration: 0.75, delay: 0.22, ease: [0.22, 1, 0.36, 1] }}
           >
-            <Link href={startBoardHref} className={primaryButtonClass}>
+            <Link href={startBoardHref} className={appPrimaryButtonClass}>
               <Sparkles className="h-4 w-4" aria-hidden="true" />
               Start a board
               <ArrowRight
@@ -74,7 +75,7 @@ export function Hero() {
               />
             </Link>
 
-            <Link href={viewBoardsHref} className={outlineButtonClass}>
+            <Link href={viewBoardsHref} className={appOutlineButtonClass}>
               View my boards
             </Link>
 

@@ -1,5 +1,5 @@
 /**
- * Verifies collaboration migrations 006–013 are applied (activity feed, replay, item state).
+ * Verifies collaboration migrations 006–013 and polish migrations 022–023.
  *
  * Usage:
  *   node --env-file=.env.local scripts/verify-collaboration-migrations.mjs
@@ -70,7 +70,9 @@ if (missingTables.length > 0) {
 const columnChecks = [
   ['boards', 'last_saved_by_name'],
   ['board_comments', 'author_name'],
+  ['board_comments', 'section'],
   ['board_activity', 'changes'],
+  ['board_collaboration_state', 'snapshots_last_read_at'],
   ['user_settings', 'comments_hide_after_days'],
   ['user_settings', 'activity_hide_after_days'],
 ];

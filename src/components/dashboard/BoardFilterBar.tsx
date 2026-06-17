@@ -37,7 +37,7 @@ function FilterPill({
       variant="ghost"
       className={
         active
-          ? 'h-10 rounded-full bg-(--text-strong) px-5 text-sm font-medium text-(--background)! shadow-[0_10px_25px_rgba(15,23,42,0.14)] transition hover:opacity-90'
+          ? 'h-10 rounded-full bg-(--text-strong) px-5 text-sm font-medium text-(--background)! shadow-[var(--shadow-button)] transition hover:opacity-90'
           : 'h-10 rounded-full border border-(--border) bg-(--surface) px-5 text-sm font-medium text-(--text-muted) shadow-sm transition hover:bg-(--surface-subtle) hover:text-(--text-strong)'
       }
     >
@@ -185,7 +185,7 @@ function BoardFilterMenu({
         <div
           id={menuId}
           role="menu"
-          className="absolute left-0 top-[calc(100%+0.5rem)] z-50 w-[min(100vw-2rem,18rem)] rounded-[1.75rem] border border-(--border) bg-(--surface) p-3 shadow-[0_24px_60px_rgba(15,23,42,0.14)]"
+          className="absolute left-0 top-[calc(100%+0.5rem)] z-50 w-[min(100vw-2rem,18rem)] rounded-[1.75rem] border border-(--border) bg-(--surface) p-3 shadow-[var(--shadow-elevated)]"
         >
           <p className="px-3 pb-1 text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
             Show
@@ -311,7 +311,7 @@ export function BoardFilterBar({
 
         <Link
           href="/app/new"
-          className="inline-flex h-11 items-center justify-center rounded-full bg-(--accent) px-5 text-sm font-medium text-(--text-strong) shadow-[0_12px_30px_rgba(203,215,200,0.25)] transition hover:bg-(--accent-strong) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)"
+          className="inline-flex h-11 items-center justify-center rounded-full bg-(--accent) px-5 text-sm font-medium text-(--text-strong) shadow-[var(--shadow-card)] transition hover:bg-(--accent-strong) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)"
         >
           New Board
         </Link>

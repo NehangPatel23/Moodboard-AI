@@ -95,9 +95,9 @@ Needs an audit across:
 
 ### Theme tokens
 
-Landing, dashboard, and templates still mix hardcoded colors with CSS variables. The board editor cluster is largely tokenized via [`board-editor-styles.ts`](../src/components/board/board-editor-styles.ts).
+Landing, dashboard, templates, settings, and discover now share semantic tokens via [`app-surface-styles.ts`](../src/components/shared/app-surface-styles.ts) and CSS variables (`--shadow-card`, `--shadow-elevated`, `--overlay-scrim`, etc.). The board editor cluster remains in [`board-editor-styles.ts`](../src/components/board/board-editor-styles.ts).
 
-Goal: extend semantic tokens to remaining surfaces for a consistent visual language.
+Remaining polish: incremental landing section refinement (full redesign still deferred).
 
 ---
 

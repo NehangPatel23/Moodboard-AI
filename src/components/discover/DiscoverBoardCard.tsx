@@ -7,6 +7,14 @@ import { formatDateTime } from '@/lib/utils';
 import { Globe, Sparkles } from 'lucide-react';
 import { resolveReferenceImageUrl } from '@/lib/reference-images';
 import { cn } from '@/lib/utils';
+import {
+  appOverlayBadgeClass,
+  appPreviewFallbackHex,
+  appPreviewLabelClass,
+  appPreviewTileClass,
+  appPreviewTileFooterClass,
+  appPreviewTileOverlayClass,
+} from '@/components/shared/app-surface-styles';
 
 type DiscoverBoardCardProps = {
   board: Board;
@@ -22,7 +30,7 @@ function getTileStyle(
   tile: Board['references'][number] | null,
   index: number,
 ): CSSProperties {
-  const paletteFallback = board.palette[index % Math.max(board.palette.length, 1)]?.hex ?? '#e5e2e1';
+  const paletteFallback = board.palette[index % Math.max(board.palette.length, 1)]?.hex ?? appPreviewFallbackHex;
 
   if (tile) {
     const imageUrl = resolveReferenceImageUrl(tile, board, index);
@@ -46,14 +54,12 @@ export function DiscoverBoardCard({ board, featured = false }: DiscoverBoardCard
   return (
     <article
       className={cn(
-        'group relative flex h-full flex-col overflow-hidden rounded-[1.75rem] border bg-(--surface) transition duration-300 hover:-translate-y-1 hover:shadow-[0_28px_60px_rgba(15,23,42,0.12)]',
-        featured
-          ? 'border-(--border) shadow-[0_24px_56px_rgba(15,23,42,0.10)] ring-1 ring-black/5 dark:ring-white/10'
-          : 'border-(--border) shadow-[0_18px_40px_rgba(15,23,42,0.08)]',
+        'group relative flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-(--border) bg-(--surface) shadow-[var(--shadow-card)] transition duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-elevated)]',
+        featured && 'ring-1 ring-(--border)',
       )}
     >
       {featured ? (
-        <div className="absolute right-4 top-4 z-10 inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/45 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-white backdrop-blur-sm">
+        <div className={`absolute right-4 top-4 z-10 ${appOverlayBadgeClass}`}>
           <Sparkles className="h-3 w-3" aria-hidden="true" />
           Featured
         </div>
@@ -69,15 +75,15 @@ export function DiscoverBoardCard({ board, featured = false }: DiscoverBoardCard
             {previewTiles.map((tile, index) => (
               <div
                 key={`${board.id}-${index}`}
-                className="relative aspect-square overflow-hidden rounded-[1rem] bg-black/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.3)]"
+                className={`relative aspect-square overflow-hidden rounded-[1rem] ${appPreviewTileClass}`}
                 style={getTileStyle(board, tile, index)}
               >
-                <div className="absolute inset-0 bg-linear-to-tr from-black/12 via-transparent to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 h-14 bg-linear-to-t from-black/25 to-transparent" />
+                <div className={appPreviewTileOverlayClass} />
+                <div className={appPreviewTileFooterClass} />
 
                 {!tile?.imageUrl ? (
                   <div className="absolute inset-0 flex items-end p-3">
-                    <span className="rounded-full bg-white/80 px-2.5 py-1 text-[10px] font-medium text-slate-700">
+                    <span className={appPreviewLabelClass}>
                       {board.palette[index % Math.max(board.palette.length, 1)]?.label ?? 'Studio'}
                     </span>
                   </div>

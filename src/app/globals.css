@@ -10,20 +10,23 @@
   color-scheme: light;
   --background: #f8f7f4;
   --background-2: #fbfaf8;
-  --surface: rgba(255, 255, 255, 0.92);
-  --surface-elevated: rgba(255, 255, 255, 0.88);
-  --surface-soft: rgba(248, 247, 244, 0.82);
-  --surface-muted: #efede8;
-  --surface-subtle: #f2f0eb;
-  --text: #111827;
+  --surface: rgba(255, 255, 255, 0.96);
+  --surface-elevated: #ffffff;
+  --surface-soft: rgba(255, 255, 255, 0.88);
+  --surface-muted: #f3f1ec;
+  --surface-subtle: #f7f5f0;
+  --text: #1f2937;
   --text-strong: #0f172a;
-  --text-muted: #6b7280;
-  --border: rgba(17, 24, 39, 0.08);
+  --text-muted: #64748b;
+  --border: rgba(15, 23, 42, 0.1);
   --ring: rgba(15, 23, 42, 0.18);
   --accent: #cbd7c8;
   --accent-strong: #b8c6b1;
   --shadow-card: 0 12px 40px rgba(15, 23, 42, 0.06);
   --shadow-elevated: 0 20px 60px rgba(15, 23, 42, 0.08);
+  --shadow-button: 0 12px 30px rgba(15, 23, 42, 0.14);
+  --overlay-scrim: rgba(15, 23, 42, 0.45);
+  --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 html {
@@ -50,6 +53,9 @@ html.dark {
   --accent-strong: #788774;
   --shadow-card: 0 12px 40px rgba(0, 0, 0, 0.22);
   --shadow-elevated: 0 20px 60px rgba(0, 0, 0, 0.28);
+  --shadow-button: 0 12px 30px rgba(0, 0, 0, 0.24);
+  --overlay-scrim: rgba(0, 0, 0, 0.55);
+  --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 body {

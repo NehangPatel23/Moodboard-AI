@@ -11,9 +11,15 @@ import { resolveReferenceImageUrl } from '@/lib/reference-images';
 import {
   dashboardCardClass,
   dashboardFavoriteStarActiveClass,
-  dashboardPreviewFallbackHex,
-  dashboardPreviewLabelClass,
 } from '@/components/board/board-editor-styles';
+import {
+  appOverlayBadgeClass,
+  appPreviewFallbackHex,
+  appPreviewLabelClass,
+  appPreviewTileClass,
+  appPreviewTileFooterClass,
+  appPreviewTileOverlayClass,
+} from '@/components/shared/app-surface-styles';
 
 type BoardCardProps = {
   board: Board;
@@ -28,7 +34,7 @@ function getTileStyle(
   tile: Board['references'][number] | null,
   index: number,
 ): CSSProperties {
-  const paletteFallback = board.palette[index % Math.max(board.palette.length, 1)]?.hex ?? dashboardPreviewFallbackHex;
+  const paletteFallback = board.palette[index % Math.max(board.palette.length, 1)]?.hex ?? appPreviewFallbackHex;
 
   if (tile) {
     const imageUrl = resolveReferenceImageUrl(tile, board, index);
@@ -105,7 +111,7 @@ export function BoardCard({ board }: BoardCardProps) {
       <div className="relative p-4 pb-0">
         {isCollaborator ? (
           <div className="pointer-events-none absolute left-7 top-7 z-10">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-black/18 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.24em] text-white/92 backdrop-blur-md">
+            <span className={appOverlayBadgeClass}>
               {board.role === 'viewer' ? (
                 <>
                   <Eye className="h-3 w-3" strokeWidth={1.75} />
@@ -125,15 +131,15 @@ export function BoardCard({ board }: BoardCardProps) {
           {previewTiles.map((tile, index) => (
             <div
               key={`${board.id}-${index}`}
-              className="relative aspect-square overflow-hidden rounded-[1.15rem] bg-black/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.3)]"
+              className={`relative aspect-square overflow-hidden rounded-[1.15rem] ${appPreviewTileClass}`}
               style={getTileStyle(board, tile, index)}
             >
-              <div className="absolute inset-0 bg-linear-to-tr from-black/12 via-transparent to-transparent" />
-              <div className="absolute inset-x-0 bottom-0 h-14 bg-linear-to-t from-black/25 to-transparent" />
+              <div className={appPreviewTileOverlayClass} />
+              <div className={appPreviewTileFooterClass} />
 
               {!tile?.imageUrl ? (
                 <div className="absolute inset-0 flex items-end p-3">
-                  <span className={dashboardPreviewLabelClass}>
+                  <span className={appPreviewLabelClass}>
                     {board.palette[index % Math.max(board.palette.length, 1)]?.label ?? 'Studio'}
                   </span>
                 </div>

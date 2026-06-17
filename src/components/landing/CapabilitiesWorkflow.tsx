@@ -11,10 +11,11 @@ import {
   type EditorSectionName,
 } from '@/lib/editor-sections';
 import {
-  displayHeadingClass,
-  heroGradientClass,
-  sectionLabelClass,
-} from '@/components/landing/landing-styles';
+  appDisplayHeadingClass,
+  appHeroGradientClass,
+  appHeroSectionClass,
+  appSectionLabelClass,
+} from '@/components/shared/app-surface-styles';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
@@ -152,7 +153,7 @@ function StepGeneratePanel({ staticPreview, enabled }: StepPanelProps) {
   return (
     <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
       <div className="rounded-[1.35rem] border border-(--border) bg-(--surface)/80 p-5 backdrop-blur-sm">
-        <p className={sectionLabelClass}>Board prompt</p>
+        <p className={appSectionLabelClass}>Board prompt</p>
         <p className="mt-3 min-h-16 text-sm leading-7 text-(--text-strong) md:text-base">
           {text ? `“${text}${promptClosed ? '”' : ''}` : 'Describe the creative direction…'}
           {phase === 'typing' && resolvedTyped > 0 && !promptClosed ? (
@@ -162,7 +163,7 @@ function StepGeneratePanel({ staticPreview, enabled }: StepPanelProps) {
       </div>
 
       <div className="rounded-[1.35rem] border border-(--border) bg-(--surface)/80 p-5 backdrop-blur-sm">
-        <p className={sectionLabelClass}>Generated output</p>
+        <p className={appSectionLabelClass}>Generated output</p>
 
         {resolvedPhase === 'generating' ? (
           <div className="mt-3 space-y-3">
@@ -187,7 +188,7 @@ function StepGeneratePanel({ staticPreview, enabled }: StepPanelProps) {
             animate={{ opacity: 1, y: 0 }}
             className="mt-3 space-y-3"
           >
-            <p className={`text-2xl ${displayHeadingClass}`}>Calm luxury</p>
+            <p className={`text-2xl ${appDisplayHeadingClass}`}>Calm luxury</p>
             <div className="flex flex-wrap gap-2">
               {['Wellness', 'Editorial'].map((tag) => (
                 <span
@@ -243,7 +244,7 @@ function StepRefinePanel({ staticPreview, enabled }: StepPanelProps) {
     <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
       <div className="rounded-[1.35rem] border border-(--border) bg-(--surface)/80 p-5 backdrop-blur-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className={sectionLabelClass}>Palette</p>
+          <p className={appSectionLabelClass}>Palette</p>
           <span
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium',
@@ -274,14 +275,14 @@ function StepRefinePanel({ staticPreview, enabled }: StepPanelProps) {
 
       <div className="space-y-3">
         <div className="rounded-[1.35rem] border border-(--border) bg-(--surface)/80 p-5 backdrop-blur-sm">
-          <p className={sectionLabelClass}>Heading</p>
+          <p className={appSectionLabelClass}>Heading</p>
           <AnimatePresence mode="wait">
             <motion.p
               key={resolvedRefined ? 'bodoni' : 'inter'}
               initial={staticPreview ? false : { opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              className={cn('mt-2 text-2xl', resolvedRefined && displayHeadingClass)}
+              className={cn('mt-2 text-2xl', resolvedRefined && appDisplayHeadingClass)}
             >
               {resolvedRefined ? 'Bodoni Moda' : 'Inter'}
             </motion.p>
@@ -289,7 +290,7 @@ function StepRefinePanel({ staticPreview, enabled }: StepPanelProps) {
         </div>
 
         <div className="rounded-[1.35rem] border border-(--border) bg-(--surface)/80 p-5 backdrop-blur-sm">
-          <p className={sectionLabelClass}>Body</p>
+          <p className={appSectionLabelClass}>Body</p>
           <p className="mt-2 text-base font-medium text-(--text-strong)">DM Sans</p>
         </div>
       </div>
@@ -373,7 +374,7 @@ function StepCollaborateDemo({
     <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
       <div className="rounded-[1.35rem] border border-(--border) bg-(--surface)/80 p-5 backdrop-blur-sm">
         <div className="flex items-center justify-between gap-2">
-          <p className={sectionLabelClass}>Board preview</p>
+          <p className={appSectionLabelClass}>Board preview</p>
           <span className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.16em] text-emerald-600 dark:text-emerald-300">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
             Live
@@ -480,7 +481,7 @@ function StepCollaborateDemo({
       </div>
 
       <div className="rounded-[1.35rem] border border-(--border) bg-(--surface)/80 p-5 backdrop-blur-sm">
-        <p className={sectionLabelClass}>Comments & activity</p>
+        <p className={appSectionLabelClass}>Comments & activity</p>
         <div className="mt-4 space-y-3">
           <AnimatePresence>
             {demoComments.slice(0, resolvedStep).map((comment, index) => {
@@ -579,7 +580,7 @@ function StepExportPanel({ staticPreview, enabled }: StepPanelProps) {
     <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
       <div className="rounded-[1.35rem] border border-(--border) bg-(--surface)/80 p-5 backdrop-blur-sm">
         <div className="flex items-center justify-between gap-2">
-          <p className={sectionLabelClass}>Export board</p>
+          <p className={appSectionLabelClass}>Export board</p>
           <span
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full border border-(--border) px-2.5 py-1 text-[10px] font-medium',
@@ -624,7 +625,7 @@ function StepExportPanel({ staticPreview, enabled }: StepPanelProps) {
       </div>
 
       <div className="rounded-[1.35rem] border border-(--border) bg-(--surface)/80 p-5 backdrop-blur-sm">
-        <p className={sectionLabelClass}>Preview</p>
+        <p className={appSectionLabelClass}>Preview</p>
         <AnimatePresence mode="wait">
           <motion.div
             key={format}
@@ -667,7 +668,7 @@ function StepExportPanel({ staticPreview, enabled }: StepPanelProps) {
             ) : null}
             {format === 'PDF' ? (
               <div className="flex flex-col items-center gap-3 font-sans">
-                <div className="h-24 w-16 rounded-lg border border-(--border) bg-white shadow-sm dark:bg-slate-900" />
+                <div className="h-24 w-16 rounded-lg border border-(--border) bg-(--surface-elevated) shadow-sm" />
                 <p className="text-xs">Multi-page moodboard PDF</p>
               </div>
             ) : null}
@@ -744,17 +745,17 @@ export function CapabilitiesWorkflow() {
     <section
       ref={ref}
       aria-labelledby="capabilities-workflow-heading"
-      className="relative overflow-hidden rounded-[2.5rem] border border-(--border) bg-(--surface-elevated) p-6 shadow-[0_24px_60px_rgba(15,23,42,0.06)] md:p-8 dark:shadow-[0_24px_60px_rgba(0,0,0,0.22)] [overflow-anchor:none]"
+      className={`${appHeroSectionClass} md:p-8 [overflow-anchor:none]`}
     >
-      <div aria-hidden="true" className={heroGradientClass} />
+      <div aria-hidden="true" className={appHeroGradientClass} />
 
       <div className="relative space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
-            <p className={sectionLabelClass}>See it in action</p>
+            <p className={appSectionLabelClass}>See it in action</p>
             <h3
               id="capabilities-workflow-heading"
-              className={`mt-2 text-2xl md:text-3xl ${displayHeadingClass}`}
+              className={`mt-2 text-2xl md:text-3xl ${appDisplayHeadingClass}`}
             >
               From prompt to export in four steps
             </h3>
@@ -796,7 +797,7 @@ export function CapabilitiesWorkflow() {
                 className={cn(
                   'min-h-28 w-full rounded-[1.25rem] border px-4 py-3 text-left transition-[opacity,box-shadow,border-color,background-color] duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)',
                   isActive
-                    ? 'border-(--text-strong)/15 bg-(--surface)/85 opacity-100 shadow-[0_12px_30px_rgba(15,23,42,0.06)] backdrop-blur-sm'
+                    ? 'border-(--text-strong)/15 bg-(--surface)/85 opacity-100 shadow-[var(--shadow-card)] backdrop-blur-sm'
                     : 'border-(--border) bg-(--surface)/40 opacity-70 hover:border-(--text-muted)/30 hover:opacity-100',
                 )}
               >

@@ -18,6 +18,10 @@ import { showToast } from '@/components/shared/toast-store';
 import { loadBoards, saveBoards, subscribeBoards } from '@/lib/board-store';
 import { cn } from '@/lib/utils';
 import {
+  appColorPickerTileClass,
+  appSectionClass,
+} from '@/components/shared/app-surface-styles';
+import {
   clearLastSavedAt,
   DEFAULT_APP_SETTINGS,
   getWorkspaceInitials,
@@ -547,7 +551,7 @@ function AvatarTile({
       aria-label={label}
       title={label}
       className={cn(
-        'flex h-16 w-16 items-center justify-center rounded-2xl border border-black/10 text-slate-900 shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background) dark:border-white/20',
+        appColorPickerTileClass,
         selected
           ? 'ring-2 ring-(--text-strong) ring-offset-2 ring-offset-(--surface)'
           : 'hover:scale-105',
@@ -809,7 +813,7 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-[2.5rem] border border-(--border) bg-(--surface) p-6 shadow-[0_24px_60px_rgba(15,23,42,0.06)] md:p-8">
+      <section className={`${appSectionClass} bg-(--surface)`}>
         <div className="flex gap-4 md:gap-6">
           <PageLabel label="Settings" />
 
@@ -937,7 +941,7 @@ export default function SettingsPage() {
                       label="Use initials"
                       onClick={() => handleAvatarChange(INITIALS_AVATAR_ID)}
                     >
-                      <span className="text-base font-semibold text-slate-900">
+                      <span className="text-base font-semibold text-(--text-strong)">
                         {getWorkspaceInitials(settings.workspaceName)}
                       </span>
                     </AvatarTile>
@@ -989,7 +993,7 @@ export default function SettingsPage() {
                         aria-pressed={active}
                         aria-label={`Use ${accent} accent`}
                         className={cn(
-                          'h-11 w-11 rounded-2xl border border-black/10 shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background) dark:border-white/20',
+                          appColorPickerTileClass,
                           active
                             ? 'ring-2 ring-(--text-strong) ring-offset-2 ring-offset-(--surface)'
                             : 'hover:scale-105',

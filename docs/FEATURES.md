@@ -134,6 +134,7 @@ Implemented across authenticated routes (`/app`, `/settings`, `/templates`, boar
 - **Sidebar** — navigation, workspace avatar, collapse state in `localStorage`; collapsed mode shows icon-only nav with tooltips and a bottom-aligned expand control
 - **TopBar** — brand link, search / `⌘K` command palette trigger, **sun/moon theme toggle** ([`ThemeToggle`](../src/components/shared/ThemeToggle.tsx)), account menu
 - **Tooltips** — frosted custom tooltips ([`tooltip.tsx`](../src/components/ui/tooltip.tsx)) on icon-only controls; supplementary hints use a longer delay when visible labels exist
+- **Surface tokens** — shared shells, cards, buttons, and preview tiles via [`app-surface-styles.ts`](../src/components/shared/app-surface-styles.ts)
 - Theme choice persists via settings cookie + `SettingsBootstrap`
 
 ---
