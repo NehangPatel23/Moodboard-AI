@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useSyncExternalStore } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
@@ -11,12 +12,28 @@ import {
   readAuthState,
   subscribeAuth,
 } from '@/lib/auth-store';
+import { cn } from '@/lib/utils';
 
 import { appPrimaryButtonClass } from '@/components/shared/app-surface-styles';
 
 const primaryPillClass = appPrimaryButtonClass;
 
+const LANDING_NAV_LINKS = [
+  { href: '/changelog', label: 'Changelog', className: 'hidden md:inline-flex' },
+  { href: '/discover', label: 'Discover', className: 'hidden sm:inline-flex' },
+  { href: '/help', label: 'Help', className: 'hidden sm:inline-flex' },
+  { href: '/about', label: 'About', className: 'hidden sm:inline-flex' },
+] as const;
+
+const landingNavLinkFocusClass =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)';
+
+function isLandingNavActive(pathname: string, href: string): boolean {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export function LandingHeader() {
+  const pathname = usePathname();
   const reduceMotion = useReducedMotion();
   const auth = useSyncExternalStore(subscribeAuth, readAuthState, getServerAuthSnapshot);
   const isAuthenticated = auth.status === 'authenticated';
@@ -64,31 +81,32 @@ export function LandingHeader() {
 
         <motion.nav
           className="flex items-center gap-2 sm:gap-3"
-          aria-label="Account"
+          aria-label="Site"
           initial={reduceMotion ? false : { opacity: 0, y: 10 }}
           animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
         >
-          <Link
-            href="/changelog"
-            className="hidden h-11 items-center rounded-full px-4 text-sm font-medium text-(--text-muted) transition hover:text-(--text-strong) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background) md:inline-flex"
-          >
-            Changelog
-          </Link>
+          {LANDING_NAV_LINKS.map(({ href, label, className }) => {
+            const active = isLandingNavActive(pathname, href);
 
-          <Link
-            href="/discover"
-            className="hidden h-11 items-center rounded-full px-4 text-sm font-medium text-(--text-muted) transition hover:text-(--text-strong) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background) sm:inline-flex"
-          >
-            Discover
-          </Link>
-
-          <Link
-            href="/about"
-            className="hidden h-11 items-center rounded-full px-4 text-sm font-medium text-(--text-muted) transition hover:text-(--text-strong) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background) sm:inline-flex"
-          >
-            About
-          </Link>
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-current={active ? 'page' : undefined}
+                className={cn(
+                  'inline-flex h-11 items-center rounded-full px-4 text-sm font-medium transition',
+                  landingNavLinkFocusClass,
+                  className,
+                  active
+                    ? 'border border-(--border) bg-(--surface-subtle) text-(--text-strong) shadow-[var(--shadow-card)]'
+                    : 'text-(--text-muted) hover:bg-(--surface-subtle)/60 hover:text-(--text-strong)',
+                )}
+              >
+                {label}
+              </Link>
+            );
+          })}
 
           <ThemeToggle />
 
@@ -101,7 +119,10 @@ export function LandingHeader() {
             <>
               <Link
                 href="/sign-in"
-                className="inline-flex h-11 items-center rounded-full px-4 text-sm font-medium text-(--text-muted) transition hover:text-(--text-strong) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)"
+                className={cn(
+                  'inline-flex h-11 items-center rounded-full px-4 text-sm font-medium text-(--text-muted) transition hover:text-(--text-strong)',
+                  landingNavLinkFocusClass,
+                )}
               >
                 Sign in
               </Link>

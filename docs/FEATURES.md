@@ -252,7 +252,7 @@ DELETE /api/boards/[id]/comments/[commentId]
 
 - Yellow dot + **Unseen** tooltip on unread comments, activity entries, and snapshots ([`CollaborationUnseenIndicator`](../src/components/board/CollaborationUnseenIndicator.tsx))
 - Your own comments, activity, and snapshots never count as unread ([`collaboration-read-state.ts`](../src/lib/collaboration-read-state.ts))
-- Items stay unseen until explicitly marked — eye/read button, **View in {section}**, **Show on board**, or **Mark all as seen** (panels do not auto-mark on open)
+- Items stay unseen until explicitly marked — eye/read button, **Preview**, **View in {section}**, **Show on board**, or **Mark all as seen** (panels do not auto-mark on open)
 - Toolbar badges on Comments, Activity, and Snapshots buttons; tab title unread count when applicable
 
 **Activity + replay** (migrations `008`–`013`):
@@ -432,6 +432,22 @@ User-configurable toggle that gates the keyboard-driven slideshow on the share/v
 
 ---
 
+### Help Page
+
+Route:
+
+```txt
+/help
+```
+
+Implemented:
+
+- FAQ accordion with getting started, boards/AI, collaboration, export, discover, settings
+- In-app deep links and GitHub issues support link
+- Static content in [`help-sections.ts`](../src/lib/help-sections.ts)
+
+---
+
 ### Changelog Page
 
 Route:
@@ -461,14 +477,11 @@ Shortcut:
 Current capabilities:
 
 - Fuzzy board search by title, summary, prompt, tags, and tone
-- Navigation (dashboard, new board, templates, settings)
+- Navigation (dashboard, new board, templates, discover, help, settings)
 - Board actions (duplicate, favorite toggle)
 - **Editor context** (on `/app/boards/[id]`) — jump to Overview, Palette, Typography, References, Notes
 - **Editor quick actions** — Export, Snapshots, Share/Collaborate
 - **Template navigation** — search by template name, tag, or `template`; opens `/templates?focus=<id>` with scroll highlight
-
-Planned capabilities:
-
-- AI commands
+- **AI commands** (editor only) — suggest brand strategy, palette, typography via `dispatchEditorQuickAction`
 
 ---

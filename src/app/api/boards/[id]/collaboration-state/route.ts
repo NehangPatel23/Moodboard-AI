@@ -4,6 +4,7 @@ import {
   countUnreadBoardSnapshots,
   getBoardCollaborationState,
   markBoardCollaborationRead,
+  markSnapshotReadById,
   upsertItemState,
 } from '@/lib/db/board-collaboration-state';
 import { getAuthenticatedUser } from '@/lib/db/auth';
@@ -19,6 +20,7 @@ type PatchBody = {
   markCommentsRead?: boolean;
   markActivityRead?: boolean;
   markSnapshotsRead?: boolean;
+  markSnapshotId?: string;
   item?: CollaborationItemStateInput;
 };
 
@@ -113,8 +115,9 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   const hasBulkRead = Boolean(body.markCommentsRead || body.markActivityRead || body.markSnapshotsRead);
   const hasItemUpdate = Boolean(body.item);
+  const hasSnapshotRead = Boolean(body.markSnapshotId);
 
-  if (!hasBulkRead && !hasItemUpdate) {
+  if (!hasBulkRead && !hasItemUpdate && !hasSnapshotRead) {
     return NextResponse.json({ error: 'No collaboration action requested' }, { status: 400 });
   }
 
@@ -127,6 +130,10 @@ export async function PATCH(request: Request, context: RouteContext) {
         markActivityRead: body.markActivityRead,
         markSnapshotsRead: body.markSnapshotsRead,
       });
+    }
+
+    if (body.markSnapshotId) {
+      state = await markSnapshotReadById(user.id, id, body.markSnapshotId);
     }
 
     if (body.item) {

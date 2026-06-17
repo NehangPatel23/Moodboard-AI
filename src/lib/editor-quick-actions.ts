@@ -1,6 +1,13 @@
 'use client';
 
-export type EditorQuickAction = 'export' | 'snapshots' | 'share' | 'jump-section';
+export type EditorQuickAction =
+  | 'export'
+  | 'snapshots'
+  | 'share'
+  | 'jump-section'
+  | 'suggest-brand'
+  | 'suggest-palette'
+  | 'suggest-typography';
 
 export type EditorQuickActionDetail = {
   action: EditorQuickAction;

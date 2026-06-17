@@ -154,6 +154,13 @@ export function useBoardCollaborationState({
     return patchState({ markSnapshotsRead: true });
   }, [patchState]);
 
+  const markSnapshotRead = useCallback(
+    async (snapshotId: string): Promise<boolean> => {
+      return patchState({ markSnapshotId: snapshotId });
+    },
+    [patchState],
+  );
+
   const setItemState = useCallback(
     async (item: CollaborationItemStateInput): Promise<boolean> => {
       return patchState({ item });
@@ -189,6 +196,7 @@ export function useBoardCollaborationState({
     markCommentsRead,
     markActivityRead,
     markSnapshotsRead,
+    markSnapshotRead,
     setItemRead,
     hideItem,
     unhideItem,

@@ -10,6 +10,7 @@ import {
   Copy,
   Download,
   FileText,
+  HelpCircle,
   LayoutDashboard,
   LayoutTemplate,
   Search,
@@ -19,6 +20,7 @@ import {
   SquarePen,
   SquarePlus,
   Star,
+  Wand2,
 } from 'lucide-react';
 import {
   closeCommandPalette,
@@ -136,6 +138,22 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
         keywords: ['template', 'starter', 'preset'],
         icon: <Sparkles className="h-4 w-4" />,
         onSelect: () => guardedRouterPush(router, '/templates'),
+      },
+      {
+        id: 'open-discover',
+        title: 'Open discover',
+        description: 'Browse all public shared boards.',
+        keywords: ['discover', 'public', 'community', 'browse'],
+        icon: <Search className="h-4 w-4" />,
+        onSelect: () => guardedRouterPush(router, '/discover'),
+      },
+      {
+        id: 'open-help',
+        title: 'Open help',
+        description: 'Documentation, FAQs, and getting started guides.',
+        keywords: ['help', 'docs', 'support', 'faq'],
+        icon: <HelpCircle className="h-4 w-4" />,
+        onSelect: () => guardedRouterPush(router, '/help'),
       },
       {
         id: 'open-settings',
@@ -290,6 +308,36 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
         ].filter((item) => matchesQuery(item, q))
       : [];
 
+    const editorAiItems: CommandItem[] =
+      currentBoard && !isCurrentBoardView
+        ? [
+            {
+              id: 'ai-suggest-brand',
+              title: 'Suggest brand strategy',
+              description: 'Generate positioning, voice, and messaging with AI.',
+              keywords: ['ai', 'brand', 'strategy', 'positioning', 'voice'],
+              icon: <Wand2 className="h-4 w-4" />,
+              onSelect: () => dispatchEditorQuickAction({ action: 'suggest-brand' }),
+            },
+            {
+              id: 'ai-suggest-palette',
+              title: 'Suggest palette',
+              description: 'Refresh board colors from the current direction.',
+              keywords: ['ai', 'palette', 'colors', 'colour'],
+              icon: <Sparkles className="h-4 w-4" />,
+              onSelect: () => dispatchEditorQuickAction({ action: 'suggest-palette' }),
+            },
+            {
+              id: 'ai-suggest-typography',
+              title: 'Suggest typography',
+              description: 'Generate font pairings for the board mood.',
+              keywords: ['ai', 'typography', 'fonts', 'type'],
+              icon: <Sparkles className="h-4 w-4" />,
+              onSelect: () => dispatchEditorQuickAction({ action: 'suggest-typography' }),
+            },
+          ].filter((item) => matchesQuery(item, q))
+        : [];
+
     const actionItems: CommandItem[] = [
       {
         id: 'open-command-palette',
@@ -331,6 +379,10 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
 
     if (editorActionItems.length > 0) {
       output.push({ title: 'Editor actions', items: editorActionItems });
+    }
+
+    if (editorAiItems.length > 0) {
+      output.push({ title: 'AI', items: editorAiItems });
     }
 
     if (actionItems.length > 0) {

@@ -54,11 +54,9 @@ export const editorReferenceCardClass =
 export const editorModalPanelClass =
   'flex w-full max-w-6xl flex-col overflow-hidden rounded-4xl border border-(--border) bg-(--surface-elevated) text-(--text) shadow-[var(--shadow-elevated)]';
 
-export const editorModalScrimClass =
-  'bg-slate-950/45 backdrop-blur-sm';
+export const editorModalScrimClass = 'bg-[var(--overlay-scrim)] backdrop-blur-sm';
 
-export const editorPanelScrimClass =
-  'bg-black/30 backdrop-blur-[1px]';
+export const editorPanelScrimClass = 'bg-[var(--overlay-scrim)] backdrop-blur-sm';
 
 /** Collaboration / status surfaces */
 export const editorUnreadBadgeClass =

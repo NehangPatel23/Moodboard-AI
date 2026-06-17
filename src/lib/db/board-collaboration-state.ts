@@ -277,6 +277,74 @@ export async function markBoardCollaborationRead(
   return nextState;
 }
 
+export async function markSnapshotReadById(
+  userId: string,
+  boardId: string,
+  snapshotId: string,
+): Promise<BoardCollaborationState> {
+  const admin = createAdminClient();
+  const { data: snapshot, error: snapshotError } = await admin
+    .from('board_snapshots')
+    .select('created_at')
+    .eq('id', snapshotId)
+    .eq('board_id', boardId)
+    .maybeSingle();
+
+  if (snapshotError) {
+    if (isMissingRelationError(snapshotError, 'board_snapshots')) {
+      throw new Error('Snapshot not found');
+    }
+    throw snapshotError;
+  }
+
+  if (!snapshot?.created_at) {
+    throw new Error('Snapshot not found');
+  }
+
+  const existing = await getBoardCollaborationState(userId, boardId);
+  const snapshotAt = snapshot.created_at as string;
+  const existingAt = existing.snapshotsLastReadAt;
+  const nextSnapshotsLastReadAt =
+    !existingAt || new Date(snapshotAt).getTime() > new Date(existingAt).getTime()
+      ? snapshotAt
+      : existingAt;
+
+  if (nextSnapshotsLastReadAt === existing.snapshotsLastReadAt) {
+    return existing;
+  }
+
+  const now = new Date().toISOString();
+  const nextState: BoardCollaborationState = {
+    ...existing,
+    snapshotsLastReadAt: nextSnapshotsLastReadAt,
+  };
+
+  const upsertPayload = {
+    user_id: userId,
+    board_id: boardId,
+    comments_last_read_at: nextState.commentsLastReadAt,
+    activity_last_read_at: nextState.activityLastReadAt,
+    snapshots_last_read_at: nextState.snapshotsLastReadAt,
+    updated_at: now,
+  };
+
+  const { error } = await admin.from('board_collaboration_state').upsert(upsertPayload, {
+    onConflict: 'user_id,board_id',
+  });
+
+  if (error) {
+    if (isMissingColumnError(error, 'snapshots_last_read_at')) {
+      return { ...nextState, snapshotsLastReadAt: null };
+    }
+    if (isMissingRelationError(error, 'board_collaboration_state')) {
+      return nextState;
+    }
+    throw error;
+  }
+
+  return nextState;
+}
+
 export async function countUnreadBoardSnapshots(
   admin: ReturnType<typeof createAdminClient>,
   boardId: string,

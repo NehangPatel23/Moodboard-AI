@@ -9,6 +9,26 @@ export type ChangelogEntry = {
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
     date: '2026-06',
+    sprint: 'J',
+    title: 'Product surfaces + polish',
+    bullets: [
+      'Per-snapshot mark-seen on preview and eye button in snapshots panel',
+      'Help hub at /help with FAQ sections and in-app deep links',
+      'Command palette AI commands for brand, palette, and typography suggestions',
+      'Editor modal/panel scrims aligned to shared overlay token',
+    ],
+  },
+  {
+    date: '2026-06',
+    sprint: 'I',
+    title: 'Changelog + palette templates',
+    bullets: [
+      'Public /changelog page with shipped sprint entries',
+      'Command palette template search navigates to /templates?focus=id',
+    ],
+  },
+  {
+    date: '2026-06',
     sprint: 'H',
     title: 'Visual polish pass',
     bullets: [

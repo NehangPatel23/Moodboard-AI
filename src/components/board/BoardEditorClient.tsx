@@ -29,7 +29,7 @@ import { useBoardCollaborationState } from '@/lib/realtime/use-board-collaborati
 import type { BlockedNavigation } from '@/lib/board-editor-navigation-guard';
 import { useBoardEditorNavigationGuard } from '@/lib/use-board-editor-navigation-guard';
 import { lockBodyScroll } from '@/lib/body-scroll-lock';
-import { subscribeEditorQuickAction } from '@/lib/editor-quick-actions';
+import { subscribeEditorQuickAction, type EditorQuickAction } from '@/lib/editor-quick-actions';
 import {
   DEFAULT_APP_SETTINGS,
   readAppSettings,
@@ -645,6 +645,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const commentsButtonRef = useRef<HTMLButtonElement>(null);
   const activityButtonRef = useRef<HTMLButtonElement>(null);
   const snapshotsButtonRef = useRef<HTMLButtonElement>(null);
+  const [aiActionRequest, setAiActionRequest] = useState<EditorQuickAction | null>(null);
 
   useEffect(() => {
     activeSectionIndexRef.current = activeSectionIndex;
@@ -718,6 +719,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     markCommentsRead,
     markActivityRead,
     markSnapshotsRead,
+    markSnapshotRead,
     setItemRead,
     hideItem,
     unhideItem,
@@ -811,6 +813,21 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
           return;
         }
         setShareOpen(true);
+        return;
+      }
+
+      if (detail.action === 'suggest-palette') {
+        setAiActionRequest('suggest-palette');
+        return;
+      }
+
+      if (detail.action === 'suggest-typography') {
+        setAiActionRequest('suggest-typography');
+        return;
+      }
+
+      if (detail.action === 'suggest-brand') {
+        setAiActionRequest('suggest-brand');
       }
     });
   }, [boardRole]);
@@ -873,6 +890,108 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     const scrollBehavior = settings.reduceMotionEnabled ? 'auto' : 'smooth';
     sectionTabsRef.current?.scrollIntoView({ behavior: scrollBehavior, block: 'start' });
   }, [activeSectionIndex, settings.reduceMotionEnabled]);
+
+  useEffect(() => {
+    if (
+      !aiActionRequest ||
+      !editorBoard ||
+      !canEditBoard ||
+      (aiActionRequest !== 'suggest-palette' &&
+        aiActionRequest !== 'suggest-typography' &&
+        aiActionRequest !== 'suggest-brand')
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    const board = editorBoard;
+
+    const applyDraftUpdate = (updater: (current: Board) => Board) => {
+      setDraft((current) => {
+        const base = current ?? cloneBoard(board);
+        setIsDirty(true);
+        setSaveStatus('Unsaved changes');
+        return updater(cloneBoard(base));
+      });
+    };
+
+    async function runAiAction() {
+      try {
+        if (aiActionRequest === 'suggest-palette') {
+          setPaletteLoading(true);
+          const result = await fetchPaletteSuggestions(board);
+          if (cancelled) return;
+          applyDraftUpdate((current) => ({ ...current, palette: result.palette }));
+          if (result.notice) {
+            showToast(result.notice, 'default');
+            return;
+          }
+          showToast(
+            result.source === 'gemini' ? 'Palette updated with Gemini.' : 'Demo palette applied.',
+            'success',
+          );
+          return;
+        }
+
+        if (aiActionRequest === 'suggest-typography') {
+          setTypographyLoading(true);
+          const result = await fetchTypographySuggestions(board);
+          if (cancelled) return;
+          applyDraftUpdate((current) => ({ ...current, typography: result.typography }));
+          if (result.notice) {
+            showToast(result.notice, 'default');
+            return;
+          }
+          showToast(
+            result.source === 'gemini' ? 'Typography updated with Gemini.' : 'Demo typography applied.',
+            'success',
+          );
+          return;
+        }
+
+        if (aiActionRequest === 'suggest-brand') {
+          setBrandLoading(true);
+          const result = await fetchBrandSuggestions(board);
+          if (cancelled) return;
+          applyDraftUpdate((current) => ({
+            ...current,
+            brandStrategy: {
+              positioning: result.positioning,
+              voice: result.voice,
+              messaging: result.messaging,
+            },
+          }));
+          if (result.notice) {
+            showToast(result.notice, 'default');
+            return;
+          }
+          showToast(
+            result.source === 'gemini'
+              ? 'Brand strategy updated. Save to keep it.'
+              : 'Demo brand strategy applied.',
+            'success',
+          );
+        }
+      } catch (error) {
+        if (cancelled) return;
+        const message = error instanceof Error ? error.message : 'AI suggestion failed';
+        showToast(message, 'destructive');
+      } finally {
+        if (!cancelled) {
+          setPaletteLoading(false);
+          setTypographyLoading(false);
+          setBrandLoading(false);
+          setAiActionRequest(null);
+        }
+      }
+    }
+
+    void runAiAction();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [aiActionRequest, canEditBoard, editorBoard]);
 
   if (isResolvingBoard) {
     return <BoardEditorSkeleton />;
@@ -2429,6 +2548,13 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
         onClose={() => setSnapshotsOpen(false)}
         onMarkAllRead={async () => {
           const ok = await markSnapshotsRead();
+          if (ok) {
+            void refreshCollaborationState();
+          }
+          return ok;
+        }}
+        onMarkSnapshotRead={async (snapshotId) => {
+          const ok = await markSnapshotRead(snapshotId);
           if (ok) {
             void refreshCollaborationState();
           }

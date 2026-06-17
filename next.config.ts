@@ -13,6 +13,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [{ source: '/explore', destination: '/discover', permanent: true }];
+  },
 };
 
 export default nextConfig;

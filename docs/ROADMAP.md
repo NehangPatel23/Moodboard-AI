@@ -6,7 +6,7 @@ Back to [README](../README.md) · Features: [FEATURES](FEATURES.md) · Deploy: [
 
 ## Current status
 
-Waves 1–3 and Sprints A–I are **complete**. The app is a deployed MVP with Supabase persistence, collaboration, AI generation, snapshots, visual export, developer handoff tokens, public creator profiles, a tokenized visual polish pass, and a public changelog. Next focus: Sprint I follow-ups or Wave 4 growth items.
+Waves 1–3 and Sprints A–J are **complete**. The app is a deployed MVP with Supabase persistence, collaboration, AI generation, snapshots, visual export, developer handoff tokens, public creator profiles, inspiration/help surfaces, and command palette AI actions. Next focus: Sprint K growth (marketplace, pricing, Stripe).
 
 ---
 
@@ -47,6 +47,10 @@ Waves 1–3 and Sprints A–I are **complete**. The app is a deployed MVP with S
 | 30 | Visual polish pass | Shared [`app-surface-styles.ts`](../src/components/shared/app-surface-styles.ts); tokenized landing, dashboard, discover, templates, settings; light-mode hierarchy improvements |
 | 31 | Changelog page | Public `/changelog` with shipped sprint entries |
 | 32 | Command palette templates | `⌘K` template search navigates to `/templates?focus=<id>` with scroll highlight |
+| 33 | Snapshot mark-seen | Preview + per-row eye mark advances `snapshots_last_read_at` watermark |
+| 34 | Help hub | `/help` FAQ accordion + in-app deep links |
+| 35 | Palette AI commands | `⌘K` suggest brand, palette, typography from editor |
+| 36 | Editor scrim tokens | Modal/panel scrims use `--overlay-scrim` |
 
 ### Sprint summary (completed)
 
@@ -61,14 +65,15 @@ Waves 1–3 and Sprints A–I are **complete**. The app is a deployed MVP with S
 | **G** | Collaboration polish | Section comments (`022`), unseen UX, snapshot unread (`023`), tooltips, view-mode headings |
 | **H** | Visual polish | App-wide surface tokens, shadow/CSS var cleanup, light-mode contrast |
 | **I** | Changelog + palette templates | `/changelog` page; command palette template navigation |
+| **J** | Product surfaces + polish | Snapshot mark-seen; `/help`; palette AI; editor scrim tokens |
 
 ---
 
 ## Next priorities
 
-1. **Sprint I-C** — per-snapshot mark-seen on preview (finishes unseen UX)
-2. **Sprint I-B** — `/explore` inspiration feed
-3. **Wave 4 growth** (defer until ready) — template marketplace, Stripe billing
+1. **Sprint K (Growth)** — `/marketplace`, `/pricing`, Stripe billing (deferred until last)
+2. Advanced reference APIs (Behance, Dribbble)
+3. Live cursors / character-level co-editing (long-term)
 
 ---
 
@@ -87,14 +92,13 @@ Waves 1–3 and Sprints A–I are **complete**. The app is a deployed MVP with S
 | Route | Purpose | Status |
 |-------|---------|--------|
 | `/discover` | Browse public boards | **Shipped** |
-| `/explore` | Creative inspiration feed | Planned |
-| `/marketplace` | Premium templates | Planned |
-| `/pricing` | Subscription plans | Planned |
-| `/help` | Documentation and support | Planned |
+| `/marketplace` | Premium templates | Planned (Sprint K) |
+| `/pricing` | Subscription plans | Planned (Sprint K) |
+| `/help` | Documentation and support | **Shipped** |
 | `/changelog` | Product updates | **Shipped** |
 | `/profile` | User profiles | **Shipped** |
 
----
+`/explore` was removed as a duplicate of Discover (same public boards); `/explore` permanently redirects to `/discover` for bookmarks.
 
 ## Success checks
 
@@ -111,12 +115,16 @@ Use these for manual QA after changes:
 - Profiles: Discover creator name links to `/profile/[id]`; profile shows workspace identity + shared boards only; private boards hidden
 - Command palette: `⌘K` finds boards; editor actions open Export / Snapshots / Share
 - Section comments: post from a tab → comment shows section badge; **View in section** switches tabs and highlights content (migration `022`)
-- Unseen UX: yellow dot on collaborator comments/activity/snapshots; own posts never unread; mark via read button or **View in section** / **Show on board** / **Mark all as seen** (migration `023` for snapshots)
+- Unseen UX: yellow dot on collaborator comments/activity/snapshots; own posts never unread; mark via read button, **Preview**, **View in section** / **Show on board** / **Mark all as seen** (migration `023` for snapshots)
 - View mode: one section heading per tab — no duplicate titles inside cards
 - Collapsed sidebar: nav icons stack vertically; expand control centered at bottom
 - Visual polish: landing, dashboard, discover, templates, and settings use shared surface tokens; light mode has clearer card hierarchy (`--surface-elevated` on white cards)
 - Changelog: `/changelog` lists shipped sprints; linked from landing header
+- Discover: `/discover` lists public boards with search; landing nav active pill on this route
+- `/explore` redirects permanently to `/discover`
 - Command palette templates: `⌘K` → template name → opens `/templates?focus=<id>` with scroll highlight
+- Help: `/help` FAQ sections + deep links; GitHub support link
+- Command palette AI: `⌘K` on editor board → suggest brand, palette, typography
 
 ---
 

@@ -29,6 +29,7 @@ type BoardSnapshotsPanelProps = {
   onClose: () => void;
   onRestored: (board: Board) => void;
   onMarkAllRead?: () => Promise<boolean>;
+  onMarkSnapshotRead?: (snapshotId: string) => Promise<boolean>;
   onSnapshotsChanged?: () => void;
   snapshotsLastReadAt?: string | null;
   currentUserId?: string | null;
@@ -43,6 +44,7 @@ export function BoardSnapshotsPanel({
   onClose,
   onRestored,
   onMarkAllRead,
+  onMarkSnapshotRead,
   onSnapshotsChanged,
   snapshotsLastReadAt = null,
   currentUserId = null,
@@ -248,7 +250,21 @@ export function BoardSnapshotsPanel({
     }
   };
 
-  const handlePreviewSnapshot = (snapshot: BoardSnapshot) => {
+  const handleMarkSnapshotRead = async (snapshot: BoardSnapshot) => {
+    if (!onMarkSnapshotRead || !isUnseenSnapshot(snapshot)) return;
+    const ok = await onMarkSnapshotRead(snapshot.id);
+    if (!ok) {
+      showToast('Failed to update read state.', 'destructive');
+    }
+  };
+
+  const handlePreviewSnapshot = async (snapshot: BoardSnapshot) => {
+    if (isUnseenSnapshot(snapshot) && onMarkSnapshotRead) {
+      const ok = await onMarkSnapshotRead(snapshot.id);
+      if (!ok) {
+        showToast('Failed to update read state.', 'destructive');
+      }
+    }
     setPreviewSnapshot(snapshot);
   };
 
@@ -373,21 +389,37 @@ export function BoardSnapshotsPanel({
                           {snapshot.actorName} · {formatDateTime(snapshot.createdAt)}
                         </p>
                       </div>
-                      {isOwner ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          disabled={deletingId === snapshot.id}
-                          onClick={() => setPendingDelete(snapshot)}
-                          tooltip="Delete snapshot"
-                          tooltipSide="bottom"
-                          className="h-8 w-8 shrink-0 rounded-full text-(--text-muted) hover:text-red-600"
-                          aria-label={`Delete snapshot ${snapshot.label?.trim() || 'Untitled snapshot'}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      ) : null}
+                      <div className="flex shrink-0 items-center gap-1">
+                        {unseen && onMarkSnapshotRead ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => void handleMarkSnapshotRead(snapshot)}
+                            tooltip="Mark as seen"
+                            tooltipSide="bottom"
+                            className="h-8 w-8 rounded-full text-(--text-muted) hover:text-(--text-strong)"
+                            aria-label={`Mark snapshot ${snapshot.label?.trim() || 'Untitled snapshot'} as seen`}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        ) : null}
+                        {isOwner ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            disabled={deletingId === snapshot.id}
+                            onClick={() => setPendingDelete(snapshot)}
+                            tooltip="Delete snapshot"
+                            tooltipSide="bottom"
+                            className="h-8 w-8 rounded-full text-(--text-muted) hover:text-red-600"
+                            aria-label={`Delete snapshot ${snapshot.label?.trim() || 'Untitled snapshot'}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        ) : null}
+                      </div>
                     </div>
                     {canEdit ? (
                       <div className="mt-3 flex flex-wrap gap-2">
@@ -395,7 +427,7 @@ export function BoardSnapshotsPanel({
                           type="button"
                           size="sm"
                           variant="outline"
-                          onClick={() => handlePreviewSnapshot(snapshot)}
+                          onClick={() => void handlePreviewSnapshot(snapshot)}
                           className="rounded-full"
                         >
                           <Eye className="h-4 w-4" />
