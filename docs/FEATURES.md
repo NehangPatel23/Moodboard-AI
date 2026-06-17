@@ -432,6 +432,22 @@ User-configurable toggle that gates the keyboard-driven slideshow on the share/v
 
 ---
 
+### Changelog Page
+
+Route:
+
+```txt
+/changelog
+```
+
+Implemented:
+
+- Public product updates page with shipped sprint entries ([`changelog-entries.ts`](../src/lib/changelog-entries.ts))
+- Linked from landing header alongside Discover and About
+- Uses shared [`app-surface-styles.ts`](../src/components/shared/app-surface-styles.ts)
+
+---
+
 ### Command Palette
 
 Implemented.
@@ -449,10 +465,10 @@ Current capabilities:
 - Board actions (duplicate, favorite toggle)
 - **Editor context** (on `/app/boards/[id]`) — jump to Overview, Palette, Typography, References, Notes
 - **Editor quick actions** — Export, Snapshots, Share/Collaborate
+- **Template navigation** — search by template name, tag, or `template`; opens `/templates?focus=<id>` with scroll highlight
 
 Planned capabilities:
 
 - AI commands
-- Template navigation from palette
 
 ---

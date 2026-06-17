@@ -6,7 +6,7 @@ Back to [README](../README.md) · Features: [FEATURES](FEATURES.md) · Deploy: [
 
 ## Current status
 
-Waves 1–3 and Sprints A–H are **complete**. The app is a deployed MVP with Supabase persistence, collaboration, AI generation, snapshots, visual export, developer handoff tokens, public creator profiles, and a tokenized app-wide visual polish pass. Next focus: Sprint I small product features or Wave 4 growth items.
+Waves 1–3 and Sprints A–I are **complete**. The app is a deployed MVP with Supabase persistence, collaboration, AI generation, snapshots, visual export, developer handoff tokens, public creator profiles, a tokenized visual polish pass, and a public changelog. Next focus: Sprint I follow-ups or Wave 4 growth items.
 
 ---
 
@@ -45,6 +45,8 @@ Waves 1–3 and Sprints A–H are **complete**. The app is a deployed MVP with S
 | 28 | Custom tooltips | Frosted [`tooltip.tsx`](../src/components/ui/tooltip.tsx) on icon-only controls; sidebar collapsed layout fix |
 | 29 | View mode polish | Deduplicated section headings in read-only / presentation mode |
 | 30 | Visual polish pass | Shared [`app-surface-styles.ts`](../src/components/shared/app-surface-styles.ts); tokenized landing, dashboard, discover, templates, settings; light-mode hierarchy improvements |
+| 31 | Changelog page | Public `/changelog` with shipped sprint entries |
+| 32 | Command palette templates | `⌘K` template search navigates to `/templates?focus=<id>` with scroll highlight |
 
 ### Sprint summary (completed)
 
@@ -58,13 +60,15 @@ Waves 1–3 and Sprints A–H are **complete**. The app is a deployed MVP with S
 | **F** | User profiles | Public profile page + Discover creator links |
 | **G** | Collaboration polish | Section comments (`022`), unseen UX, snapshot unread (`023`), tooltips, view-mode headings |
 | **H** | Visual polish | App-wide surface tokens, shadow/CSS var cleanup, light-mode contrast |
+| **I** | Changelog + palette templates | `/changelog` page; command palette template navigation |
 
 ---
 
 ## Next priorities
 
-1. **Sprint I (pick one)** — `/changelog` page, command palette template navigation, or `/explore` inspiration feed
-2. **Wave 4 growth** (defer until ready) — template marketplace, Stripe billing
+1. **Sprint I-C** — per-snapshot mark-seen on preview (finishes unseen UX)
+2. **Sprint I-B** — `/explore` inspiration feed
+3. **Wave 4 growth** (defer until ready) — template marketplace, Stripe billing
 
 ---
 
@@ -87,7 +91,7 @@ Waves 1–3 and Sprints A–H are **complete**. The app is a deployed MVP with S
 | `/marketplace` | Premium templates | Planned |
 | `/pricing` | Subscription plans | Planned |
 | `/help` | Documentation and support | Planned |
-| `/changelog` | Product updates | Planned |
+| `/changelog` | Product updates | **Shipped** |
 | `/profile` | User profiles | **Shipped** |
 
 ---
@@ -111,6 +115,8 @@ Use these for manual QA after changes:
 - View mode: one section heading per tab — no duplicate titles inside cards
 - Collapsed sidebar: nav icons stack vertically; expand control centered at bottom
 - Visual polish: landing, dashboard, discover, templates, and settings use shared surface tokens; light mode has clearer card hierarchy (`--surface-elevated` on white cards)
+- Changelog: `/changelog` lists shipped sprints; linked from landing header
+- Command palette templates: `⌘K` → template name → opens `/templates?focus=<id>` with scroll highlight
 
 ---
 

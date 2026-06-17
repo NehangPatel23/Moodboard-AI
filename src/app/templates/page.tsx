@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Check, ChevronDown, Search, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -187,18 +187,24 @@ function TemplateCard({
   onUseTemplate,
   isCreating,
   isActive,
+  isFocused,
 }: {
   template: BoardTemplate;
   onPreview: () => void;
   onUseTemplate: () => void;
   isCreating: boolean;
   isActive?: boolean;
+  isFocused?: boolean;
 }) {
   return (
     <Card
+      id={`template-${template.id}`}
       className={cn(
-        'relative flex h-full flex-col overflow-hidden rounded-[1.75rem] transition hover:-translate-y-0.5',
+        'relative flex h-full scroll-mt-28 flex-col overflow-hidden rounded-[1.75rem] transition hover:-translate-y-0.5',
         isActive && 'ring-2 ring-(--text-strong) ring-offset-2 ring-offset-(--background)',
+        isFocused &&
+          !isActive &&
+          'ring-2 ring-amber-400/80 ring-offset-2 ring-offset-(--background) shadow-[var(--shadow-elevated)]',
       )}
     >
       <div
@@ -521,9 +527,11 @@ function TagFilterDropdown({
   );
 }
 
-export default function TemplatesPage() {
+function TemplatesPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const redirectTimerRef = useRef<number | null>(null);
+  const focusHandledRef = useRef<string | null>(null);
   const templates = useMemo(() => getBoardTemplates(), []);
   const boards = useSyncExternalStore(subscribeBoards, loadBoards, loadBoards);
   useSyncExternalStore(subscribeTemplateMetadata, loadTemplateMetadata, loadTemplateMetadata);
@@ -536,10 +544,40 @@ export default function TemplatesPage() {
   const [enrichProgress, setEnrichProgress] = useState({ done: 0, total: 0 });
   const [creationStatus, setCreationStatus] = useState<string | null>(null);
   const [creatingTemplateId, setCreatingTemplateId] = useState<string | null>(null);
+  const [focusedTemplateId, setFocusedTemplateId] = useState<string | null>(null);
+
+  const focusParam = searchParams.get('focus');
 
   useEffect(() => {
     hydrateTemplateMetadataStore();
   }, []);
+
+  useEffect(() => {
+    if (!focusParam || focusHandledRef.current === focusParam) return;
+
+    const template = templates.find((item) => item.id === focusParam);
+    if (!template) return;
+
+    focusHandledRef.current = focusParam;
+
+    const frameId = window.requestAnimationFrame(() => {
+      setQuery('');
+      setActiveFilters([]);
+      setFocusedTemplateId(focusParam);
+
+      const element = document.getElementById(`template-${focusParam}`);
+      element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+
+    const clearHighlight = window.setTimeout(() => {
+      setFocusedTemplateId((current) => (current === focusParam ? null : current));
+    }, 3200);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.clearTimeout(clearHighlight);
+    };
+  }, [focusParam, templates]);
 
   useEffect(() => {
     return () => {
@@ -791,6 +829,7 @@ export default function TemplatesPage() {
                 onUseTemplate={() => void handleUseTemplate(activeCreatingTemplate)}
                 isCreating={isCreating}
                 isActive
+                isFocused={focusedTemplateId === activeCreatingTemplate.id}
               />
             </div>
             <TemplateGenerationPanel
@@ -810,6 +849,7 @@ export default function TemplatesPage() {
                 onUseTemplate={() => void handleUseTemplate(template)}
                 isCreating={isCreating}
                 isActive={creatingTemplateId === template.id}
+                isFocused={focusedTemplateId === template.id}
               />
             ))}
           </section>
@@ -851,5 +891,27 @@ export default function TemplatesPage() {
         />
       ) : null}
     </div>
+  );
+}
+
+function TemplatesPageFallback() {
+  return (
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
+      <div className="h-10 w-48 animate-pulse rounded-full bg-(--surface-subtle)" />
+      <div className="h-12 w-full max-w-xl animate-pulse rounded-2xl bg-(--surface-subtle)" />
+      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div key={index} className="h-72 animate-pulse rounded-3xl bg-(--surface-subtle)" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function TemplatesPage() {
+  return (
+    <Suspense fallback={<TemplatesPageFallback />}>
+      <TemplatesPageContent />
+    </Suspense>
   );
 }

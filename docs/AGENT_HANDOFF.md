@@ -69,6 +69,8 @@ flowchart TD
 - **Design system export** — CSS, Tailwind, tokens JSON, Markdown from Export modal; optional AI token naming via `POST /api/generate/design-system`.
 - **User profiles** — `/profile/[id]` public creator page; `GET /api/profile/[id]`; Discover creator name links.
 - **Design tokens** — [`board-editor-styles.ts`](../src/components/board/board-editor-styles.ts) (editor, presence, dashboard, modals); [`app-surface-styles.ts`](../src/components/shared/app-surface-styles.ts) (landing, discover, templates, settings shells).
+- **Changelog** — `/changelog` public product updates; entries in [`changelog-entries.ts`](../src/lib/changelog-entries.ts).
+- **Command palette templates** — `⌘K` template search → `/templates?focus=<id>` with scroll highlight.
 - **Tooltips** — [`tooltip.tsx`](../src/components/ui/tooltip.tsx) + `Button` `tooltip` prop. Use `triggerClassName="block w-full"` when wrapping full-width grid/card triggers; default wrapper is `inline-flex` (breaks vertical nav lists if parent is not `flex-col`).
 - **View mode** — [`BoardReadOnlyClient.tsx`](../src/components/board/BoardReadOnlyClient.tsx): one section heading per tab; no duplicate card titles.
 - Board editor loads from Supabase after hydration (no false "not found").
@@ -78,6 +80,6 @@ flowchart TD
 
 ## When resuming work
 
-Follow [ROADMAP](ROADMAP.md): optional landing/dashboard polish, then Wave 4 growth (marketplace, billing).
+Follow [ROADMAP](ROADMAP.md): Sprint I-C (per-snapshot mark-seen), Sprint I-B (`/explore`), then Wave 4 growth (marketplace, billing).
 
 Run migrations through **`023`** in production if not applied — see [DEPLOY](DEPLOY.md#step-5d--apply-latest-migrations-022023).

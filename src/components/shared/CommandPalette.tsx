@@ -11,6 +11,7 @@ import {
   Download,
   FileText,
   LayoutDashboard,
+  LayoutTemplate,
   Search,
   Settings2,
   Share2,
@@ -35,6 +36,7 @@ import {
 import { cn } from '@/lib/utils';
 import { guardedRouterPush } from '@/lib/board-editor-navigation-guard';
 import { dispatchEditorQuickAction } from '@/lib/editor-quick-actions';
+import { getBoardTemplates } from '@/lib/ai';
 
 type CommandItem = {
   id: string;
@@ -144,6 +146,36 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
         onSelect: () => guardedRouterPush(router, '/settings'),
       },
     ].filter((item) => matchesQuery(item, q));
+
+    const templates = getBoardTemplates();
+    const templateMatchesQuery =
+      !q ||
+      q.includes('template') ||
+      q.includes('starter') ||
+      q.includes('preset');
+
+    const templateItems: CommandItem[] = templates
+      .filter((template) => {
+        if (!q || templateMatchesQuery) return true;
+        const item: CommandItem = {
+          id: `template-${template.id}`,
+          title: template.name,
+          description: template.description,
+          keywords: [template.name, template.description, template.prompt, ...template.tags, template.mood ?? ''],
+          icon: null,
+          onSelect: () => undefined,
+        };
+        return matchesQuery(item, q);
+      })
+      .slice(0, q ? 8 : 5)
+      .map<CommandItem>((template) => ({
+        id: `template-${template.id}`,
+        title: `Open ${template.name} template`,
+        description: template.description,
+        keywords: [template.name, template.description, template.prompt, ...template.tags, 'template', 'starter'],
+        icon: <LayoutTemplate className="h-4 w-4" />,
+        onSelect: () => guardedRouterPush(router, `/templates?focus=${encodeURIComponent(template.id)}`),
+      }));
 
     const recentBoards = boards
       .slice()
@@ -273,6 +305,13 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
 
     if (navigateItems.length > 0) {
       output.push({ title: 'Navigate', items: navigateItems });
+    }
+
+    if (templateItems.length > 0) {
+      output.push({
+        title: q ? `Templates matching “${query.trim()}”` : 'Templates',
+        items: templateItems,
+      });
     }
 
     if (recentBoards.length > 0) {
