@@ -223,6 +223,15 @@ Overview, Palette, Typography, References, and Notes — jump via editor tabs or
 - **Suggest typography** — `POST /api/generate/typography`
 - **Suggest brand** — `POST /api/generate/brand` on Overview; persisted on board as `brandStrategy` (migration `021`)
 
+#### Save & auto-save
+
+- **Manual save** — **Save changes** opens an **Apply these changes?** confirmation modal; success shows a toast
+- **Auto-save** — debounced save after idle edits (default **8 seconds**); success and error toasts (**Changes auto-saved.** / **Auto-save failed.**)
+- Toolbar status: **Unsaved changes** | **Saving…** | **Saved** | **Save failed**; manual Save disabled while saving
+- Auto-save pauses when a collaboration conflict banner is showing (`pendingRemoteBoard`) or in replay/viewer mode
+- **Settings → Editor** — auto-save interval **Off** / **5s** / **8s** / **10s** (migration `025`)
+- Auto-save PATCH requests skip Activity panel entries; manual saves record full activity
+
 #### Actions
 
 Implemented:

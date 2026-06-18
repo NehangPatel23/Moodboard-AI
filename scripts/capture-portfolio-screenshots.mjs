@@ -56,6 +56,10 @@ async function main() {
 
   try {
     console.log('Public pages');
+    await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
+    await waitForAppReady(page);
+    await capture(page, 'landing.png');
+
     await page.goto(`${BASE_URL}/discover`, { waitUntil: 'domcontentloaded' });
     await waitForAppReady(page);
     await capture(page, 'discover.png');
@@ -69,6 +73,15 @@ async function main() {
 
     await page.goto(`${BASE_URL}/settings`, { waitUntil: 'domcontentloaded' });
     await waitForAppReady(page);
+    const editorSection = page.locator('#editor');
+    if (await editorSection.isVisible().catch(() => false)) {
+      await editorSection.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(400);
+    } else {
+      await page.getByRole('link', { name: /^Editor$/i }).click().catch(() => {});
+      await editorSection.scrollIntoViewIfNeeded().catch(() => {});
+      await page.waitForTimeout(400);
+    }
     await capture(page, 'settings.png');
 
     let editorUrl = `${BASE_URL}/app/boards/${DEMO_BOARD_ID}`;

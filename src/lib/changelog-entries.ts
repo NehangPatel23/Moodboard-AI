@@ -9,6 +9,35 @@ export type ChangelogEntry = {
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
     date: '2026-06',
+    sprint: 'P',
+    title: 'Landing polish + password reset hardening',
+    bullets: [
+      'Softer landing hero gradients and elevated feature cards for clearer light-mode hierarchy',
+      'Password reset callback supports token_hash recovery links in addition to PKCE code exchange',
+      'Clearer auth callback error copy for expired or cross-browser reset links',
+    ],
+  },
+  {
+    date: '2026-06',
+    sprint: 'O+',
+    title: 'Auto-save preferences',
+    bullets: [
+      'Settings Editor section: auto-save interval Off / 5s / 8s / 10s (migration 025)',
+      'Auto-save skips Activity panel noise; manual saves still record full activity',
+    ],
+  },
+  {
+    date: '2026-06',
+    sprint: 'O',
+    title: 'Board auto-save',
+    bullets: [
+      'Debounced auto-save in the board editor while manual Save changes + confirmation modal remain',
+      'Saving… status in toolbar; auto-save pauses during collaboration conflicts',
+      'Auto-save success and error toasts after the server confirms the save',
+    ],
+  },
+  {
+    date: '2026-06',
     sprint: 'M',
     title: 'Auth + portfolio surface',
     bullets: [

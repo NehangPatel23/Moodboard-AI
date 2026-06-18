@@ -60,6 +60,10 @@ Waves 1–3 and Sprints A–M are **complete**. The app is a deployed MVP with S
 | 43 | Portfolio metadata | Favicon, default OG image, per-route meta for Discover, share, profile |
 | 44 | Comments scrim | Comments panel uses `--overlay-scrim` like other modals |
 | 45 | Profile shell | Public `/profile/[id]` uses shared landing header via `profile/layout.tsx` |
+| 46 | Board auto-save | Debounced editor auto-save alongside manual Save changes + confirmation modal |
+| 47 | Auto-save settings | Configurable interval Off / 5s / 8s / 10s in Settings (migration `025`) |
+| 48 | Landing polish | Softer hero gradients; elevated feature cards for light-mode hierarchy |
+| 49 | Password reset hardening | `/auth/callback` handles `token_hash` recovery links + clearer error copy |
 
 ### Sprint summary (completed)
 
@@ -77,6 +81,10 @@ Waves 1–3 and Sprints A–M are **complete**. The app is a deployed MVP with S
 | **J** | Product surfaces + polish | Snapshot mark-seen; `/help`; palette AI; editor scrim tokens |
 | **L** | Discover + identity polish | Demo shared boards seed; mood dropdown; display name; avatar photo + crop (`024`); share/remix UX |
 | **M** | Auth + portfolio surface | Forgot password; favicon/OG meta; remove avatar photo; comments scrim |
+| **N** | Portfolio capture | README screenshots + prod smoke scripts |
+| **O** | Board auto-save | Debounced save + manual Save unchanged |
+| **O+** | Auto-save follow-ups | Settings interval; auto-save skips Activity noise |
+| **P** | Landing + auth reliability | Landing hierarchy polish; password reset callback hardening |
 
 ---
 
@@ -135,7 +143,9 @@ Use these for manual QA after changes:
 - Demo boards: `npm run db:seed-demo-boards` after `db:seed-demo` populates shared showcase boards on the demo account
 - Profiles: creator **display name** from `profiles.name` (not workspace name); Settings edits name via `PATCH /api/profile/me`
 - Avatars: custom photo upload + crop in Settings; X on avatar tile removes photo and reverts to emoji/initials; migration `024`
-- Auth: forgot password email flow → `/auth/callback` → update-password screen; email/password + demo only (no OAuth)
+- Auth: forgot password email flow → `/auth/callback` → update-password screen; email/password + demo only (no OAuth); callback supports PKCE `code` and `token_hash` recovery links
+- Board auto-save: edits auto-save after idle debounce (default 8s); **Changes auto-saved.** toast after server confirms; manual Save changes + confirmation modal unchanged; Settings → Editor interval Off / 5s / 8s / 10s (migration `025`)
+- Landing: softer hero gradients and elevated feature cards for light-mode hierarchy
 - Profile pages: `/profile/[id]` uses landing header shell; creator display name + shared boards grid
 - OG meta: default favicon + opengraph image; Discover, share, and profile routes set title/description (share uses board cover when available)
 - `/explore` redirects permanently to `/discover`

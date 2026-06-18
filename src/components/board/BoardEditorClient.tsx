@@ -20,7 +20,7 @@ import {
   getServerBoardStoreSnapshot,
   isBoardStoreResolving,
   subscribeBoards,
-  updateBoard,
+  persistBoardRemote,
 } from '@/lib/board-store';
 import { useBoardRealtime, type BoardPresenceUser } from '@/lib/realtime/use-board-realtime';
 import { useBoardComments } from '@/lib/realtime/use-board-comments';
@@ -28,6 +28,8 @@ import { useBoardActivity } from '@/lib/realtime/use-board-activity';
 import { useBoardCollaborationState } from '@/lib/realtime/use-board-collaboration-state';
 import type { BlockedNavigation } from '@/lib/board-editor-navigation-guard';
 import { useBoardEditorNavigationGuard } from '@/lib/use-board-editor-navigation-guard';
+import { useBoardAutoSave } from '@/lib/use-board-auto-save';
+import { autosaveIntervalToMs } from '@/lib/autosave-interval';
 import { lockBodyScroll } from '@/lib/body-scroll-lock';
 import { subscribeEditorQuickAction, type EditorQuickAction } from '@/lib/editor-quick-actions';
 import {
@@ -624,6 +626,10 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const [unsavedChangesOpen, setUnsavedChangesOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState('Saved');
   const [isDirty, setIsDirty] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [draftRevision, setDraftRevision] = useState(0);
+  const editorBoardRef = useRef<Board | null>(null);
+  const isSavingRef = useRef(false);
   const [editingReferenceIndex, setEditingReferenceIndex] = useState<number | null>(null);
   const [isNewReference, setIsNewReference] = useState(false);
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
@@ -993,6 +999,85 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     };
   }, [aiActionRequest, canEditBoard, editorBoard]);
 
+  useEffect(() => {
+    editorBoardRef.current = editorBoard;
+  }, [editorBoard]);
+
+  const isReplayMode = replayEvent !== null;
+
+  const markDirty = useCallback(() => {
+    setDraftRevision((value) => value + 1);
+    setIsDirty(true);
+    setSaveStatus((current) => (current === 'Saving…' ? current : 'Unsaved changes'));
+  }, []);
+
+  const updateDraft = useCallback(
+    (updater: (current: Board) => Board) => {
+      if (!canEditBoard) return;
+      setDraft((current) => {
+        const base = current ?? (savedBoard ? cloneBoard(savedBoard) : null);
+        if (!base) return null;
+        markDirty();
+        return updater(cloneBoard(base));
+      });
+    },
+    [canEditBoard, markDirty, savedBoard],
+  );
+
+  const persistDraft = useCallback(
+    async (options?: { showToast?: boolean; source?: 'manual' | 'auto' }) => {
+      const board = editorBoardRef.current;
+      if (!board || isSavingRef.current) return false;
+
+      isSavingRef.current = true;
+      setIsSaving(true);
+      setSaveStatus('Saving…');
+
+      const saverName = auth.user?.name ?? settings.workspaceName;
+      const updated = await persistBoardRemote(boardId, cloneBoard(board), {
+        saveSource: options?.source ?? 'manual',
+      });
+
+      isSavingRef.current = false;
+      setIsSaving(false);
+
+      if (!updated) {
+        setSaveStatus('Save failed');
+        if (options?.source === 'auto') {
+          showToast('Auto-save failed.', 'destructive');
+        } else if (options?.showToast) {
+          showToast('Save failed.', 'destructive');
+        }
+        return false;
+      }
+
+      setDraft({ ...updated, lastSavedByName: saverName });
+      setIsDirty(false);
+      setSaveStatus('Saved');
+      if (options?.source === 'auto') {
+        showToast('Changes auto-saved.', 'success');
+      } else if (options?.showToast) {
+        showToast('Changes saved.', 'success');
+      }
+      return true;
+    },
+    [auth.user?.name, boardId, settings.workspaceName],
+  );
+
+  const handleAutoSave = useCallback(() => {
+    if (!isDirty || pendingRemoteBoard) return;
+    void persistDraft({ source: 'auto' });
+  }, [isDirty, pendingRemoteBoard, persistDraft]);
+
+  useBoardAutoSave({
+    enabled: canEditBoard && !isReplayMode && !pendingRemoteBoard && Boolean(editorBoard),
+    isDirty,
+    debounceMs: autosaveIntervalToMs(settings.autosaveInterval),
+    isSaving,
+    revision: String(draftRevision),
+    onAutoSave: handleAutoSave,
+  });
+
   if (isResolvingBoard) {
     return <BoardEditorSkeleton />;
   }
@@ -1030,13 +1115,12 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const isViewer = resolvedBoardRole === 'viewer';
   const canManageMembers = isOwner;
   const readOnly = !canEditBoard;
-  const isReplayMode = replayEvent !== null;
   const effectiveReadOnly = readOnly || isReplayMode;
   const canMutateBoard = canEditBoard && !isReplayMode;
   const replayChanges = replayEvent?.changes ?? [];
   const toneText = editorBoard.tone.join(', ');
   const tagsText = editorBoard.tags.join(', ');
-  const dirtyStatus = isDirty ? 'Unsaved changes' : saveStatus;
+  const dirtyStatus = isSaving ? 'Saving…' : isDirty ? 'Unsaved changes' : saveStatus;
   const currentReference =
     editingReferenceIndex !== null ? editorBoard.references[editingReferenceIndex] ?? null : null;
   const activeSection: EditorSectionName = EDITOR_SECTION_ORDER[activeSectionIndex];
@@ -1048,23 +1132,6 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     setActiveSectionIndex(index);
     setSectionHighlight(section);
     window.setTimeout(() => setSectionHighlight(null), 2000);
-  };
-
-  const markDirty = () => {
-    if (!isDirty) {
-      setIsDirty(true);
-      setSaveStatus('Unsaved changes');
-    }
-  };
-
-  const updateDraft = (updater: (current: Board) => Board) => {
-    if (!canEditBoard) return;
-    setDraft((current) => {
-      const base = current ?? (savedBoard ? cloneBoard(savedBoard) : null);
-      if (!base) return null;
-      markDirty();
-      return updater(cloneBoard(base));
-    });
   };
 
   const performBoardAction = (action: BoardAction) => {
@@ -1139,37 +1206,20 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     setSaveOpen(true);
   };
 
-  const confirmSave = () => {
-    const saverName = auth.user?.name ?? settings.workspaceName;
-    const updated = updateBoard(boardId, () => cloneBoard(editorBoard));
-    if (!updated) {
-      showToast('Save failed.', 'destructive');
-      return;
+  const confirmSave = async () => {
+    const saved = await persistDraft({ showToast: true, source: 'manual' });
+    if (saved) {
+      setSaveOpen(false);
     }
-
-    setDraft({ ...updated, lastSavedByName: saverName });
-    setIsDirty(false);
-    setSaveStatus('Saved');
-    setSaveOpen(false);
-    showToast('Changes saved.', 'success');
   };
 
-  const handleSaveAndContinue = () => {
+  const handleSaveAndContinue = async () => {
     const pending = pendingContinue;
-    const saverName = auth.user?.name ?? settings.workspaceName;
+    const saved = await persistDraft({ showToast: true, source: 'manual' });
+    if (!saved) return;
 
-    const updated = updateBoard(boardId, () => cloneBoard(editorBoard));
-    if (!updated) {
-      showToast('Save failed.', 'destructive');
-      return;
-    }
-
-    setDraft({ ...updated, lastSavedByName: saverName });
-    setIsDirty(false);
-    setSaveStatus('Saved');
     setUnsavedChangesOpen(false);
     setPendingContinue(null);
-    showToast('Changes saved.', 'success');
 
     if (pending) {
       proceedAfterSave(pending);
@@ -1498,6 +1548,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
           isFavorite={editorBoard.isFavorite}
           dirtyStatus={dirtyStatus}
           isDirty={isDirty}
+          isSaving={isSaving}
           unreadCommentsCount={unreadCommentsCount}
           unreadActivityCount={unreadActivityCount}
           unreadSnapshotsCount={unreadSnapshotsCount}

@@ -48,15 +48,18 @@ export function Hero() {
           </motion.h1>
 
           <motion.p
-            className="max-w-xl text-base leading-7 text-(--text-muted) md:text-lg"
+            className="max-w-xl text-base leading-7 md:text-lg"
             initial={reduceMotion ? false : { opacity: 0, y: 14 }}
             whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.35 }}
             transition={{ duration: 0.75, delay: 0.14, ease: [0.22, 1, 0.36, 1] }}
           >
-            MoodBoard AI helps designers, founders, and creators transform vague prompts into
-            palettes, typography, references, and clear creative direction — with collaboration
-            and export built in.
+            <span className="text-(--text-strong)">MoodBoard AI</span>{' '}
+            <span className="text-(--text-muted)">
+              helps designers, founders, and creators transform vague prompts into palettes,
+              typography, references, and clear creative direction — with collaboration and export
+              built in.
+            </span>
           </motion.p>
 
           <motion.div

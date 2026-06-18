@@ -10,18 +10,41 @@ function sanitizeNext(value: string | null): string {
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
+  const tokenHash = searchParams.get('token_hash');
+  const type = searchParams.get('type');
   const next = sanitizeNext(searchParams.get('next'));
 
-  if (!code) {
-    return NextResponse.redirect(`${origin}/sign-in?error=auth_callback`);
-  }
-
   const supabase = await createClient();
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
 
-  if (error) {
-    return NextResponse.redirect(`${origin}/sign-in?error=auth_callback`);
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) {
+      return NextResponse.redirect(`${origin}/sign-in?error=auth_callback`);
+    }
+    return NextResponse.redirect(`${origin}${next}`);
   }
 
-  return NextResponse.redirect(`${origin}${next}`);
+  if (tokenHash && type === 'recovery') {
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: 'recovery',
+    });
+    if (error) {
+      return NextResponse.redirect(`${origin}/sign-in?error=auth_callback`);
+    }
+    return NextResponse.redirect(`${origin}/sign-in?mode=update-password`);
+  }
+
+  if (tokenHash && type === 'email') {
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: 'email',
+    });
+    if (error) {
+      return NextResponse.redirect(`${origin}/sign-in?error=auth_callback`);
+    }
+    return NextResponse.redirect(`${origin}${next}`);
+  }
+
+  return NextResponse.redirect(`${origin}/sign-in?error=auth_callback`);
 }

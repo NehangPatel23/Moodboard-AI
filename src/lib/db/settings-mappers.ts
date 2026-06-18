@@ -1,4 +1,8 @@
 import {
+  DEFAULT_AUTOSAVE_INTERVAL,
+  normalizeAutosaveInterval,
+} from '@/lib/autosave-interval';
+import {
   DEFAULT_APP_SETTINGS,
   type AppSettings,
   type ThemeMode,
@@ -31,6 +35,7 @@ export type UserSettingsRow = {
   collaboration_retention?: unknown;
   snapshot_max_per_board?: number;
   snapshot_auto_prune?: boolean;
+  autosave_interval?: string;
   updated_at: string;
 };
 
@@ -74,6 +79,9 @@ export function rowToSettings(row: UserSettingsRow): AppSettings {
       typeof row.snapshot_auto_prune === 'boolean'
         ? row.snapshot_auto_prune
         : DEFAULT_APP_SETTINGS.snapshotAutoPrune,
+    autosaveInterval: normalizeAutosaveInterval(
+      row.autosave_interval ?? DEFAULT_AUTOSAVE_INTERVAL,
+    ),
   };
 }
 
@@ -98,6 +106,7 @@ export function settingsToRow(settings: AppSettings, userId: string): Omit<UserS
     collaboration_retention: collaborationRetentionToJson(settings),
     snapshot_max_per_board: settings.snapshotMaxPerBoard,
     snapshot_auto_prune: settings.snapshotAutoPrune,
+    autosave_interval: settings.autosaveInterval,
   };
 }
 

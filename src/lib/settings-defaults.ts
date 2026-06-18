@@ -1,4 +1,6 @@
 import type { BoardVisibility } from '@/types/board';
+import type { AutosaveInterval } from '@/lib/autosave-interval';
+import { DEFAULT_AUTOSAVE_INTERVAL } from '@/lib/autosave-interval';
 import { NEVER_RETENTION, type RetentionDuration } from '@/lib/retention-duration';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
@@ -27,6 +29,7 @@ export type AppSettings = {
   purgeActivityAfter: RetentionDuration;
   snapshotMaxPerBoard: number;
   snapshotAutoPrune: boolean;
+  autosaveInterval: AutosaveInterval;
 };
 
 export const SNAPSHOT_LIMIT_OPTIONS = [
@@ -117,4 +120,5 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   purgeActivityAfter: NEVER_RETENTION,
   snapshotMaxPerBoard: 25,
   snapshotAutoPrune: true,
+  autosaveInterval: DEFAULT_AUTOSAVE_INTERVAL,
 };

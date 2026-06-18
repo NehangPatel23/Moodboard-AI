@@ -20,9 +20,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  let body: { board?: Board };
+  let body: { board?: Board; saveSource?: 'manual' | 'auto' };
   try {
-    body = (await request.json()) as { board?: Board };
+    body = (await request.json()) as { board?: Board; saveSource?: 'manual' | 'auto' };
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
@@ -30,6 +30,8 @@ export async function PATCH(request: Request, context: RouteContext) {
   if (!body.board || body.board.id !== id) {
     return NextResponse.json({ error: 'board id mismatch' }, { status: 400 });
   }
+
+  const saveSource = body.saveSource === 'auto' ? 'auto' : 'manual';
 
   const access = await getBoardAccess(user.id, id);
   if (!access.canEdit || !access.ownerId) {
@@ -88,14 +90,16 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   try {
-    const changes = previousBoard ? diffBoards(previousBoard, body.board) : [];
-    await recordBoardActivity(admin, {
-      boardId: id,
-      userId: user.id,
-      actorName: savedByName,
-      changes,
-      summary: summarizeBoardChanges(changes),
-    });
+    if (saveSource === 'manual') {
+      const changes = previousBoard ? diffBoards(previousBoard, body.board) : [];
+      await recordBoardActivity(admin, {
+        boardId: id,
+        userId: user.id,
+        actorName: savedByName,
+        changes,
+        summary: summarizeBoardChanges(changes),
+      });
+    }
   } catch {
     // Activity logging is best-effort; board save already succeeded.
   }

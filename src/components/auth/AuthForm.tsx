@@ -163,7 +163,7 @@ export function AuthForm() {
   const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
   const [error, setError] = useState<string | null>(
     searchParams.get('error') === 'auth_callback'
-      ? 'Sign-in link expired or is invalid. Please try again.'
+      ? 'Sign-in or reset link expired or is invalid. Request a fresh link and open it in the same browser you used to sign in.'
       : null,
   );
   const [submitting, setSubmitting] = useState(false);

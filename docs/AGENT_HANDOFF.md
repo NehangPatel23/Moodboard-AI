@@ -79,7 +79,9 @@ flowchart TD
 - **Profile photos** — upload + crop in Settings; migration `024`; red **X** on the avatar tile calls `DELETE /api/profile/avatar/upload` to remove the photo.
 - **Profile layout** — [`src/app/profile/layout.tsx`](../src/app/profile/layout.tsx) wraps public profiles with [`LandingHeader`](../src/components/landing/LandingHeader.tsx) (same shell as landing/discover).
 - **Share / remix** — creator link on share page; Discover nav active on `/share` and `/profile`; prompt pre-fill on `/app/new?prompt=`.
-- **Auth** — email/password sign-in and sign-up, demo account, and **forgot password** (`requestPasswordReset` → email → [`/auth/callback`](../src/app/auth/callback/route.ts) → `/sign-in?mode=update-password`). OAuth (Google/GitHub) is **not implemented** — deferred.
+- **Auth** — email/password sign-in and sign-up, demo account, and **forgot password** (`requestPasswordReset` → email → [`/auth/callback`](../src/app/auth/callback/route.ts) → `/sign-in?mode=update-password`). Callback handles PKCE `code` and `token_hash` recovery links. OAuth (Google/GitHub) is **not implemented** — deferred.
+- **Board auto-save** — [`use-board-auto-save.ts`](../src/lib/use-board-auto-save.ts) debounces PATCH saves; manual Save + confirmation modal unchanged ([`BoardEditorClient.tsx`](../src/components/board/BoardEditorClient.tsx)). Interval in Settings (migration `025`); auto saves omit Activity noise via `saveSource: 'auto'`. Success toast **Changes auto-saved.** fires only after the API confirms.
+- **Landing polish** — softer hero gradients and `--surface-elevated` feature cards in [`app-surface-styles.ts`](../src/components/shared/app-surface-styles.ts).
 - **Portfolio metadata** — favicon ([`public/icon.svg`](../public/icon.svg) via [`AppIcon`](../src/components/shared/AppIcon.tsx)), default OG image ([`opengraph-image.tsx`](../src/app/opengraph-image.tsx)), route meta for Discover/share/profile ([`site-metadata.ts`](../src/lib/site-metadata.ts)).
 - **Comments scrim** — panel backdrop uses `--overlay-scrim` token.
 - **Demo boards seed** — `npm run db:seed-demo-boards` (after `db:seed-demo`) populates shared showcase boards.
@@ -94,4 +96,4 @@ flowchart TD
 
 Follow [ROADMAP](ROADMAP.md): advanced reference APIs and long-term co-editing polish. Marketplace/pricing/Stripe are **parked**.
 
-Run migrations through **`024`** in production if not applied — see [DEPLOY](DEPLOY.md#step-5e--apply-latest-migration-024) and migration `024_avatar_image.sql`.
+Run migrations through **`025`** in production if not applied — see [DEPLOY](DEPLOY.md#step-5f--apply-latest-migration-025) and migrations `024`–`025`.

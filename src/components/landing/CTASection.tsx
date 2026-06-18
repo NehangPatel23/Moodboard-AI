@@ -6,6 +6,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useGatedHref } from '@/components/auth/use-gated-href';
 import {
   appDisplayHeadingClass,
+  appElevatedCardClass,
   appGlassPanelClass,
   appHeroGradientClass,
   appHeroSectionClass,
@@ -36,7 +37,7 @@ function DecorativeOrbitVisual() {
 
   return (
     <motion.div
-      className="relative min-h-82.5 overflow-hidden rounded-[2rem] border border-(--border) bg-(--surface)/70 backdrop-blur-sm lg:min-h-95"
+      className={`relative min-h-82.5 overflow-hidden lg:min-h-95 ${appElevatedCardClass}`}
       aria-hidden="true"
       initial={reduceMotion ? false : { opacity: 0, scale: 0.98, x: 18 }}
       whileInView={reduceMotion ? undefined : { opacity: 1, scale: 1, x: 0 }}

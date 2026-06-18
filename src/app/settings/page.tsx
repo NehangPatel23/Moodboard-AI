@@ -61,6 +61,10 @@ import {
 } from '@/lib/retention-duration';
 import type { Board, BoardVisibility } from '@/types/board';
 import { SNAPSHOT_LIMIT_OPTIONS } from '@/lib/settings-defaults';
+import {
+  AUTOSAVE_INTERVAL_OPTIONS,
+  type AutosaveInterval,
+} from '@/lib/autosave-interval';
 import { Monitor, Moon, SunMedium } from 'lucide-react';
 
 type SettingsNavItem = {
@@ -303,6 +307,39 @@ function SnapshotLimitSelect({
         className="mt-3 h-11 w-full rounded-2xl border border-(--border) bg-(--surface-elevated) px-4 text-sm text-(--text) outline-none focus:ring-2 focus:ring-(--ring) sm:max-w-xs"
       >
         {SNAPSHOT_LIMIT_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function AutosaveIntervalSelect({
+  label,
+  description,
+  value,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  value: AutosaveInterval;
+  onChange: (value: AutosaveInterval) => void;
+}) {
+  return (
+    <div className="rounded-3xl border border-(--border) bg-(--surface) p-4">
+      <div className="space-y-1">
+        <p className="text-sm font-medium text-(--text-strong)">{label}</p>
+        <p className="text-sm leading-6 text-(--text-muted)">{description}</p>
+      </div>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value as AutosaveInterval)}
+        aria-label={label}
+        className="mt-3 h-11 w-full rounded-2xl border border-(--border) bg-(--surface-elevated) px-4 text-sm text-(--text) outline-none focus:ring-2 focus:ring-(--ring) sm:max-w-xs"
+      >
+        {AUTOSAVE_INTERVAL_OPTIONS.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>
@@ -1085,6 +1122,7 @@ export default function SettingsPage() {
   const sections: SettingsNavItem[] = [
     { href: '#profile', label: 'Profile', description: 'Workspace name and avatar.' },
     { href: '#workspace', label: 'Workspace', description: 'Default behavior and sharing.' },
+    { href: '#editor', label: 'Editor', description: 'Board editing preferences.' },
     { href: '#collaboration', label: 'Collaboration', description: 'Comments, activity, and cleanup.' },
     { href: '#accessibility', label: 'Accessibility', description: 'Motion, shortcuts, and focus.' },
     { href: '#appearance', label: 'Appearance', description: 'Light, dark, or system theme.' },
@@ -1350,6 +1388,20 @@ export default function SettingsPage() {
                 />
               </div>
             </div>
+          </SettingsSection>
+
+          <SettingsSection
+            id="editor"
+            eyebrow="Editor"
+            title="Board editing"
+            description="Control how boards save while you work in the editor."
+          >
+            <AutosaveIntervalSelect
+              label="Auto-save interval"
+              description="Automatically save board changes after you pause editing. Manual Save changes is always available."
+              value={settings.autosaveInterval}
+              onChange={(value) => updateSetting('autosaveInterval', value)}
+            />
           </SettingsSection>
 
           <SettingsSection

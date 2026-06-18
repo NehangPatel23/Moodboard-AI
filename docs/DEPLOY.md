@@ -22,7 +22,7 @@ flowchart LR
   end
 
   subgraph supabase ["Supabase production"]
-    mig["Run migrations 001–024"]
+    mig["Run migrations 001–025"]
     urls["Auth URL config + redirect URLs"]
     rt["Realtime + RLS policies"]
   end
@@ -183,6 +183,24 @@ where table_schema = 'public'
 
 Expected: one row. Confirm **Storage** includes the `avatar-uploads` bucket. Re-deploy Vercel after applying if the app was already live.
 
+## Step 5f — Apply latest migration (025)
+
+If production was deployed before board auto-save settings shipped, run this in the **production** Supabase SQL Editor:
+
+1. [`supabase/migrations/025_autosave_interval.sql`](../supabase/migrations/025_autosave_interval.sql)
+
+Verify column exists:
+
+```sql
+select column_name
+from information_schema.columns
+where table_schema = 'public'
+  and table_name = 'user_settings'
+  and column_name = 'autosave_interval';
+```
+
+Expected: one row. Re-deploy Vercel after applying if the app was already live.
+
 > **Presence:** By default the app uses a public Realtime presence channel so collaborators show up without extra setup. If you disable **Allow public access** under Supabase **Project Settings → Realtime**, run migration `016` and set `NEXT_PUBLIC_SUPABASE_REALTIME_PRIVATE=true` in Vercel.
 
 > `alter publication supabase_realtime add table` is not idempotent. If `006` was partially applied, check **Database → Publications → supabase_realtime** before re-running.
@@ -220,6 +238,8 @@ Confirm **Production** env vars on Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUB
 | Owner comment/activity delete | Trash visible only for owners; non-owners use Hide; app confirmation modal |
 | Settings → Collaboration | Hide/purge retention with minutes/hours/days/weeks (migration 018) |
 | Settings → Collaboration → Snapshots | Max snapshots per board + auto-prune toggle (migration 020) |
+| Settings → Editor | Auto-save interval Off / 5s / 8s / 10s (migration 025) |
+| Board editor | Edits auto-save after idle debounce; manual Save changes + confirmation modal unchanged |
 | Board editor → Overview → **Suggest brand** | Strategy block appears; Save persists; refresh keeps content (migration 021) |
 | Board editor → **Snapshots** with cap = 10, auto-prune on | Saving 11th snapshot prunes oldest; panel shows `X of 10` |
 | Two browsers — clean draft + remote save | Browser B shows toast (not conflict banner) |

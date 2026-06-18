@@ -62,10 +62,11 @@ Portfolio captures from the [live demo](https://moodboard-ai-omega.vercel.app):
 
 | Surface | Preview |
 |---------|---------|
+| **Landing** — hero, capabilities, example board preview | ![Landing page](docs/screenshots/landing.png) |
 | **Discover** — mood dropdown, featured row, creator profiles | ![Discover browse](docs/screenshots/discover.png) |
 | **Board editor** — tabbed sections, palette, references | ![Board editor](docs/screenshots/board-editor.png) |
 | **Share page** — view-only board, remix CTA, creator attribution | ![Share page](docs/screenshots/share.png) |
-| **Settings** — display name, avatar photo, workspace identity | ![Settings](docs/screenshots/settings.png) |
+| **Settings** — display name, avatar, Editor auto-save interval | ![Settings](docs/screenshots/settings.png) |
 | **Sign-in** — email/password, forgot password, demo account | ![Sign in](docs/screenshots/sign-in.png) |
 
 **Try the demo:** sign in with `admin@moodboard.ai` / `moodboard123`, or browse Discover without an account. Run `npm run db:seed-demo && npm run db:seed-demo-boards` locally to populate showcase boards.

@@ -39,6 +39,7 @@ type BoardEditorToolbarProps = {
   isFavorite: boolean;
   dirtyStatus: string;
   isDirty: boolean;
+  isSaving?: boolean;
   unreadCommentsCount: number;
   unreadActivityCount: number;
   unreadSnapshotsCount: number;
@@ -174,6 +175,7 @@ export function BoardEditorToolbar({
   isFavorite,
   dirtyStatus,
   isDirty,
+  isSaving = false,
   unreadCommentsCount,
   unreadActivityCount,
   unreadSnapshotsCount,
@@ -409,8 +411,8 @@ export function BoardEditorToolbar({
             <Button
               type="button"
               onClick={onSave}
-              disabled={!isDirty}
-              tooltip={isDirty ? 'Save your changes to this board' : 'All changes saved'}
+              disabled={!isDirty || isSaving}
+              tooltip={isSaving ? 'Saving changes…' : isDirty ? 'Save your changes to this board' : 'All changes saved'}
               tooltipSide="bottom"
               tooltipDelayMs={TOOLTIP_DELAY_SUPPLEMENTARY}
               className={cn(

@@ -128,7 +128,13 @@ Never commit `.env.local` or expose the `service_role` key in client code.
    | `https://your-app.vercel.app/auth/callback` | Password-reset callback (prod) |
    | `https://your-app.vercel.app/**` | Wildcard for prod deep links |
 
-The app exchanges auth codes at [`/auth/callback`](../src/app/auth/callback/route.ts), then redirects to `/app` or `/sign-in?mode=update-password` after a reset email link.
+The app handles auth at [`/auth/callback`](../src/app/auth/callback/route.ts):
+
+- PKCE **`code`** → session exchange → redirect to `/app` (or `next`)
+- **`token_hash`** + **`type=recovery`** → verify OTP → `/sign-in?mode=update-password`
+- **`token_hash`** + **`type=email`** → verify OTP → redirect to `/app` (or `next`)
+
+Reset links must use the same browser when Supabase sends a PKCE `code`; `token_hash` links work across browsers when the email template includes them.
 
 ### Password reset emails
 
@@ -180,7 +186,7 @@ Open [http://localhost:3000](http://localhost:3000):
 
 **Sign-up asks for email confirmation** — Disable confirm email (Step 4).
 
-**Password reset fails or link expired** — Confirm Site URL and `http://localhost:3000/auth/callback` (or production `/auth/callback`) are in Supabase redirect URLs. Use a fresh reset email in the same browser.
+**Password reset fails or link expired** — Confirm Site URL and `http://localhost:3000/auth/callback` (or production `/auth/callback`) are in Supabase redirect URLs. Use a fresh reset email. If the link was opened in a different browser than the one that requested reset, try again in the same browser or ensure the email template uses `token_hash` recovery links (handled by the callback). See [DEPLOY](DEPLOY.md) troubleshooting.
 
 **SQL “relation already exists”** — Migration already ran; skip unless resetting the database.
 

@@ -33,7 +33,7 @@ export const appHeroSectionClass =
   'relative overflow-hidden rounded-[2.5rem] border border-(--border) bg-(--surface-elevated) p-6 shadow-[var(--shadow-card)] md:p-10';
 
 export const appFeatureCardClass =
-  'rounded-[1.75rem] border border-(--border) bg-(--surface) p-5 shadow-[var(--shadow-card)] transition duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-elevated)]';
+  'rounded-[1.75rem] border border-(--border) bg-(--surface-elevated) p-5 shadow-[var(--shadow-card)] transition duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-elevated)]';
 
 export const appGlassPanelClass =
   'rounded-[1.75rem] border border-(--border) bg-(--surface)! shadow-[var(--shadow-card)] backdrop-blur-sm';
@@ -80,4 +80,4 @@ export const appDisplayHeadingClass =
   '[font-family:var(--font-display),serif] tracking-[-0.04em] text-(--text-strong)';
 
 export const appHeroGradientClass =
-  'pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_0%_0%,color-mix(in_srgb,var(--accent)_35%,transparent),transparent_55%),radial-gradient(90%_70%_at_100%_0%,color-mix(in_srgb,var(--ring)_40%,transparent),transparent_50%),radial-gradient(80%_60%_at_50%_100%,color-mix(in_srgb,var(--accent-strong)_30%,transparent),transparent_55%)]';
+  'pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_0%_0%,color-mix(in_srgb,var(--accent)_22%,transparent),transparent_58%),radial-gradient(90%_70%_at_100%_0%,color-mix(in_srgb,var(--ring)_24%,transparent),transparent_52%),radial-gradient(80%_60%_at_50%_100%,color-mix(in_srgb,var(--accent-strong)_18%,transparent),transparent_58%)]';

@@ -31,7 +31,7 @@ export function FeatureGrid() {
 
               <div className="flex flex-col gap-4 p-5">
                 <div
-                  className={`flex h-11 w-11 items-center justify-center rounded-2xl border border-(--border) ${feature.iconTone}`}
+                  className={`flex h-11 w-11 items-center justify-center rounded-2xl border border-(--border) bg-(--surface-soft) ${feature.iconTone}`}
                 >
                   <Icon className="h-5 w-5" aria-hidden="true" />
                 </div>

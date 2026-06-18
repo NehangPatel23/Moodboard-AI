@@ -261,7 +261,17 @@ export function appendBoard(board: Board): Board {
   return sanitizedBoard;
 }
 
-export function updateBoard(boardId: string, updater: (board: Board) => Board): Board | null {
+export type BoardSaveSource = 'manual' | 'auto';
+
+export type BoardUpdateOptions = {
+  saveSource?: BoardSaveSource;
+};
+
+export function updateBoard(
+  boardId: string,
+  updater: (board: Board) => Board,
+  options?: BoardUpdateOptions,
+): Board | null {
   const boards = loadBoards();
   const index = boards.findIndex((board) => board.id === boardId);
   if (index === -1) return null;
@@ -279,7 +289,10 @@ export function updateBoard(boardId: string, updater: (board: Board) => Board): 
 
   void apiFetch<{ board: Board }>(`/api/boards/${boardId}`, {
     method: 'PATCH',
-    body: JSON.stringify({ board: updated }),
+    body: JSON.stringify({
+      board: updated,
+      saveSource: options?.saveSource ?? 'manual',
+    }),
   })
     .then((data) => {
       if (!data?.board) return;
@@ -301,6 +314,61 @@ export function updateBoard(boardId: string, updater: (board: Board) => Board): 
     });
 
   return updated;
+}
+
+export async function persistBoardRemote(
+  boardId: string,
+  board: Board,
+  options?: BoardUpdateOptions,
+): Promise<Board | null> {
+  const boards = loadBoards();
+  const index = boards.findIndex((item) => item.id === boardId);
+  if (index === -1) return null;
+
+  const previous = boards;
+  const nextBoards = boards.slice();
+  const updated = sanitizeBoardReferences(cloneBoard(board));
+  updated.updatedAt = nowIso();
+  lastLocalSaveAtByBoard.set(boardId, updated.updatedAt);
+  nextBoards[index] = updated;
+  cachedBoards = nextBoards;
+  notifyBoardsChanged();
+
+  if (!activeUserId) return updated;
+
+  try {
+    const data = await apiFetch<{ board: Board }>(`/api/boards/${boardId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        board: updated,
+        saveSource: options?.saveSource ?? 'manual',
+      }),
+    });
+
+    if (!data?.board) {
+      cachedBoards = previous;
+      notifyBoardsChanged();
+      return null;
+    }
+
+    const current = loadBoards();
+    const idx = current.findIndex((item) => item.id === boardId);
+    if (idx === -1) return null;
+
+    const merged: Board = {
+      ...sanitizeBoardReferences(data.board),
+      role: current[idx].role,
+    };
+    const mergedBoards = current.slice();
+    mergedBoards[idx] = merged;
+    cachedBoards = mergedBoards;
+    notifyBoardsChanged();
+    return merged;
+  } catch {
+    cachedBoards = previous;
+    notifyBoardsChanged();
+    return null;
+  }
 }
 
 export function getLastLocalSaveAt(boardId: string): string | null {

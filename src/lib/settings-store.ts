@@ -15,6 +15,7 @@ import {
   type WorkspaceAvatarGroup,
 } from '@/lib/settings-defaults';
 import { migrateLegacySettingsParsed } from '@/lib/db/settings-mappers';
+import { normalizeAutosaveInterval } from '@/lib/autosave-interval';
 import { normalizeRetentionDuration } from '@/lib/retention-duration';
 
 export type {
@@ -164,6 +165,7 @@ function normalizeSettings(value: unknown): AppSettings {
       typeof parsed.snapshotAutoPrune === 'boolean'
         ? parsed.snapshotAutoPrune
         : DEFAULT_APP_SETTINGS.snapshotAutoPrune,
+    autosaveInterval: normalizeAutosaveInterval(parsed.autosaveInterval),
   };
 }
 
