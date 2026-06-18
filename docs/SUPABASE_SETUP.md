@@ -62,6 +62,10 @@ Creates `profiles`, `boards`, and `user_settings` tables with Row Level Security
 
 17. Run [`supabase/migrations/013_activity_owner_delete.sql`](../supabase/migrations/013_activity_owner_delete.sql) to restrict activity deletion to board owners only (non-owners can hide items from their own view).
 
+18. Run [`supabase/migrations/014_reference_uploads_storage.sql`](../supabase/migrations/014_reference_uploads_storage.sql) to enable the `reference-uploads` storage bucket for board reference images.
+
+19. Run remaining migrations through [`supabase/migrations/024_avatar_image.sql`](../supabase/migrations/024_avatar_image.sql) if you use profile photos, snapshot limits, brand strategy, or other newer features. **If profile photo upload fails with a bucket or column error, run migration 024** — it adds `user_settings.avatar_image_url` and the `avatar-uploads` storage bucket.
+
 ### Option B — Supabase CLI
 
 ```bash
@@ -112,8 +116,13 @@ Never commit `.env.local` or expose the `service_role` key in client code.
 Optional:
 
 1. **Authentication** → **URL Configuration**.
-2. Set **Site URL** to `http://localhost:3000`.
-3. Add `http://localhost:3000/**` under **Redirect URLs** if available.
+2. Set **Site URL** to `http://localhost:3000` (production: your Vercel URL).
+3. Add redirect URLs:
+   - `http://localhost:3000/**`
+   - `https://your-app.vercel.app/**` (production)
+   - Include `http://localhost:3000/auth/callback` and production equivalent for OAuth and password reset.
+
+Optional OAuth providers (Google, GitHub): enable under **Authentication** → **Providers** and use the same redirect URLs.
 
 ---
 

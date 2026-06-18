@@ -7,6 +7,7 @@ export type PublicProfile = {
   workspaceTagline: string;
   avatarId: string;
   avatarAccent: string;
+  avatarImageUrl: string | null;
 };
 
 export type PublicProfileResponse = {

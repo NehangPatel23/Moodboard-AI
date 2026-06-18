@@ -1,5 +1,14 @@
+import { Suspense } from 'react';
 import { PromptComposer } from '@/components/creation/PromptComposer';
 import { PageLabel } from '@/components/shared/PageLabel';
+
+function PromptComposerFallback() {
+  return (
+    <section className="rounded-[2rem] border border-(--border) bg-(--surface-elevated) p-6">
+      <div className="h-40 animate-pulse rounded-[1.5rem] bg-(--surface-soft)" />
+    </section>
+  );
+}
 
 export default function NewBoardPage() {
   return (
@@ -51,7 +60,9 @@ export default function NewBoardPage() {
         </div>
       </section>
 
-      <PromptComposer />
+      <Suspense fallback={<PromptComposerFallback />}>
+        <PromptComposer />
+      </Suspense>
     </div>
   );
 }

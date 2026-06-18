@@ -9,6 +9,13 @@ import { SettingsBootstrap } from '@/components/shared/SettingsBootstrap';
 import { ThemeSync } from '@/components/shared/ThemeSync';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Analytics } from '@vercel/analytics/next';
+import {
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  buildDefaultOpenGraph,
+  buildDefaultTwitter,
+  getSiteUrl,
+} from '@/lib/site-metadata';
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -21,8 +28,18 @@ const bodoni = Bodoni_Moda({
 });
 
 export const metadata: Metadata = {
-  title: 'MoodBoard AI',
-  description: 'AI-assisted moodboard and creative direction workspace.',
+  metadataBase: new URL(getSiteUrl()),
+  title: {
+    default: SITE_NAME,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  icons: {
+    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
+    apple: [{ url: '/icon.svg', type: 'image/svg+xml' }],
+  },
+  openGraph: buildDefaultOpenGraph(),
+  twitter: buildDefaultTwitter(),
 };
 
 const themeInitScript = `

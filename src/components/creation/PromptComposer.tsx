@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { Board, BoardTemplate } from '@/types/board';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -188,11 +188,12 @@ function LoadingPreview() {
 
 export function PromptComposer() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const templates = useMemo(() => getBoardTemplates(), []);
   const suggestions = useMemo(() => getQuickPromptSuggestions(), []);
   const redirectTimerRef = useRef<number | null>(null);
 
-  const [prompt, setPrompt] = useState('');
+  const [prompt, setPrompt] = useState(() => searchParams.get('prompt')?.trim() ?? '');
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [status, setStatus] = useState<string | null>(null);

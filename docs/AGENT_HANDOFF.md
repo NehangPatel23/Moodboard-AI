@@ -74,6 +74,14 @@ flowchart TD
 - **Help** — `/help` docs hub in landing nav + palette.
 - **Snapshot mark-seen** — preview or eye button advances `snapshots_last_read_at` via `markSnapshotId` PATCH.
 - **Palette AI** — `⌘K` → suggest brand / palette / typography on editor boards.
+- **Discover moods** — `/discover` mood filter **dropdown** + `?mood=` URL; logic in [`discover-moods.ts`](../src/lib/discover-moods.ts).
+- **Creator display name** — public profiles use `profiles.name`; Settings **Your name** via `PATCH /api/profile/me`; workspace name stays separate.
+- **Profile photos** — upload + crop in Settings; migration `024`; `DELETE /api/profile/avatar/upload` removes photo.
+- **Share / remix** — creator link on share page; Discover nav active on `/share` and `/profile`; prompt pre-fill on `/app/new?prompt=`.
+- **Auth completeness** — forgot password, Google/GitHub OAuth, [`/auth/callback`](../src/app/auth/callback/route.ts).
+- **Portfolio metadata** — favicon, default OG image ([`opengraph-image.tsx`](../src/app/opengraph-image.tsx)), route meta for Discover/share/profile ([`site-metadata.ts`](../src/lib/site-metadata.ts)).
+- **Comments scrim** — panel backdrop uses `--overlay-scrim` token.
+- **Demo boards seed** — `npm run db:seed-demo-boards` (after `db:seed-demo`) populates shared showcase boards.
 - **Tooltips** — [`tooltip.tsx`](../src/components/ui/tooltip.tsx) + `Button` `tooltip` prop. Use `triggerClassName="block w-full"` when wrapping full-width grid/card triggers; default wrapper is `inline-flex` (breaks vertical nav lists if parent is not `flex-col`).
 - **View mode** — [`BoardReadOnlyClient.tsx`](../src/components/board/BoardReadOnlyClient.tsx): one section heading per tab; no duplicate card titles.
 - Board editor loads from Supabase after hydration (no false "not found").
@@ -83,6 +91,6 @@ flowchart TD
 
 ## When resuming work
 
-Follow [ROADMAP](ROADMAP.md): Sprint K growth (`/marketplace`, `/pricing`, Stripe) — deferred to last.
+Follow [ROADMAP](ROADMAP.md): advanced reference APIs and long-term co-editing polish. Marketplace/pricing/Stripe are **parked**.
 
-Run migrations through **`023`** in production if not applied — see [DEPLOY](DEPLOY.md#step-5d--apply-latest-migrations-022023).
+Run migrations through **`024`** in production if not applied — see [DEPLOY](DEPLOY.md#step-5d--apply-latest-migrations-022023) and migration `024_avatar_image.sql`.

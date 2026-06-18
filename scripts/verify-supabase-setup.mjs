@@ -64,12 +64,44 @@ if (authError) {
 
 ok('Supabase Auth API reachable');
 
+const { error: avatarColumnError } = await admin
+  .from('user_settings')
+  .select('avatar_image_url')
+  .limit(1);
+
+if (avatarColumnError) {
+  console.error(`\n✗ user_settings.avatar_image_url is missing: ${avatarColumnError.message}`);
+  console.error('\nRun supabase/migrations/024_avatar_image.sql in the Supabase SQL Editor.');
+  process.exit(1);
+}
+
+ok('user_settings.avatar_image_url column exists');
+
+const { data: buckets, error: bucketsError } = await admin.storage.listBuckets();
+
+if (bucketsError) {
+  fail(`Storage API unreachable: ${bucketsError.message}`);
+}
+
+const avatarBucket = buckets?.find((bucket) => bucket.id === 'avatar-uploads');
+if (!avatarBucket) {
+  console.error('\n✗ Storage bucket "avatar-uploads" is missing.');
+  console.error('\nRun supabase/migrations/024_avatar_image.sql in the Supabase SQL Editor.');
+  process.exit(1);
+}
+
+ok('Storage bucket "avatar-uploads" exists');
+
 if (shouldSeed) {
   const { execSync } = await import('node:child_process');
   const { dirname, join } = await import('node:path');
   const { fileURLToPath } = await import('node:url');
   const root = join(dirname(fileURLToPath(import.meta.url)), '..');
   execSync('node --env-file=.env.local scripts/seed-demo-user.mjs', {
+    stdio: 'inherit',
+    cwd: root,
+  });
+  execSync('node --env-file=.env.local scripts/seed-demo-boards.mjs', {
     stdio: 'inherit',
     cwd: root,
   });

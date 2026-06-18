@@ -72,6 +72,30 @@ A conversion-focused call to action.
 
 ---
 
+### Sign in
+
+Route:
+
+```txt
+/sign-in
+```
+
+Implemented:
+
+- Email + password sign-in and sign-up tabs
+- **Forgot password** — email reset link via Supabase; update-password flow after `/auth/callback`
+- **OAuth** — Continue with Google or GitHub (requires Supabase provider config)
+- Demo account shortcut for portfolio exploration
+- Redirect-back to protected routes after auth
+
+Auth callback:
+
+```txt
+/auth/callback   # OAuth + password-reset code exchange
+```
+
+---
+
 ### Dashboard
 
 Route:
@@ -314,10 +338,12 @@ Implemented:
 
 - Browse all **shared** boards without sign-in
 - Search by title, mood, tags, tone, and summary
-- **Featured row** — curated highlight strip at the top (when not searching)
+- **Mood filter dropdown** — mood selector derived from public boards; composes with search; shareable via `?mood=`
+- **Featured row** — curated highlight strip at the top (when not searching or filtering by mood)
 - **Creator attribution** — creator name on cards via `profiles` join; links to `/profile/[id]`
 - Cards link to `/share/[id]` view-only presentation
 - `GET /api/discover` — public list of shared boards (newest first, up to 48)
+- Demo showcase: `npm run db:seed-demo-boards` seeds 8 shared boards from template presets on the demo account
 
 ---
 
@@ -332,7 +358,9 @@ Route:
 Implemented:
 
 - Public creator profile (no sign-in required)
-- Workspace name, tagline, and avatar from `user_settings` (falls back to profile name + defaults)
+- **Display name** from `profiles.name` (Settings **Your name**); workspace name/tagline remain separate branding fields
+- Workspace tagline and avatar from `user_settings` (falls back to profile name + defaults)
+- Custom **profile photo** upload with crop (migration `024`); remove photo reverts to emoji or initials
 - Grid of **shared** boards by that creator (reuses Discover card component)
 - `GET /api/profile/[id]` — profile identity + shared boards (admin client; email not exposed)
 
@@ -391,8 +419,10 @@ Implemented (all controls are wired to real behavior — no decorative toggles):
 #### Profile / Workspace Identity
 
 - Editable workspace **name** and **tagline**
-- **Avatar** picker with curated emoji avatars grouped into **People** (Artist, Painter, Designer, Creator, Curator) and **Symbols** (Palette, Brush, Pencil, Camera, Film, Sparkle, Star, Moon, Idea), plus a "use initials" option
-- **Avatar accent** picker (pastel palette)
+- Editable **display name** (`profiles.name`) — shown on public profile and account menu; synced via `PATCH /api/profile/me`
+- **Avatar** picker with curated emoji avatars grouped into **People** (Artist, Painter, Designer, Creator, Curator) and **Symbols** (Palette, Brush, Pencil, Camera, Film, Sparkle, Star, Moon, Idea), plus **initials** and **custom photo** (upload + crop)
+- **Remove profile photo** — clears custom image and reverts to default emoji avatar
+- **Avatar accent** picker (pastel palette) inside the avatar panel
 - The chosen identity renders consistently in the **sidebar** and the **top-right avatar** via a shared `WorkspaceAvatar` component
 
 #### Theme Preferences

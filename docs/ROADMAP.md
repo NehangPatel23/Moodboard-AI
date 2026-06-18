@@ -6,7 +6,7 @@ Back to [README](../README.md) · Features: [FEATURES](FEATURES.md) · Deploy: [
 
 ## Current status
 
-Waves 1–3 and Sprints A–J are **complete**. The app is a deployed MVP with Supabase persistence, collaboration, AI generation, snapshots, visual export, developer handoff tokens, public creator profiles, inspiration/help surfaces, and command palette AI actions. Next focus: Sprint K growth (marketplace, pricing, Stripe).
+Waves 1–3 and Sprints A–M are **complete**. The app is a deployed MVP with Supabase persistence, collaboration, AI generation, snapshots, visual export, developer handoff tokens, public creator profiles, inspiration/help surfaces, command palette AI actions, portfolio-ready Discover browsing, auth completeness (forgot password + OAuth), and share/profile OG metadata. Monetization (marketplace, pricing, Stripe) is **not planned near term**.
 
 ---
 
@@ -51,6 +51,14 @@ Waves 1–3 and Sprints A–J are **complete**. The app is a deployed MVP with S
 | 34 | Help hub | `/help` FAQ accordion + in-app deep links |
 | 35 | Palette AI commands | `⌘K` suggest brand, palette, typography from editor |
 | 36 | Editor scrim tokens | Modal/panel scrims use `--overlay-scrim` |
+| 37 | Discover mood browse | Mood filter **dropdown** on `/discover` with `?mood=` deep links |
+| 38 | Demo public boards | `db:seed-demo-boards` seeds shared showcase boards for Discover |
+| 39 | Creator identity | Display name (`profiles.name`) on profiles + Settings; workspace name stays separate |
+| 40 | Profile photos | Custom avatar upload + crop; migration `024`; remove photo in Settings |
+| 41 | Share / remix polish | Creator attribution, Discover nav on share/profile, prompt pre-fill from share |
+| 42 | Auth completeness | Forgot password + Google/GitHub OAuth on `/sign-in`; `/auth/callback` |
+| 43 | Portfolio metadata | Favicon, default OG image, per-route meta for Discover, share, profile |
+| 44 | Comments scrim | Comments panel uses `--overlay-scrim` like other modals |
 
 ### Sprint summary (completed)
 
@@ -66,24 +74,26 @@ Waves 1–3 and Sprints A–J are **complete**. The app is a deployed MVP with S
 | **H** | Visual polish | App-wide surface tokens, shadow/CSS var cleanup, light-mode contrast |
 | **I** | Changelog + palette templates | `/changelog` page; command palette template navigation |
 | **J** | Product surfaces + polish | Snapshot mark-seen; `/help`; palette AI; editor scrim tokens |
+| **L** | Discover + identity polish | Demo shared boards seed; mood dropdown; display name; avatar photo + crop (`024`); share/remix UX |
+| **M** | Auth + portfolio surface | Forgot password; OAuth; favicon/OG meta; remove avatar photo; comments scrim |
 
 ---
 
 ## Next priorities
 
-1. **Sprint K (Growth)** — `/marketplace`, `/pricing`, Stripe billing (deferred until last)
-2. Advanced reference APIs (Behance, Dribbble)
-3. Live cursors / character-level co-editing (long-term)
+1. Advanced reference APIs (Behance, Dribbble)
+2. Live cursors / character-level co-editing (long-term)
+3. README screenshot assets (capture Discover, editor, share, settings avatar)
 
 ---
 
-## Wave 4 — Growth (defer until polish stable)
+## Wave 4 — Growth (future / not planned now)
 
 | Feature | Notes |
 |---------|--------|
-| Template marketplace | DB, payments, moderation |
+| Template marketplace | DB, payments, moderation — **parked** |
 | Advanced reference APIs | Behance, Dribbble (need legitimate APIs) |
-| Pricing / billing | `/pricing` + Stripe |
+| Pricing / billing | `/pricing` + Stripe — **parked** |
 
 ---
 
@@ -92,8 +102,8 @@ Waves 1–3 and Sprints A–J are **complete**. The app is a deployed MVP with S
 | Route | Purpose | Status |
 |-------|---------|--------|
 | `/discover` | Browse public boards | **Shipped** |
-| `/marketplace` | Premium templates | Planned (Sprint K) |
-| `/pricing` | Subscription plans | Planned (Sprint K) |
+| `/marketplace` | Premium templates | Future / not planned |
+| `/pricing` | Subscription plans | Future / not planned |
 | `/help` | Documentation and support | **Shipped** |
 | `/changelog` | Product updates | **Shipped** |
 | `/profile` | User profiles | **Shipped** |
@@ -120,7 +130,12 @@ Use these for manual QA after changes:
 - Collapsed sidebar: nav icons stack vertically; expand control centered at bottom
 - Visual polish: landing, dashboard, discover, templates, and settings use shared surface tokens; light mode has clearer card hierarchy (`--surface-elevated` on white cards)
 - Changelog: `/changelog` lists shipped sprints; linked from landing header
-- Discover: `/discover` lists public boards with search; landing nav active pill on this route
+- Discover: `/discover` lists public boards with search; mood filter **dropdown** + `?mood=` deep links; landing nav active pill on discover, share, and profile routes
+- Demo boards: `npm run db:seed-demo-boards` after `db:seed-demo` populates shared showcase boards on the demo account
+- Profiles: creator **display name** from `profiles.name` (not workspace name); Settings edits name via `PATCH /api/profile/me`
+- Avatars: custom photo upload + crop in Settings; remove photo reverts to emoji/initials; migration `024`
+- Auth: forgot password email flow; Google/GitHub OAuth; `/auth/callback` exchange route
+- OG meta: default favicon + opengraph image; Discover, share, and profile routes set title/description (share uses board cover when available)
 - `/explore` redirects permanently to `/discover`
 - Command palette templates: `⌘K` → template name → opens `/templates?focus=<id>` with scroll highlight
 - Help: `/help` FAQ sections + deep links; GitHub support link
@@ -132,4 +147,4 @@ Use these for manual QA after changes:
 
 - Full real-time co-editing (shared cursor + simultaneous typing in one field)
 - Landing page full redesign
-- Template marketplace / payments
+- Template marketplace / payments — **not planned near term**

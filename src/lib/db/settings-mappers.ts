@@ -17,6 +17,7 @@ export type UserSettingsRow = {
   workspace_tagline: string;
   avatar_accent: string;
   avatar_id: string;
+  avatar_image_url?: string | null;
   default_visibility: BoardVisibility;
   presentation_mode_enabled: boolean;
   keyboard_shortcuts_enabled: boolean;
@@ -54,6 +55,7 @@ export function rowToSettings(row: UserSettingsRow): AppSettings {
     workspaceTagline: row.workspace_tagline,
     avatarAccent: row.avatar_accent,
     avatarId: row.avatar_id,
+    avatarImageUrl: row.avatar_image_url?.trim() || null,
     defaultVisibility: row.default_visibility,
     presentationModeEnabled: row.presentation_mode_enabled,
     keyboardShortcutsEnabled: row.keyboard_shortcuts_enabled,
@@ -82,6 +84,7 @@ export function settingsToRow(settings: AppSettings, userId: string): Omit<UserS
     workspace_tagline: settings.workspaceTagline,
     avatar_accent: settings.avatarAccent,
     avatar_id: settings.avatarId,
+    avatar_image_url: settings.avatarImageUrl,
     default_visibility: settings.defaultVisibility,
     presentation_mode_enabled: settings.presentationModeEnabled,
     keyboard_shortcuts_enabled: settings.keyboardShortcutsEnabled,

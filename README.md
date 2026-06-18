@@ -28,6 +28,7 @@ AI-assisted workspace for creative direction and moodboarding. Describe a brand 
 ## Table of contents
 
 - [At a glance](#at-a-glance)
+- [Screenshots](#screenshots)
 - [What is this?](#what-is-this)
 - [Why it exists](#why-it-exists)
 - [How it works](#how-it-works)
@@ -52,6 +53,21 @@ AI-assisted workspace for creative direction and moodboarding. Describe a brand 
 | **Output** | Editable boards exportable as JSON, PNG, or PDF |
 | **Collaboration** | Invites, roles, real-time presence, section-linked comments, activity replay, unread badges |
 | **Status** | MVP live · active development · portfolio-grade product build |
+
+---
+
+## Screenshots
+
+Portfolio captures from the [live demo](https://moodboard-ai-omega.vercel.app) (add images under `docs/screenshots/` when updating the README):
+
+| Surface | What to highlight |
+|---------|-------------------|
+| **Discover** | Mood dropdown, featured row, creator names linking to profiles |
+| **Board editor** | Tabbed sections, palette, references, AI suggestions |
+| **Share page** | View-only board, remix CTA, creator attribution |
+| **Settings** | Display name, avatar photo crop, workspace identity |
+
+**Try the demo:** sign in with `admin@moodboard.ai` / `moodboard123`, or browse Discover without an account. Run `npm run db:seed-demo && npm run db:seed-demo-boards` locally to populate showcase boards.
 
 ---
 
@@ -456,7 +472,8 @@ It's a deployed MVP with auth, persistence, collaboration, AI generation, and ex
 |---------|---------|
 | `npm run dev` | Start dev server |
 | `npm run build` | Production build |
-| `npm run setup:supabase` | Verify Supabase + seed demo user |
+| `npm run setup:supabase` | Verify Supabase + seed demo user and showcase boards |
+| `npm run db:seed-demo-boards` | Seed shared demo boards for Discover (requires demo user) |
 | `npm run verify:generate` | Test Gemini / mock generation |
 | `npm run verify:collaboration` | Test collaboration APIs |
 

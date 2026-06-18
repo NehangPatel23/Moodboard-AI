@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import type { Board, NoteType, TypographyRole } from '@/types/board';
 import {
   EDITOR_SECTION_META,
@@ -45,7 +45,15 @@ import {
   Lightbulb,
   ClipboardList,
   Tag,
+  ArrowRight,
+  Sparkles,
+  Compass,
 } from 'lucide-react';
+import {
+  appOutlineButtonClass,
+  appPrimaryButtonClass,
+} from '@/components/shared/app-surface-styles';
+import { moodToSlug } from '@/lib/discover-moods';
 
 type BoardReadOnlyClientProps = {
   boardId: string;
@@ -74,6 +82,58 @@ const innerPanelClass = editorPanelClass;
 const softPanelClass = editorSubtleSurfaceClass;
 
 const actionLinkClass = `${editorGhostButtonClass} inline-flex h-11 items-center justify-center px-5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)`;
+
+function PublicViewActions({
+  board,
+  signInHref,
+}: {
+  board?: Pick<Board, 'prompt' | 'mood' | 'creatorId' | 'creatorName'>;
+  signInHref: string;
+}) {
+  const remixDestination = board?.prompt
+    ? `/app/new?prompt=${encodeURIComponent(board.prompt.trim())}`
+    : '/app/new';
+  const remixHref = useGatedHref(remixDestination);
+  const discoverHref = board?.mood?.trim()
+    ? `/discover?mood=${moodToSlug(board.mood)}`
+    : '/discover';
+  const auth = useSyncExternalStore(subscribeAuth, readAuthState, getServerAuthSnapshot);
+  const isAuthenticated = auth.status === 'authenticated';
+
+  return (
+    <div className="flex flex-col items-stretch gap-3 lg:items-end">
+      <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+        <Link href={remixHref} className={appPrimaryButtonClass}>
+          <Sparkles className="h-4 w-4" aria-hidden="true" />
+          Remix this direction
+          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+        </Link>
+        <Link href={discoverHref} className={appOutlineButtonClass}>
+          <Compass className="h-4 w-4" aria-hidden="true" />
+          Browse Discover
+        </Link>
+      </div>
+
+      {!isAuthenticated ? (
+        <p className="text-xs leading-5 text-(--text-muted) lg:text-right">
+          <Link href={signInHref} className="font-medium text-(--text-strong) underline-offset-2 hover:underline">
+            Sign in
+          </Link>{' '}
+          to save remixes to your studio.
+        </p>
+      ) : null}
+
+      {board?.creatorId ? (
+        <Link
+          href={`/profile/${board.creatorId}`}
+          className="text-sm font-medium text-(--text-muted) transition hover:text-(--text-strong) lg:text-right"
+        >
+          By {board.creatorName ?? 'Creator'}
+        </Link>
+      ) : null}
+    </div>
+  );
+}
 
 function NoteTypeIcon({ type }: { type: NoteType }) {
   switch (type) {
@@ -230,7 +290,8 @@ function ReadOnlyNoteCard({
 
 export function BoardReadOnlyClient({ boardId, publicView = false }: BoardReadOnlyClientProps) {
   const router = useRouter();
-  const startBoardHref = useGatedHref('/app/new');
+  const pathname = usePathname();
+  const signInHref = `/sign-in?redirect=${encodeURIComponent(pathname)}`;
   const auth = useSyncExternalStore(subscribeAuth, readAuthState, getServerAuthSnapshot);
   const boardStore = useSyncExternalStore(
     subscribeBoards,
@@ -393,14 +454,7 @@ export function BoardReadOnlyClient({ boardId, publicView = false }: BoardReadOn
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           {publicView ? (
-            <>
-              <Link href="/sign-in" className={actionLinkClass}>
-                Sign in
-              </Link>
-              <Link href={startBoardHref} className={actionLinkClass}>
-                Start a board
-              </Link>
-            </>
+            <PublicViewActions signInHref={signInHref} />
           ) : (
             <Button
               type="button"
@@ -457,16 +511,9 @@ export function BoardReadOnlyClient({ boardId, publicView = false }: BoardReadOn
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap items-center gap-3 lg:max-w-xs lg:justify-end">
               {publicView ? (
-                <>
-                  <Link href="/sign-in" className={actionLinkClass}>
-                    Sign in
-                  </Link>
-                  <Link href={startBoardHref} className={actionLinkClass}>
-                    Start a board
-                  </Link>
-                </>
+                <PublicViewActions board={board} signInHref={signInHref} />
               ) : (
                 <>
                   <Link href={`/app/boards/${board.id}`} className={actionLinkClass}>

@@ -232,6 +232,19 @@ export async function signIn({ email, password }: AuthCredentials): Promise<Auth
   return { ok: true, user };
 }
 
+export function updateAuthUserName(name: string): void {
+  const trimmed = name.trim();
+  if (!trimmed || cachedState?.status !== 'authenticated' || !cachedState.user) {
+    return;
+  }
+
+  cachedState = {
+    status: 'authenticated',
+    user: { ...cachedState.user, name: trimmed },
+  };
+  emit();
+}
+
 export async function signOut(): Promise<void> {
   const supabase = createClient();
   await supabase.auth.signOut();
@@ -242,4 +255,71 @@ export async function signOut(): Promise<void> {
 
 export async function signInWithDemo(): Promise<AuthResult> {
   return signIn({ ...DEMO_CREDENTIALS });
+}
+
+export type OAuthProvider = 'google' | 'github';
+
+export async function signInWithOAuth(
+  provider: OAuthProvider,
+  redirectPath: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = createClient();
+  const origin = window.location.origin;
+  const next = redirectPath.startsWith('/') ? redirectPath : '/app';
+  const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
+
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: { redirectTo },
+  });
+
+  if (error) {
+    return { ok: false, error: mapAuthError(error.message) };
+  }
+
+  return { ok: true };
+}
+
+export async function requestPasswordReset(email: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const normalizedEmail = normalizeEmail(email);
+
+  if (!isValidEmail(normalizedEmail)) {
+    return { ok: false, error: 'Please enter a valid email address.' };
+  }
+
+  const supabase = createClient();
+  const origin = window.location.origin;
+  const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent('/sign-in?mode=update-password')}`;
+
+  const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, { redirectTo });
+
+  if (error) {
+    return { ok: false, error: mapAuthError(error.message) };
+  }
+
+  return { ok: true };
+}
+
+export async function updatePassword(password: string): Promise<AuthResult> {
+  if (!passwordRequirementsMet(password)) {
+    return { ok: false, error: 'Password does not meet all requirements.' };
+  }
+
+  const supabase = createClient();
+  const { data, error } = await supabase.auth.updateUser({ password });
+
+  if (error) {
+    return { ok: false, error: mapAuthError(error.message) };
+  }
+
+  if (!data.user) {
+    return { ok: false, error: 'Could not update password. Please try again.' };
+  }
+
+  const user = await mapSupabaseUser(data.user);
+  cachedState = { status: 'authenticated', user };
+  hydrated = true;
+  emit();
+
+  return { ok: true, user };
 }

@@ -19,6 +19,7 @@ type SettingsRow = {
   workspace_tagline: string;
   avatar_accent: string;
   avatar_id: string;
+  avatar_image_url: string | null;
 };
 
 export function isValidProfileId(value: string): boolean {
@@ -34,6 +35,7 @@ function mapPublicProfile(profile: ProfileRow, settings: SettingsRow | null): Pu
       settings?.workspace_tagline?.trim() || DEFAULT_APP_SETTINGS.workspaceTagline,
     avatarId: settings?.avatar_id?.trim() || DEFAULT_APP_SETTINGS.avatarId,
     avatarAccent: settings?.avatar_accent?.trim() || DEFAULT_APP_SETTINGS.avatarAccent,
+    avatarImageUrl: settings?.avatar_image_url?.trim() || null,
   };
 }
 
@@ -56,7 +58,7 @@ export async function fetchPublicProfile(userId: string): Promise<PublicProfileR
 
   const { data: settingsRow } = await admin
     .from('user_settings')
-    .select('workspace_name, workspace_tagline, avatar_accent, avatar_id')
+    .select('workspace_name, workspace_tagline, avatar_accent, avatar_id, avatar_image_url')
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -78,7 +80,7 @@ export async function fetchPublicProfile(userId: string): Promise<PublicProfileR
     return {
       ...board,
       creatorId: profile.id,
-      creatorName: profile.workspaceName || profile.name,
+      creatorName: profile.name,
     };
   });
 

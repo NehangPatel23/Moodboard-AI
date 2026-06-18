@@ -2,6 +2,11 @@ import type { Metadata } from 'next';
 import { rowToBoard } from '@/lib/db/board-mappers';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { BoardReadOnlyShell } from '@/components/page-shells/BoardReadOnlyShell';
+import {
+  absoluteUrl,
+  buildDefaultOpenGraph,
+  buildDefaultTwitter,
+} from '@/lib/site-metadata';
 
 type SharePageProps = {
   params: Promise<{ id: string }>;
@@ -30,23 +35,33 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
     };
   }
 
-  const description = board.summary?.trim() || board.prompt?.trim() || 'A shared creative direction board on MoodBoard AI.';
+  const description =
+    board.summary?.trim() ||
+    board.prompt?.trim() ||
+    'A shared creative direction board on MoodBoard AI.';
   const image = board.references.find((reference) => reference.imageUrl)?.imageUrl;
+  const shareUrl = absoluteUrl(`/share/${id}`);
+  const defaultOg = buildDefaultOpenGraph();
+  const defaultTwitter = buildDefaultTwitter();
 
   return {
-    title: `${board.title} | MoodBoard AI`,
+    title: board.title,
     description,
     openGraph: {
+      ...defaultOg,
       title: board.title,
       description,
-      type: 'website',
-      ...(image ? { images: [{ url: image, alt: board.title }] } : {}),
+      url: shareUrl,
+      images: image
+        ? [{ url: image, alt: board.title }]
+        : defaultOg.images,
     },
     twitter: {
+      ...defaultTwitter,
       card: image ? 'summary_large_image' : 'summary',
       title: board.title,
       description,
-      ...(image ? { images: [image] } : {}),
+      images: image ? [image] : defaultTwitter.images,
     },
   };
 }

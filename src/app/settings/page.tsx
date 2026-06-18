@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo, useRef, useSyncExternalStore, useState } from 'react';
+import { useCallback, useMemo, useRef, useSyncExternalStore, useState } from 'react';
 import type { ChangeEvent, ReactNode } from 'react';
+import { Camera, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,11 +19,12 @@ import { showToast } from '@/components/shared/toast-store';
 import { loadBoards, saveBoards, subscribeBoards } from '@/lib/board-store';
 import { cn } from '@/lib/utils';
 import {
-  appColorPickerTileClass,
   appSectionClass,
 } from '@/components/shared/app-surface-styles';
 import {
   clearLastSavedAt,
+  applyServerSettings,
+  CUSTOM_AVATAR_ID,
   DEFAULT_APP_SETTINGS,
   getWorkspaceInitials,
   INITIALS_AVATAR_ID,
@@ -39,6 +41,16 @@ import {
   type ThemeMode,
 } from '@/lib/settings-store';
 import { WorkspaceAvatar } from '@/components/layout/WorkspaceAvatar';
+import { AvatarCropModal } from '@/components/settings/AvatarCropModal';
+import { AvatarEmoji } from '@/components/settings/AvatarEmoji';
+import { validateImageUpload } from '@/lib/image-upload-validation';
+import { apiFetch } from '@/lib/api-client';
+import {
+  getServerAuthSnapshot,
+  readAuthState,
+  subscribeAuth,
+  updateAuthUserName,
+} from '@/lib/auth-store';
 import {
   clampRetentionDuration,
   isRetentionNever,
@@ -530,15 +542,15 @@ function NavLink({
   );
 }
 
+const avatarPickerRowClass = 'flex flex-wrap gap-2';
+
 function AvatarTile({
   selected,
-  accent,
   label,
   onClick,
   children,
 }: {
   selected: boolean;
-  accent: string;
   label: string;
   onClick: () => void;
   children: ReactNode;
@@ -551,14 +563,84 @@ function AvatarTile({
       aria-label={label}
       title={label}
       className={cn(
-        appColorPickerTileClass,
+        'flex h-10 w-10 shrink-0 items-center justify-center rounded-full border bg-(--surface-elevated) transition',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-1 focus-visible:ring-offset-(--background)',
         selected
-          ? 'ring-2 ring-(--text-strong) ring-offset-2 ring-offset-(--surface)'
-          : 'hover:scale-105',
+          ? 'border-(--text-strong)/40 ring-1 ring-(--text-strong) ring-offset-1 ring-offset-(--surface)'
+          : 'border-(--border) hover:border-(--text-muted)/30 hover:bg-(--surface-subtle)',
       )}
-      style={{ backgroundColor: accent }}
     >
       {children}
+    </button>
+  );
+}
+
+function AccentSwatch({
+  color,
+  label,
+  selected,
+  onSelect,
+}: {
+  color: string;
+  label: string;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      aria-label={`${label} accent`}
+      title={label}
+      className={cn(
+        'h-8 w-8 shrink-0 rounded-full border border-black/10 transition',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-1 focus-visible:ring-offset-(--background)',
+        selected
+          ? 'ring-2 ring-(--text-strong) ring-offset-1 ring-offset-(--surface)'
+          : 'hover:ring-2 hover:ring-(--border) hover:ring-offset-1 hover:ring-offset-(--surface)',
+      )}
+      style={{ backgroundColor: color }}
+    />
+  );
+}
+
+function AvatarPhotoTile({
+  selected,
+  imageUrl,
+  uploading,
+  onPickPhoto,
+}: {
+  selected: boolean;
+  imageUrl: string | null;
+  uploading: boolean;
+  onPickPhoto: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onPickPhoto}
+      aria-pressed={selected}
+      aria-label="Upload profile photo"
+      title="Upload profile photo"
+      disabled={uploading}
+      className={cn(
+        'relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-(--surface-elevated) transition',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-1 focus-visible:ring-offset-(--background)',
+        'disabled:cursor-wait disabled:opacity-70',
+        selected
+          ? 'border-(--text-strong)/40 ring-1 ring-(--text-strong) ring-offset-1 ring-offset-(--surface)'
+          : 'border-(--border) hover:border-(--text-muted)/30 hover:bg-(--surface-subtle)',
+      )}
+    >
+      {uploading ? (
+        <Loader2 className="h-4 w-4 animate-spin text-(--text-muted)" aria-hidden="true" />
+      ) : imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element -- uploaded avatar preview tile
+        <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <Camera className="h-4 w-4 text-(--text-muted)" aria-hidden="true" />
+      )}
     </button>
   );
 }
@@ -646,6 +728,7 @@ function ShortcutsReference({ enabled }: { enabled: boolean }) {
 
 export default function SettingsPage() {
   const boards = useSyncExternalStore(subscribeBoards, loadBoards, loadBoards);
+  const auth = useSyncExternalStore(subscribeAuth, readAuthState, getServerAuthSnapshot);
 
   const settings = useSyncExternalStore(
     subscribeAppSettings,
@@ -660,8 +743,75 @@ export default function SettingsPage() {
   );
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const avatarPhotoInputRef = useRef<HTMLInputElement | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+
+  const closeCropModal = useCallback(() => {
+    setCropImageSrc((current) => {
+      if (current) {
+        URL.revokeObjectURL(current);
+      }
+      return null;
+    });
+    setCropModalOpen(false);
+  }, []);
+  const [nameDraft, setNameDraft] = useState<string | null>(null);
+  const displayNameSaveTimerRef = useRef<number | null>(null);
+
+  const savedDisplayName =
+    auth.status === 'authenticated' && auth.user ? auth.user.name : '';
+  const displayName = nameDraft ?? savedDisplayName;
+
+  const persistDisplayName = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed === savedDisplayName) {
+      return;
+    }
+
+    void apiFetch<{ name: string }>('/api/profile/me', {
+      method: 'PATCH',
+      body: JSON.stringify({ name: trimmed }),
+    })
+      .then((data) => {
+        updateAuthUserName(data.name);
+        setNameDraft(null);
+      })
+      .catch(() => {
+        showToast('Could not update your name.', 'destructive');
+      });
+  };
+
+  const scheduleDisplayNameSave = (value: string) => {
+    if (displayNameSaveTimerRef.current !== null) {
+      window.clearTimeout(displayNameSaveTimerRef.current);
+    }
+
+    displayNameSaveTimerRef.current = window.setTimeout(() => {
+      persistDisplayName(value);
+      displayNameSaveTimerRef.current = null;
+    }, 600);
+  };
+
+  const handleDisplayNameChange = (value: string) => {
+    const next = value.slice(0, 40);
+    setNameDraft(next);
+    scheduleDisplayNameSave(next);
+  };
+
+  const handleDisplayNameBlur = () => {
+    if (displayNameSaveTimerRef.current !== null) {
+      window.clearTimeout(displayNameSaveTimerRef.current);
+      displayNameSaveTimerRef.current = null;
+    }
+
+    persistDisplayName(displayName);
+  };
+
+  const avatarInitialsSource = savedDisplayName || settings.workspaceName;
 
   const updateSetting = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     updateAppSettings({ [key]: value } as Partial<AppSettings>);
@@ -685,8 +835,118 @@ export default function SettingsPage() {
   };
 
   const handleAvatarChange = (value: string) => {
-    updateSetting('avatarId', value);
+    updateAppSettings({ avatarId: value, avatarImageUrl: null });
     showToast('Workspace avatar updated.', 'success');
+  };
+
+  const handleAvatarPhotoPick = async () => {
+    if (
+      settings.avatarId === CUSTOM_AVATAR_ID &&
+      settings.avatarImageUrl &&
+      !uploadingAvatar
+    ) {
+      try {
+        const response = await fetch(settings.avatarImageUrl);
+        if (!response.ok) {
+          throw new Error('Could not load current photo');
+        }
+
+        const blob = await response.blob();
+        setCropImageSrc((current) => {
+          if (current) {
+            URL.revokeObjectURL(current);
+          }
+          return URL.createObjectURL(blob);
+        });
+        setCropModalOpen(true);
+        return;
+      } catch {
+        showToast('Could not re-crop the current photo. Choose a new file instead.', 'destructive');
+      }
+    }
+
+    avatarPhotoInputRef.current?.click();
+  };
+
+  const handleRemoveAvatarPhoto = async () => {
+    if (uploadingAvatar) {
+      return;
+    }
+
+    setUploadingAvatar(true);
+
+    try {
+      const data = await apiFetch<{
+        settings: AppSettings;
+        updatedAt: string;
+      }>('/api/profile/avatar/upload', {
+        method: 'DELETE',
+      });
+
+      applyServerSettings(data.settings, data.updatedAt);
+      showToast('Profile photo removed.', 'success');
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Could not remove profile photo.';
+      showToast(message, 'destructive');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleAvatarPhotoSelected = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    const validation = validateImageUpload(file, {
+      maxBytes: 8 * 1024 * 1024,
+      allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
+    });
+
+    if (!validation.ok) {
+      showToast(validation.error, 'destructive');
+      return;
+    }
+
+    setCropImageSrc((current) => {
+      if (current) {
+        URL.revokeObjectURL(current);
+      }
+      return URL.createObjectURL(file);
+    });
+    setCropModalOpen(true);
+  };
+
+  const uploadAvatarPhoto = async (file: File) => {
+    setUploadingAvatar(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const data = await apiFetch<{
+        imageUrl: string;
+        settings: AppSettings;
+        updatedAt: string;
+      }>('/api/profile/avatar/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      applyServerSettings(data.settings, data.updatedAt);
+      closeCropModal();
+      showToast('Profile photo updated.', 'success');
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Could not upload profile photo.';
+      showToast(message, 'destructive');
+    } finally {
+      setUploadingAvatar(false);
+    }
   };
 
   const handleDefaultVisibilityChange = (value: BoardVisibility) => {
@@ -882,8 +1142,8 @@ export default function SettingsPage() {
           <SettingsSection
             id="profile"
             eyebrow="Profile"
-            title="Workspace identity"
-            description="Name your workspace and pick an avatar accent. This is what shows in the sidebar."
+            title="Profile & workspace"
+            description="Your name appears on Discover, public boards, and in the account menu. Workspace details customize the sidebar."
           >
             <div className="space-y-5">
               <div className="flex items-center gap-4 rounded-3xl border border-(--border) bg-(--surface-soft) p-4">
@@ -893,13 +1153,31 @@ export default function SettingsPage() {
                 />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-(--text-strong)">
-                    {settings.workspaceName || 'MoodBoard AI'}
+                    {displayName || auth.user?.name || 'Your name'}
                   </p>
                   <p className="truncate text-sm text-(--text-muted)">
                     {settings.workspaceTagline || 'Creative direction workspace'}
                   </p>
                 </div>
               </div>
+
+              <label className="block space-y-2">
+                <span className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
+                  Your name
+                </span>
+                <Input
+                  key={auth.user?.id ?? 'guest'}
+                  value={displayName}
+                  maxLength={40}
+                  onChange={(event) => handleDisplayNameChange(event.target.value)}
+                  onBlur={handleDisplayNameBlur}
+                  placeholder="Nehang Patel"
+                  autoComplete="name"
+                />
+                <p className="text-xs leading-5 text-(--text-muted)">
+                  Shown on creator profiles, public board attribution, and your account menu.
+                </p>
+              </label>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="space-y-2">
@@ -927,81 +1205,108 @@ export default function SettingsPage() {
                 </label>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3 rounded-2xl border border-(--border) bg-(--surface-soft)/50 p-3.5">
                 <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
                   Avatar
                 </p>
 
-                <div className="space-y-3">
-                  <p className="text-[11px] font-medium text-(--text-muted)">People</p>
-                  <div className="flex flex-wrap gap-3">
-                    <AvatarTile
-                      selected={settings.avatarId === INITIALS_AVATAR_ID}
-                      accent={settings.avatarAccent}
-                      label="Use initials"
-                      onClick={() => handleAvatarChange(INITIALS_AVATAR_ID)}
-                    >
-                      <span className="text-base font-semibold text-(--text-strong)">
-                        {getWorkspaceInitials(settings.workspaceName)}
-                      </span>
-                    </AvatarTile>
-
-                    {WORKSPACE_AVATARS.filter((avatar) => avatar.group === 'people').map((avatar) => (
-                      <AvatarTile
-                        key={avatar.id}
-                        selected={settings.avatarId === avatar.id}
-                        accent={settings.avatarAccent}
-                        label={avatar.label}
-                        onClick={() => handleAvatarChange(avatar.id)}
-                      >
-                        <span className="text-3xl leading-none">{avatar.emoji}</span>
-                      </AvatarTile>
-                    ))}
-                  </div>
-                </div>
+                <input
+                  ref={avatarPhotoInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="sr-only"
+                  onChange={(event) => void handleAvatarPhotoSelected(event)}
+                />
 
                 <div className="space-y-3">
-                  <p className="text-[11px] font-medium text-(--text-muted)">Symbols</p>
-                  <div className="flex flex-wrap gap-3">
-                    {WORKSPACE_AVATARS.filter((avatar) => avatar.group === 'symbols').map((avatar) => (
-                      <AvatarTile
-                        key={avatar.id}
-                        selected={settings.avatarId === avatar.id}
-                        accent={settings.avatarAccent}
-                        label={avatar.label}
-                        onClick={() => handleAvatarChange(avatar.id)}
-                      >
-                        <span className="text-3xl leading-none">{avatar.emoji}</span>
-                      </AvatarTile>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
-                  Avatar accent
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  {WORKSPACE_AVATAR_ACCENTS.map((accent) => {
-                    const active = settings.avatarAccent.toLowerCase() === accent.toLowerCase();
-                    return (
-                      <button
-                        key={accent}
-                        type="button"
-                        onClick={() => handleAvatarAccentChange(accent)}
-                        aria-pressed={active}
-                        aria-label={`Use ${accent} accent`}
-                        className={cn(
-                          appColorPickerTileClass,
-                          active
-                            ? 'ring-2 ring-(--text-strong) ring-offset-2 ring-offset-(--surface)'
-                            : 'hover:scale-105',
-                        )}
-                        style={{ backgroundColor: accent }}
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-medium text-(--text-muted)">People</p>
+                    <div className={avatarPickerRowClass}>
+                      <AvatarPhotoTile
+                        selected={settings.avatarId === CUSTOM_AVATAR_ID}
+                        imageUrl={settings.avatarImageUrl}
+                        uploading={uploadingAvatar}
+                        onPickPhoto={handleAvatarPhotoPick}
                       />
-                    );
-                  })}
+
+                      <AvatarTile
+                        selected={settings.avatarId === INITIALS_AVATAR_ID}
+                        label="Use initials"
+                        onClick={() => handleAvatarChange(INITIALS_AVATAR_ID)}
+                      >
+                        <span className="text-[11px] font-semibold tracking-tight text-(--text-strong)">
+                          {getWorkspaceInitials(avatarInitialsSource)}
+                        </span>
+                      </AvatarTile>
+
+                      {WORKSPACE_AVATARS.filter((avatar) => avatar.group === 'people').map((avatar) => (
+                        <AvatarTile
+                          key={avatar.id}
+                          selected={settings.avatarId === avatar.id}
+                          label={avatar.label}
+                          onClick={() => handleAvatarChange(avatar.id)}
+                        >
+                          <AvatarEmoji emoji={avatar.emoji} />
+                        </AvatarTile>
+                      ))}
+                    </div>
+                    <p className="text-xs text-(--text-muted)">
+                      Tap the camera tile to choose a photo, crop it, then upload (JPEG, PNG, or WebP, max 8 MB source).
+                      {settings.avatarId === CUSTOM_AVATAR_ID && settings.avatarImageUrl ? (
+                        <>
+                          {' '}
+                          Tap again to re-crop the current photo.
+                        </>
+                      ) : null}
+                    </p>
+                    {settings.avatarId === CUSTOM_AVATAR_ID && settings.avatarImageUrl ? (
+                      <button
+                        type="button"
+                        onClick={() => void handleRemoveAvatarPhoto()}
+                        disabled={uploadingAvatar}
+                        className="text-xs font-medium text-rose-600 transition hover:text-rose-700 disabled:opacity-50 dark:text-rose-300 dark:hover:text-rose-200"
+                      >
+                        Remove profile photo
+                      </button>
+                    ) : null}
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-medium text-(--text-muted)">Symbols</p>
+                    <div className={avatarPickerRowClass}>
+                      {WORKSPACE_AVATARS.filter((avatar) => avatar.group === 'symbols').map((avatar) => (
+                        <AvatarTile
+                          key={avatar.id}
+                          selected={settings.avatarId === avatar.id}
+                          label={avatar.label}
+                          onClick={() => handleAvatarChange(avatar.id)}
+                        >
+                          <AvatarEmoji emoji={avatar.emoji} />
+                        </AvatarTile>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2 border-t border-(--border)/80 pt-3">
+                  <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
+                    Accent color
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {WORKSPACE_AVATAR_ACCENTS.map(({ value, label }) => {
+                      const active = settings.avatarAccent.toLowerCase() === value.toLowerCase();
+
+                      return (
+                        <AccentSwatch
+                          key={value}
+                          color={value}
+                          label={label}
+                          selected={active}
+                          onSelect={() => handleAvatarAccentChange(value)}
+                        />
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1223,6 +1528,14 @@ export default function SettingsPage() {
         accept=".json,application/json"
         className="hidden"
         onChange={handleImportFile}
+      />
+
+      <AvatarCropModal
+        open={cropModalOpen}
+        imageSrc={cropImageSrc}
+        uploading={uploadingAvatar}
+        onCancel={closeCropModal}
+        onConfirm={uploadAvatarPhoto}
       />
 
       <ConfirmationModal

@@ -10,7 +10,7 @@ import {
   EDITOR_SECTION_META,
   type EditorSectionName,
 } from '@/lib/editor-sections';
-import { formatDateTime } from '@/lib/utils';
+import { cn, formatDateTime } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,6 +21,7 @@ import {
 } from '@/components/board/CollaborationUnseenIndicator';
 import { showToast } from '@/components/shared/toast-store';
 import { lockBodyScroll } from '@/lib/body-scroll-lock';
+import { editorPanelScrimClass } from '@/components/board/board-editor-styles';
 
 type PanelFilter = 'all' | 'unread' | 'hidden';
 
@@ -259,7 +260,7 @@ export function BoardCommentsPanel({
         <button
           type="button"
           aria-label="Close comments"
-          className="absolute inset-0 bg-black/30 backdrop-blur-[1px]"
+          className={cn('absolute inset-0', editorPanelScrimClass)}
           onClick={handleClose}
         />
 

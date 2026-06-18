@@ -23,7 +23,7 @@ export function ProfileHeader({ profile, boardCount }: ProfileHeaderProps) {
             Creator profile
           </p>
           <h1 className="[font-family:var(--font-display),serif] text-[clamp(2rem,4vw,3rem)] leading-tight tracking-tight text-(--text-strong)">
-            {profile.workspaceName}
+            {profile.name}
           </h1>
           <p className="max-w-2xl text-sm leading-6 text-(--text-muted) md:text-base">
             {profile.workspaceTagline}

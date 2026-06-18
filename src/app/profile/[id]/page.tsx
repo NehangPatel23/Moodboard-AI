@@ -116,7 +116,7 @@ export default function ProfilePage() {
         ) : (
           <div className="rounded-[1.75rem] border border-dashed border-(--border) bg-(--surface-subtle) px-6 py-12 text-center">
             <p className="text-sm leading-6 text-(--text-muted)">
-              {data.profile.workspaceName} has not shared any boards yet.
+              {data.profile.name} has not shared any boards yet.
             </p>
           </div>
         )}

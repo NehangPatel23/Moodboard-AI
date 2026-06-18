@@ -3,6 +3,7 @@
 import { apiFetch } from '@/lib/api-client';
 import {
   DEFAULT_APP_SETTINGS,
+  CUSTOM_AVATAR_ID,
   INITIALS_AVATAR_ID,
   WORKSPACE_AVATAR_ACCENTS,
   WORKSPACE_AVATARS,
@@ -26,6 +27,7 @@ export type {
 };
 
 export {
+  CUSTOM_AVATAR_ID,
   DEFAULT_APP_SETTINGS,
   INITIALS_AVATAR_ID,
   WORKSPACE_AVATAR_ACCENTS,
@@ -38,6 +40,7 @@ const THEME_MEDIA_QUERY = '(prefers-color-scheme: dark)';
 
 const WORKSPACE_AVATAR_IDS = new Set<string>([
   INITIALS_AVATAR_ID,
+  CUSTOM_AVATAR_ID,
   ...WORKSPACE_AVATARS.map((avatar) => avatar.id),
 ]);
 
@@ -83,6 +86,15 @@ function normalizeAccent(value: unknown): string {
     : DEFAULT_APP_SETTINGS.avatarAccent;
 }
 
+function normalizeAvatarImageUrl(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+    return null;
+  }
+  return trimmed.slice(0, 2048);
+}
+
 function normalizeAvatarId(value: unknown): string {
   return typeof value === 'string' && WORKSPACE_AVATAR_IDS.has(value)
     ? value
@@ -113,6 +125,7 @@ function normalizeSettings(value: unknown): AppSettings {
     ),
     avatarAccent: normalizeAccent(parsed.avatarAccent),
     avatarId: normalizeAvatarId(parsed.avatarId),
+    avatarImageUrl: normalizeAvatarImageUrl(parsed.avatarImageUrl),
     defaultVisibility: parsed.defaultVisibility === 'shared' ? 'shared' : 'private',
     presentationModeEnabled:
       typeof parsed.presentationModeEnabled === 'boolean'
@@ -279,6 +292,21 @@ function schedulePersist(): void {
     const snapshot = readAppSettings();
     void persistSettings(snapshot, version);
   }, PERSIST_DEBOUNCE_MS);
+}
+
+export function applyServerSettings(settings: AppSettings, updatedAt: string | null): void {
+  cachedSettings = settings;
+  cachedLastSavedAt = updatedAt;
+  persistVersion += 1;
+
+  if (persistTimer) {
+    clearTimeout(persistTimer);
+    persistTimer = null;
+  }
+
+  writeThemeCookie(settings.themeMode);
+  writeThemeLocalStorage(settings.themeMode);
+  emit();
 }
 
 export function saveAppSettings(next: AppSettings): void {

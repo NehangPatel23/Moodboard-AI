@@ -29,5 +29,25 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: 'Board not found' }, { status: 404 });
   }
 
-  return NextResponse.json({ board: rowToBoard(data) });
+  const row = data as { user_id: string };
+  let creatorName: string | undefined;
+
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('name')
+    .eq('id', row.user_id)
+    .maybeSingle();
+
+  if (profile?.name) {
+    creatorName = profile.name;
+  }
+
+  const board = rowToBoard(data);
+  return NextResponse.json({
+    board: {
+      ...board,
+      creatorId: row.user_id,
+      ...(creatorName ? { creatorName } : {}),
+    },
+  });
 }

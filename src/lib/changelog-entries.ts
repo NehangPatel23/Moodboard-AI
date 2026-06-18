@@ -9,6 +9,28 @@ export type ChangelogEntry = {
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
     date: '2026-06',
+    sprint: 'M',
+    title: 'Auth + portfolio surface',
+    bullets: [
+      'Forgot password email flow and update-password screen on /sign-in',
+      'Google and GitHub OAuth buttons with /auth/callback session exchange',
+      'Favicon, default OG image, and route metadata for Discover, share, and profile pages',
+      'Remove profile photo in Settings; comments panel scrim uses shared overlay token',
+    ],
+  },
+  {
+    date: '2026-06',
+    sprint: 'L',
+    title: 'Discover + identity polish',
+    bullets: [
+      'Mood filter dropdown on Discover with shareable ?mood= deep links',
+      'Creator display name on profiles; editable Your name in Settings',
+      'Custom profile photo upload with crop; avatar accent inside avatar panel',
+      'Demo public boards seed script; share/remix UX with creator attribution',
+    ],
+  },
+  {
+    date: '2026-06',
     sprint: 'J',
     title: 'Product surfaces + polish',
     bullets: [

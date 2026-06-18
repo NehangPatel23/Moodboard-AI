@@ -15,6 +15,8 @@ import {
   getPasswordRequirements,
   hasAuthFieldErrors,
   isAuthFormValid,
+  isValidEmail,
+  passwordRequirementsMet,
   validateAuthField,
   validateAuthFields,
   type AuthFieldErrors,
@@ -24,13 +26,24 @@ import {
   getServerAuthSnapshot,
   hydrateAuthStore,
   readAuthState,
+  requestPasswordReset,
   signIn,
   signInWithDemo,
+  signInWithOAuth,
   signUp,
   subscribeAuth,
+  updatePassword,
+  type OAuthProvider,
 } from '@/lib/auth-store';
 
-type AuthMode = 'sign-in' | 'sign-up';
+type AuthMode = 'sign-in' | 'sign-up' | 'forgot-password' | 'update-password';
+
+function resolveInitialMode(value: string | null): AuthMode {
+  if (value === 'sign-up') return 'sign-up';
+  if (value === 'update-password') return 'update-password';
+  if (value === 'forgot-password') return 'forgot-password';
+  return 'sign-in';
+}
 
 const DEFAULT_REDIRECT = '/app';
 
@@ -56,6 +69,18 @@ const copy: Record<
     subtitle: 'Set up an account to start building moodboards.',
     submitLabel: 'Create account',
     pendingLabel: 'Creating account…',
+  },
+  'forgot-password': {
+    title: 'Reset your password',
+    subtitle: 'Enter your email and we will send a reset link.',
+    submitLabel: 'Send reset link',
+    pendingLabel: 'Sending link…',
+  },
+  'update-password': {
+    title: 'Choose a new password',
+    subtitle: 'Set a new password for your account.',
+    submitLabel: 'Update password',
+    pendingLabel: 'Updating password…',
   },
 };
 
@@ -132,16 +157,20 @@ export function AuthForm() {
   const redirectTarget = sanitizeRedirect(searchParams.get('redirect'));
   const auth = useSyncExternalStore(subscribeAuth, readAuthState, getServerAuthSnapshot);
 
-  const [mode, setMode] = useState<AuthMode>(
-    searchParams.get('mode') === 'sign-up' ? 'sign-up' : 'sign-in',
-  );
+  const [mode, setMode] = useState<AuthMode>(resolveInitialMode(searchParams.get('mode')));
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    searchParams.get('error') === 'auth_callback'
+      ? 'Sign-in link expired or is invalid. Please try again.'
+      : null,
+  );
   const [submitting, setSubmitting] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [oauthPending, setOauthPending] = useState<OAuthProvider | null>(null);
 
   const errorRef = useRef<HTMLParagraphElement>(null);
   const fieldIds = useId();
@@ -156,9 +185,19 @@ export function AuthForm() {
 
   const text = copy[mode];
   const formValues = { name, email, password };
-  const canSubmit = isAuthFormValid(mode, formValues);
+  const canSubmit =
+    mode === 'forgot-password'
+      ? isValidEmail(email.trim())
+      : mode === 'update-password'
+        ? passwordRequirementsMet(password)
+        : isAuthFormValid(mode, formValues);
+  const showModeTabs = mode === 'sign-in' || mode === 'sign-up';
+  const showOAuth = showModeTabs;
+  const showDemo = showModeTabs;
+  const showEmailField = mode !== 'update-password';
+  const showPasswordField = mode !== 'forgot-password';
   const passwordDescribedBy = [
-    mode === 'sign-up' ? passwordRequirementsId : null,
+    mode === 'sign-up' || mode === 'update-password' ? passwordRequirementsId : null,
     fieldErrors.password ? passwordErrorId : null,
     !fieldErrors.password && error ? errorId : null,
   ]
@@ -172,10 +211,10 @@ export function AuthForm() {
   }, []);
 
   useEffect(() => {
-    if (auth.status === 'authenticated') {
+    if (auth.status === 'authenticated' && mode !== 'update-password') {
       router.replace(redirectTarget);
     }
-  }, [auth.status, redirectTarget, router]);
+  }, [auth.status, mode, redirectTarget, router]);
 
   useEffect(() => {
     if (error) {
@@ -197,11 +236,81 @@ export function AuthForm() {
     setMode(nextMode);
     setError(null);
     setFieldErrors({});
+    setResetEmailSent(false);
+  }
+
+  async function handleOAuthSignIn(provider: OAuthProvider) {
+    if (submitting || oauthPending) return;
+
+    setOauthPending(provider);
+    setError(null);
+
+    const result = await signInWithOAuth(provider, redirectTarget);
+
+    if (!result.ok) {
+      setError(result.error);
+      setOauthPending(null);
+    }
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submitting) return;
+
+    if (mode === 'forgot-password') {
+      const nextFieldErrors = validateAuthFields('sign-in', { name: '', email, password: '' });
+      const emailError = nextFieldErrors.email;
+      if (emailError) {
+        setFieldErrors({ email: emailError });
+        setError(null);
+        return;
+      }
+
+      setFieldErrors({});
+      setSubmitting(true);
+      setError(null);
+
+      const result = await requestPasswordReset(email);
+
+      if (result.ok) {
+        setResetEmailSent(true);
+        setSubmitting(false);
+        return;
+      }
+
+      setError(result.error);
+      setSubmitting(false);
+      return;
+    }
+
+    if (mode === 'update-password') {
+      const nextFieldErrors = validateAuthFields('sign-up', { name: 'User', email: 'user@example.com', password });
+      const passwordError = nextFieldErrors.password;
+      if (passwordError) {
+        setFieldErrors({ password: passwordError });
+        setError(null);
+        return;
+      }
+
+      setFieldErrors({});
+      setSubmitting(true);
+      setError(null);
+
+      const result = await updatePassword(password);
+
+      if (result.ok) {
+        setWelcomeSession('sign-in', result.user.name);
+        const firstName = welcomeFirstName(result.user.name);
+        showToast(`Password updated. Welcome back, ${firstName}!`, 'success');
+        router.refresh();
+        router.replace(redirectTarget);
+        return;
+      }
+
+      setError(result.error);
+      setSubmitting(false);
+      return;
+    }
 
     const nextFieldErrors = validateAuthFields(mode, formValues);
     if (hasAuthFieldErrors(nextFieldErrors)) {
@@ -260,32 +369,34 @@ export function AuthForm() {
 
   return (
     <div className="space-y-6">
-      <div
-        role="group"
-        aria-label="Choose sign in or create account"
-        className="grid grid-cols-2 gap-1 rounded-full border border-[var(--border)] bg-[var(--surface-subtle)] p-1"
-      >
-        {MODE_TABS.map((tab) => {
-          const active = tab.mode === mode;
-          return (
-            <button
-              key={tab.mode}
-              type="button"
-              onClick={() => handleModeChange(tab.mode)}
-              aria-pressed={active}
-              disabled={submitting}
-              className={cn(
-                'h-9 rounded-full text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
-                active
-                  ? 'bg-[var(--surface-elevated)] text-[var(--text-strong)] shadow-sm'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-strong)]',
-              )}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
+      {showModeTabs ? (
+        <div
+          role="group"
+          aria-label="Choose sign in or create account"
+          className="grid grid-cols-2 gap-1 rounded-full border border-[var(--border)] bg-[var(--surface-subtle)] p-1"
+        >
+          {MODE_TABS.map((tab) => {
+            const active = tab.mode === mode;
+            return (
+              <button
+                key={tab.mode}
+                type="button"
+                onClick={() => handleModeChange(tab.mode)}
+                aria-pressed={active}
+                disabled={submitting || oauthPending !== null}
+                className={cn(
+                  'h-9 rounded-full text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
+                  active
+                    ? 'bg-[var(--surface-elevated)] text-[var(--text-strong)] shadow-sm'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-strong)]',
+                )}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
 
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <div className="space-y-2 text-center">
@@ -297,6 +408,15 @@ export function AuthForm() {
           </h1>
           <p className="text-sm leading-6 text-[var(--text-muted)]">{text.subtitle}</p>
         </div>
+
+        {resetEmailSent ? (
+          <p
+            role="status"
+            className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200"
+          >
+            Check your email for a password reset link. It may take a minute to arrive.
+          </p>
+        ) : null}
 
         {error ? (
           <p
@@ -342,93 +462,121 @@ export function AuthForm() {
             </div>
           ) : null}
 
-          <div className="space-y-1.5">
-            <FieldLabel htmlFor={emailId}>Email</FieldLabel>
-            <Input
-              id={emailId}
-              name="email"
-              type="text"
-              inputMode="email"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              autoComplete="email"
-              value={email}
-              onChange={(event) => {
-                setEmail(event.target.value);
-                clearFieldError('email');
-              }}
-              onBlur={() => {
-                if (email.trim()) {
-                  setFieldErrors((current) => ({
-                    ...current,
-                    email: validateAuthField('email', mode, formValues) ?? undefined,
-                  }));
-                }
-              }}
-              placeholder="you@studio.com"
-              disabled={submitting}
-              aria-invalid={fieldErrors.email ? true : undefined}
-              aria-describedby={emailDescribedBy}
-              className={cn(fieldErrors.email && authInputErrorClassName)}
-            />
-            {fieldErrors.email ? <FieldError id={emailErrorId} message={fieldErrors.email} /> : null}
-          </div>
-
-          <div className="space-y-1.5">
-            <FieldLabel htmlFor={passwordId}>Password</FieldLabel>
-            <div className="relative">
+          {showEmailField ? (
+            <div className="space-y-1.5">
+              <FieldLabel htmlFor={emailId}>Email</FieldLabel>
               <Input
-                id={passwordId}
-                name="password"
-                type={showPassword ? 'text' : 'password'}
-                autoComplete={mode === 'sign-up' ? 'new-password' : 'current-password'}
-                value={password}
+                id={emailId}
+                name="email"
+                type="text"
+                inputMode="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                autoComplete="email"
+                value={email}
                 onChange={(event) => {
-                  setPassword(event.target.value);
-                  clearFieldError('password');
+                  setEmail(event.target.value);
+                  clearFieldError('email');
                 }}
                 onBlur={() => {
-                  if (password) {
+                  if (email.trim()) {
                     setFieldErrors((current) => ({
                       ...current,
-                      password: validateAuthField('password', mode, formValues) ?? undefined,
+                      email: validateAuthField('email', 'sign-in', formValues) ?? undefined,
                     }));
                   }
                 }}
-                placeholder={mode === 'sign-up' ? 'Create a password' : 'Your password'}
-                disabled={submitting}
-                aria-invalid={fieldErrors.password ? true : undefined}
-                aria-describedby={passwordDescribedBy}
-                className={cn('pr-11', fieldErrors.password && authInputErrorClassName)}
+                placeholder="you@studio.com"
+                disabled={submitting || oauthPending !== null}
+                aria-invalid={fieldErrors.email ? true : undefined}
+                aria-describedby={emailDescribedBy}
+                className={cn(fieldErrors.email && authInputErrorClassName)}
               />
-              <Tooltip content={showPassword ? 'Hide password' : 'Show password'}>
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((value) => !value)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  aria-pressed={showPassword}
-                  disabled={submitting}
-                  className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-2xl text-[var(--text-muted)] transition hover:text-[var(--text-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] disabled:opacity-50"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4.5 w-4.5" aria-hidden="true" />
-                  ) : (
-                    <Eye className="h-4.5 w-4.5" aria-hidden="true" />
-                  )}
-                </button>
-              </Tooltip>
+              {fieldErrors.email ? <FieldError id={emailErrorId} message={fieldErrors.email} /> : null}
+              {mode === 'sign-in' ? (
+                <div className="flex justify-end px-1">
+                  <button
+                    type="button"
+                    onClick={() => handleModeChange('forgot-password')}
+                    disabled={submitting || oauthPending !== null}
+                    className="text-xs font-medium text-[var(--text-muted)] transition hover:text-[var(--text-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              ) : null}
             </div>
-            {mode === 'sign-up' ? (
-              <PasswordRequirements id={passwordRequirementsId} password={password} />
-            ) : null}
-            {fieldErrors.password ? (
-              <FieldError id={passwordErrorId} message={fieldErrors.password} />
-            ) : null}
-          </div>
+          ) : null}
+
+          {showPasswordField ? (
+            <div className="space-y-1.5">
+              <FieldLabel htmlFor={passwordId}>Password</FieldLabel>
+              <div className="relative">
+                <Input
+                  id={passwordId}
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete={mode === 'sign-up' || mode === 'update-password' ? 'new-password' : 'current-password'}
+                  value={password}
+                  onChange={(event) => {
+                    setPassword(event.target.value);
+                    clearFieldError('password');
+                  }}
+                  onBlur={() => {
+                    if (password) {
+                      setFieldErrors((current) => ({
+                        ...current,
+                        password:
+                          mode === 'sign-up' || mode === 'update-password'
+                            ? validateAuthField('password', 'sign-up', formValues) ?? undefined
+                            : validateAuthField('password', 'sign-in', formValues) ?? undefined,
+                      }));
+                    }
+                  }}
+                  placeholder={
+                    mode === 'sign-up' || mode === 'update-password'
+                      ? 'Create a password'
+                      : 'Your password'
+                  }
+                  disabled={submitting || oauthPending !== null}
+                  aria-invalid={fieldErrors.password ? true : undefined}
+                  aria-describedby={passwordDescribedBy}
+                  className={cn('pr-11', fieldErrors.password && authInputErrorClassName)}
+                />
+                <Tooltip content={showPassword ? 'Hide password' : 'Show password'}>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((value) => !value)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-pressed={showPassword}
+                    disabled={submitting || oauthPending !== null}
+                    className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-2xl text-[var(--text-muted)] transition hover:text-[var(--text-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] disabled:opacity-50"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4.5 w-4.5" aria-hidden="true" />
+                    ) : (
+                      <Eye className="h-4.5 w-4.5" aria-hidden="true" />
+                    )}
+                  </button>
+                </Tooltip>
+              </div>
+              {mode === 'sign-up' || mode === 'update-password' ? (
+                <PasswordRequirements id={passwordRequirementsId} password={password} />
+              ) : null}
+              {fieldErrors.password ? (
+                <FieldError id={passwordErrorId} message={fieldErrors.password} />
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
-        <Button type="submit" size="lg" className="w-full" disabled={submitting || !canSubmit}>
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full"
+          disabled={submitting || oauthPending !== null || !canSubmit || resetEmailSent}
+        >
           {submitting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -439,31 +587,95 @@ export function AuthForm() {
           )}
         </Button>
 
-        <div className="flex items-center gap-3" aria-hidden="true">
-          <span className="h-px flex-1 bg-[var(--border)]" />
-          <span className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">or</span>
-          <span className="h-px flex-1 bg-[var(--border)]" />
-        </div>
-
-        <div className="space-y-2.5">
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            className="w-full"
-            onClick={handleDemoSignIn}
-            disabled={submitting}
-          >
-            <Sparkles className="h-4 w-4 text-[var(--text-muted)]" aria-hidden="true" />
-            Explore with the demo account
-          </Button>
-          <p className="text-center text-xs leading-5 text-[var(--text-muted)]">
-            Test credentials:{' '}
-            <span className="font-medium text-[var(--text-strong)]">{DEMO_CREDENTIALS.email}</span>
-            {' · '}
-            <span className="font-medium text-[var(--text-strong)]">{DEMO_CREDENTIALS.password}</span>
+        {mode === 'forgot-password' || mode === 'update-password' ? (
+          <p className="text-center text-sm text-[var(--text-muted)]">
+            <button
+              type="button"
+              onClick={() => handleModeChange('sign-in')}
+              disabled={submitting || oauthPending !== null}
+              className="font-medium text-[var(--text-strong)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+            >
+              Back to sign in
+            </button>
           </p>
-        </div>
+        ) : null}
+
+        {showOAuth ? (
+          <>
+            <div className="flex items-center gap-3" aria-hidden="true">
+              <span className="h-px flex-1 bg-[var(--border)]" />
+              <span className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">or</span>
+              <span className="h-px flex-1 bg-[var(--border)]" />
+            </div>
+
+            <div className="grid gap-2.5 sm:grid-cols-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="w-full"
+                onClick={() => void handleOAuthSignIn('google')}
+                disabled={submitting || oauthPending !== null}
+              >
+                {oauthPending === 'google' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <span aria-hidden="true" className="text-sm font-semibold">
+                    G
+                  </span>
+                )}
+                Continue with Google
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="w-full"
+                onClick={() => void handleOAuthSignIn('github')}
+                disabled={submitting || oauthPending !== null}
+              >
+                {oauthPending === 'github' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <span aria-hidden="true" className="text-sm font-semibold">
+                    GH
+                  </span>
+                )}
+                Continue with GitHub
+              </Button>
+            </div>
+          </>
+        ) : null}
+
+        {showDemo ? (
+          <>
+            <div className="flex items-center gap-3" aria-hidden="true">
+              <span className="h-px flex-1 bg-[var(--border)]" />
+              <span className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">or</span>
+              <span className="h-px flex-1 bg-[var(--border)]" />
+            </div>
+
+            <div className="space-y-2.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="w-full"
+                onClick={handleDemoSignIn}
+                disabled={submitting || oauthPending !== null}
+              >
+                <Sparkles className="h-4 w-4 text-[var(--text-muted)]" aria-hidden="true" />
+                Explore with the demo account
+              </Button>
+              <p className="text-center text-xs leading-5 text-[var(--text-muted)]">
+                Test credentials:{' '}
+                <span className="font-medium text-[var(--text-strong)]">{DEMO_CREDENTIALS.email}</span>
+                {' · '}
+                <span className="font-medium text-[var(--text-strong)]">{DEMO_CREDENTIALS.password}</span>
+              </p>
+            </div>
+          </>
+        ) : null}
       </form>
     </div>
   );

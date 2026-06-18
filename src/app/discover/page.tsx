@@ -1,13 +1,21 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, Sparkles } from 'lucide-react';
 import { DiscoverBoardCard } from '@/components/discover/DiscoverBoardCard';
+import { DiscoverMoodFilters } from '@/components/discover/DiscoverMoodFilters';
 import { useGatedHref } from '@/components/auth/use-gated-href';
 import { Input } from '@/components/ui/input';
 import type { Board } from '@/types/board';
 import { getRemainingDiscoverBoards, pickFeaturedBoards } from '@/lib/discover-featured';
+import {
+  boardMatchesMood,
+  extractDiscoverMoods,
+  findMoodBySlug,
+  moodToSlug,
+} from '@/lib/discover-moods';
 
 const sectionLabelClass =
   'text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)';
@@ -33,12 +41,23 @@ function boardCountLabel(count: number): string {
   return `${count} public ${count === 1 ? 'board' : 'boards'}`;
 }
 
-export default function DiscoverPage() {
+function DiscoverPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const startBoardHref = useGatedHref('/app/new');
   const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+
+  const moodSlug = searchParams.get('mood');
+  const selectedMood = useMemo(() => {
+    if (!moodSlug || boards.length === 0) {
+      return null;
+    }
+    return findMoodBySlug(boards, moodSlug);
+  }, [boards, moodSlug]);
+  const invalidMoodSlug = Boolean(moodSlug && boards.length > 0 && !selectedMood);
 
   useEffect(() => {
     let cancelled = false;
@@ -75,21 +94,69 @@ export default function DiscoverPage() {
     };
   }, []);
 
+  const moodOptions = useMemo(() => extractDiscoverMoods(boards), [boards]);
+
+  const setMoodFilter = useCallback(
+    (mood: string | null) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (mood) {
+        params.set('mood', moodToSlug(mood));
+      } else {
+        params.delete('mood');
+      }
+      const query = params.toString();
+      router.replace(query ? `/discover?${query}` : '/discover', { scroll: false });
+    },
+    [router, searchParams],
+  );
+
   const normalizedQuery = normalizeText(search);
-  const filteredBoards = useMemo(
-    () => boards.filter((board) => boardMatchesQuery(board, normalizedQuery)),
-    [boards, normalizedQuery],
-  );
+  const hasActiveFilters = Boolean(normalizedQuery || selectedMood);
+
+  const filteredBoards = useMemo(() => {
+    if (invalidMoodSlug) {
+      return [];
+    }
+
+    return boards.filter(
+      (board) => boardMatchesQuery(board, normalizedQuery) && boardMatchesMood(board, selectedMood),
+    );
+  }, [boards, invalidMoodSlug, normalizedQuery, selectedMood]);
+
   const featuredBoards = useMemo(
-    () => (normalizedQuery ? [] : pickFeaturedBoards(filteredBoards)),
-    [filteredBoards, normalizedQuery],
+    () => (hasActiveFilters ? [] : pickFeaturedBoards(filteredBoards)),
+    [filteredBoards, hasActiveFilters],
   );
+
   const remainingBoards = useMemo(
-    () => (normalizedQuery ? filteredBoards : getRemainingDiscoverBoards(filteredBoards, featuredBoards)),
-    [featuredBoards, filteredBoards, normalizedQuery],
+    () =>
+      hasActiveFilters
+        ? filteredBoards
+        : getRemainingDiscoverBoards(filteredBoards, featuredBoards),
+    [featuredBoards, filteredBoards, hasActiveFilters],
   );
-  const showFeaturedSection = !normalizedQuery && featuredBoards.length > 0;
+
+  const showFeaturedSection = !hasActiveFilters && featuredBoards.length > 0;
   const showRemainingSection = remainingBoards.length > 0;
+  const showMoodChips = !loading && !error && moodOptions.length > 0;
+
+  const emptyTitle =
+    boards.length === 0
+      ? 'Be the first to share a board.'
+      : invalidMoodSlug
+        ? 'Unknown mood filter.'
+        : selectedMood
+          ? 'No boards in this mood.'
+          : 'Try a different search term.';
+
+  const emptyDescription =
+    boards.length === 0
+      ? 'Create a board, set visibility to Shared, save, and your work will appear here.'
+      : invalidMoodSlug
+        ? 'That mood link is no longer available. Browse all public boards instead.'
+        : selectedMood
+          ? 'Clear the mood filter or try another mood to browse more public boards.'
+          : 'Search across titles, moods, tags, and summaries.';
 
   return (
     <div className="space-y-12 py-2 md:py-4">
@@ -120,8 +187,8 @@ export default function DiscoverPage() {
       </section>
 
       <section className="space-y-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative w-full max-w-md flex-1">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
+          <div className="relative min-w-0 flex-1 lg:max-w-md">
             <Search
               className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-(--text-muted)"
               aria-hidden="true"
@@ -135,13 +202,23 @@ export default function DiscoverPage() {
             />
           </div>
 
-          {!loading && !error && filteredBoards.length > 0 ? (
-            <p className="shrink-0 text-sm font-medium text-(--text-muted)">
-              {normalizedQuery
-                ? `${filteredBoards.length} ${filteredBoards.length === 1 ? 'match' : 'matches'}`
-                : boardCountLabel(filteredBoards.length)}
-            </p>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-3 sm:justify-between lg:shrink-0 lg:justify-end">
+            {showMoodChips ? (
+              <DiscoverMoodFilters
+                moods={moodOptions}
+                selectedMood={selectedMood}
+                onSelectMood={setMoodFilter}
+              />
+            ) : null}
+
+            {!loading && !error && filteredBoards.length > 0 ? (
+              <p className="shrink-0 text-sm font-medium text-(--text-muted)">
+                {hasActiveFilters
+                  ? `${filteredBoards.length} ${filteredBoards.length === 1 ? 'match' : 'matches'}`
+                  : boardCountLabel(filteredBoards.length)}
+              </p>
+            ) : null}
+          </div>
         </div>
 
         {loading ? (
@@ -167,20 +244,26 @@ export default function DiscoverPage() {
               {boards.length === 0 ? 'No public boards yet' : 'No matches'}
             </p>
             <h2 className="mt-3 [font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)">
-              {boards.length === 0
-                ? 'Be the first to share a board.'
-                : 'Try a different search term.'}
+              {emptyTitle}
             </h2>
             <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-(--text-muted)">
-              {boards.length === 0
-                ? 'Create a board, set visibility to Shared, save, and your work will appear here.'
-                : 'Search across titles, moods, tags, and summaries.'}
+              {emptyDescription}
             </p>
             {boards.length === 0 ? (
               <div className="mt-6">
                 <Link href={startBoardHref} className={primaryButtonClass}>
                   Create a board
                 </Link>
+              </div>
+            ) : selectedMood || invalidMoodSlug ? (
+              <div className="mt-6">
+                <button
+                  type="button"
+                  onClick={() => setMoodFilter(null)}
+                  className={primaryButtonClass}
+                >
+                  Show all moods
+                </button>
               </div>
             ) : null}
           </section>
@@ -218,11 +301,11 @@ export default function DiscoverPage() {
                       All other public boards
                     </h2>
                   </div>
-                ) : normalizedQuery ? (
+                ) : hasActiveFilters ? (
                   <div>
                     <p className={sectionLabelClass}>Results</p>
                     <h2 className="mt-2 [font-family:var(--font-display),serif] text-2xl tracking-tight text-(--text-strong)">
-                      Matching boards
+                      {selectedMood ? `Boards in “${selectedMood}”` : 'Matching boards'}
                     </h2>
                   </div>
                 ) : null}
@@ -238,5 +321,24 @@ export default function DiscoverPage() {
         ) : null}
       </section>
     </div>
+  );
+}
+
+export default function DiscoverPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="grid gap-5 py-8 sm:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div
+              key={index}
+              className="h-80 animate-pulse rounded-[1.75rem] border border-(--border) bg-(--surface-soft)"
+            />
+          ))}
+        </div>
+      }
+    >
+      <DiscoverPageContent />
+    </Suspense>
   );
 }

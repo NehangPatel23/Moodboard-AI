@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "db:seed-demo": "node --env-file=.env.local scripts/seed-demo-user.mjs",
+    "db:seed-demo-boards": "node --env-file=.env.local scripts/seed-demo-boards.mjs",
     "setup:supabase": "node scripts/setup-supabase.mjs",
     "setup:verify": "node --env-file=.env.local scripts/verify-supabase-setup.mjs",
     "verify:collaboration": "node --env-file=.env.local scripts/verify-collaboration-migrations.mjs",
@@ -25,6 +26,7 @@
     "next": "16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-easy-crop": "^6.0.2",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {

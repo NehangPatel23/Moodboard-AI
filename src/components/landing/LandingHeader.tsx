@@ -29,6 +29,15 @@ const landingNavLinkFocusClass =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)';
 
 function isLandingNavActive(pathname: string, href: string): boolean {
+  if (href === '/discover') {
+    return (
+      pathname === '/discover' ||
+      pathname.startsWith('/discover/') ||
+      pathname.startsWith('/share/') ||
+      pathname.startsWith('/profile/')
+    );
+  }
+
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
