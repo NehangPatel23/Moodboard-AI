@@ -1,5 +1,5 @@
 /**
- * Verifies collaboration migrations 006–013 and polish migrations 022–023.
+ * Verifies collaboration migrations 006–013, polish migrations 022–023, and settings migrations 024–026.
  *
  * Usage:
  *   node --env-file=.env.local scripts/verify-collaboration-migrations.mjs
@@ -75,6 +75,10 @@ const columnChecks = [
   ['board_collaboration_state', 'snapshots_last_read_at'],
   ['user_settings', 'comments_hide_after_days'],
   ['user_settings', 'activity_hide_after_days'],
+  ['user_settings', 'avatar_image_url'],
+  ['user_settings', 'autosave_interval'],
+  ['user_settings', 'autosave_toast_enabled'],
+  ['user_settings', 'remote_save_toast_enabled'],
 ];
 
 const missingColumns = [];
@@ -88,7 +92,14 @@ for (const [table, column] of columnChecks) {
 }
 
 if (missingColumns.length > 0) {
-  console.error('\nSome migration columns are missing. Run migrations 007–011 in docs/SUPABASE_SETUP.md.');
+  console.error('\nSome migration columns are missing. Run migrations 007–026 in docs/DEPLOY.md.');
+  process.exit(1);
+}
+
+if (await tableAccessible('board_templates')) {
+  ok('Table "board_templates" exists');
+} else {
+  console.error('✗ Table "board_templates" is missing — run migration 027');
   process.exit(1);
 }
 

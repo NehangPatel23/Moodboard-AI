@@ -9,6 +9,7 @@ import {
   ExternalLink,
   Globe,
   History,
+  LayoutTemplate,
   Lock,
   MessageSquare,
   Share2,
@@ -63,6 +64,7 @@ type BoardEditorToolbarProps = {
   onExport: () => void;
   onView: () => void;
   onDelete: () => void;
+  onSaveAsTemplate?: () => void;
 };
 
 function ToolbarDivider() {
@@ -199,6 +201,7 @@ export function BoardEditorToolbar({
   onExport,
   onView,
   onDelete,
+  onSaveAsTemplate,
 }: BoardEditorToolbarProps) {
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
@@ -387,6 +390,16 @@ export function BoardEditorToolbar({
                               onDuplicate();
                             }}
                           />
+                          {canEditBoard && onSaveAsTemplate ? (
+                            <ToolbarMenuItem
+                              label="Save as template"
+                              icon={<LayoutTemplate className="h-4 w-4 shrink-0" />}
+                              onClick={() => {
+                                setMoreOpen(false);
+                                onSaveAsTemplate();
+                              }}
+                            />
+                          ) : null}
                           <div className="my-1 h-px bg-(--border)" />
                           <ToolbarMenuItem
                             label="Delete board"

@@ -166,6 +166,14 @@ function normalizeSettings(value: unknown): AppSettings {
         ? parsed.snapshotAutoPrune
         : DEFAULT_APP_SETTINGS.snapshotAutoPrune,
     autosaveInterval: normalizeAutosaveInterval(parsed.autosaveInterval),
+    autosaveToastEnabled:
+      typeof parsed.autosaveToastEnabled === 'boolean'
+        ? parsed.autosaveToastEnabled
+        : DEFAULT_APP_SETTINGS.autosaveToastEnabled,
+    remoteSaveToastEnabled:
+      typeof parsed.remoteSaveToastEnabled === 'boolean'
+        ? parsed.remoteSaveToastEnabled
+        : DEFAULT_APP_SETTINGS.remoteSaveToastEnabled,
   };
 }
 

@@ -8,6 +8,8 @@ import { getLastLocalSaveAt } from '@/lib/board-store';
 import { createClient, ensureSupabaseRealtimeAuth } from '@/lib/supabase/client';
 import { usePrivateRealtimePresence } from '@/lib/realtime/config';
 
+import type { CollaboratorCursor } from '@/lib/realtime/collaborator-fields';
+
 export type BoardPresenceStatus = 'editing' | 'viewing';
 
 export type BoardPresenceUser = {
@@ -17,6 +19,8 @@ export type BoardPresenceUser = {
   status: BoardPresenceStatus;
   sectionIndex?: number;
   sectionLabel?: string;
+  activeFieldId?: string | null;
+  cursor?: CollaboratorCursor | null;
 };
 
 type UseBoardRealtimeOptions = {
@@ -29,6 +33,8 @@ type UseBoardRealtimeOptions = {
   enabled: boolean;
   activeSectionIndex: number;
   activeSectionLabel: string;
+  activeFieldId?: string | null;
+  cursor?: CollaboratorCursor | null;
   onRemoteBoard: (board: Board, savedByName: string | null) => void;
 };
 
@@ -84,6 +90,8 @@ function buildPresencePayload(
   isDirty: boolean,
   activeSectionIndex: number,
   activeSectionLabel: string,
+  activeFieldId?: string | null,
+  cursor?: CollaboratorCursor | null,
 ): BoardPresenceUser {
   return {
     userId,
@@ -92,6 +100,8 @@ function buildPresencePayload(
     status: isDirty ? 'editing' : 'viewing',
     sectionIndex: activeSectionIndex,
     sectionLabel: activeSectionLabel,
+    activeFieldId: activeFieldId ?? null,
+    cursor: cursor ?? null,
   };
 }
 
@@ -105,6 +115,8 @@ export function useBoardRealtime({
   enabled,
   activeSectionIndex,
   activeSectionLabel,
+  activeFieldId = null,
+  cursor = null,
   onRemoteBoard,
 }: UseBoardRealtimeOptions) {
   const [onlineUsers, setOnlineUsers] = useState<BoardPresenceUser[]>([]);
@@ -114,6 +126,8 @@ export function useBoardRealtime({
   const isDirtyRef = useRef(isDirty);
   const activeSectionIndexRef = useRef(activeSectionIndex);
   const activeSectionLabelRef = useRef(activeSectionLabel);
+  const activeFieldIdRef = useRef(activeFieldId);
+  const cursorRef = useRef(cursor);
   const syncChannelRef = useRef<RealtimeChannel | null>(null);
   const presenceChannelRef = useRef<RealtimeChannel | null>(null);
   const presenceSubscribedRef = useRef(false);
@@ -127,7 +141,9 @@ export function useBoardRealtime({
     isDirtyRef.current = isDirty;
     activeSectionIndexRef.current = activeSectionIndex;
     activeSectionLabelRef.current = activeSectionLabel;
-  }, [activeSectionIndex, activeSectionLabel, isDirty, localUpdatedAt, onRemoteBoard]);
+    activeFieldIdRef.current = activeFieldId;
+    cursorRef.current = cursor;
+  }, [activeFieldId, activeSectionIndex, activeSectionLabel, cursor, isDirty, localUpdatedAt, onRemoteBoard]);
 
   useEffect(() => {
     if (!enabled || !userId || !boardRole) {
@@ -153,6 +169,8 @@ export function useBoardRealtime({
           isDirtyRef.current,
           activeSectionIndexRef.current,
           activeSectionLabelRef.current,
+          activeFieldIdRef.current,
+          cursorRef.current,
         ),
       );
 
@@ -364,6 +382,8 @@ export function useBoardRealtime({
           isDirtyRef.current,
           activeSectionIndex,
           activeSectionLabel,
+          activeFieldIdRef.current,
+          cursorRef.current,
         ),
       )
       .then((trackStatus) => {
@@ -373,7 +393,7 @@ export function useBoardRealtime({
         }
         syncPresenceFromChannel(channel, setOnlineUsers);
       });
-  }, [activeSectionIndex, activeSectionLabel, boardRole, enabled, presenceReady, userId, userName]);
+  }, [activeFieldId, activeSectionIndex, activeSectionLabel, boardRole, cursor, enabled, presenceReady, userId, userName]);
 
   useEffect(() => {
     if (!enabled || !userId || !boardRole || !presenceReady) return;
@@ -395,6 +415,8 @@ export function useBoardRealtime({
             isDirty,
             activeSectionIndexRef.current,
             activeSectionLabelRef.current,
+            activeFieldIdRef.current,
+            cursorRef.current,
           ),
         )
         .then((trackStatus) => {
@@ -411,7 +433,7 @@ export function useBoardRealtime({
         window.clearTimeout(trackTimerRef.current);
       }
     };
-  }, [boardRole, enabled, isDirty, presenceReady, userId, userName]);
+  }, [activeFieldId, boardRole, cursor, enabled, isDirty, presenceReady, userId, userName]);
 
   const activeOnlineUsers = enabled && userId && boardRole ? onlineUsers : [];
   const presenceUsers = userId

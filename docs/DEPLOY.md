@@ -22,7 +22,7 @@ flowchart LR
   end
 
   subgraph supabase ["Supabase production"]
-    mig["Run migrations 001–025"]
+    mig["Run migrations 001–027"]
     urls["Auth URL config + redirect URLs"]
     rt["Realtime + RLS policies"]
   end
@@ -200,6 +200,30 @@ where table_schema = 'public'
 ```
 
 Expected: one row. Re-deploy Vercel after applying if the app was already live.
+
+## Step 5g — Apply latest migrations (026–027)
+
+If production was deployed before notification prefs or community templates shipped, run these in the **production** Supabase SQL Editor:
+
+1. [`supabase/migrations/026_notification_prefs.sql`](../supabase/migrations/026_notification_prefs.sql)
+2. [`supabase/migrations/027_community_templates.sql`](../supabase/migrations/027_community_templates.sql)
+
+Verify:
+
+```sql
+select column_name
+from information_schema.columns
+where table_schema = 'public'
+  and table_name = 'user_settings'
+  and column_name in ('autosave_toast_enabled', 'remote_save_toast_enabled');
+
+select table_name
+from information_schema.tables
+where table_schema = 'public'
+  and table_name = 'board_templates';
+```
+
+Expected: two notification columns and the `board_templates` table. Re-deploy Vercel after applying if the app was already live.
 
 > **Presence:** By default the app uses a public Realtime presence channel so collaborators show up without extra setup. If you disable **Allow public access** under Supabase **Project Settings → Realtime**, run migration `016` and set `NEXT_PUBLIC_SUPABASE_REALTIME_PRIVATE=true` in Vercel.
 

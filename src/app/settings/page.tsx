@@ -1035,6 +1035,18 @@ export default function SettingsPage() {
     toastToggle('Strong focus rings', next);
   };
 
+  const handleAutosaveToastToggle = () => {
+    const next = !settings.autosaveToastEnabled;
+    updateSetting('autosaveToastEnabled', next);
+    toastToggle('Auto-save toasts', next);
+  };
+
+  const handleRemoteSaveToastToggle = () => {
+    const next = !settings.remoteSaveToastEnabled;
+    updateSetting('remoteSaveToastEnabled', next);
+    toastToggle('Remote save toasts', next);
+  };
+
   const handleThemeChange = (value: ThemeMode) => {
     updateSetting('themeMode', value);
     showToast(
@@ -1123,6 +1135,7 @@ export default function SettingsPage() {
     { href: '#profile', label: 'Profile', description: 'Workspace name and avatar.' },
     { href: '#workspace', label: 'Workspace', description: 'Default behavior and sharing.' },
     { href: '#editor', label: 'Editor', description: 'Board editing preferences.' },
+    { href: '#notifications', label: 'Notifications', description: 'Auto-save and collaboration toasts.' },
     { href: '#collaboration', label: 'Collaboration', description: 'Comments, activity, and cleanup.' },
     { href: '#accessibility', label: 'Accessibility', description: 'Motion, shortcuts, and focus.' },
     { href: '#appearance', label: 'Appearance', description: 'Light, dark, or system theme.' },
@@ -1402,6 +1415,28 @@ export default function SettingsPage() {
               value={settings.autosaveInterval}
               onChange={(value) => updateSetting('autosaveInterval', value)}
             />
+          </SettingsSection>
+
+          <SettingsSection
+            id="notifications"
+            eyebrow="Notifications"
+            title="Editor toasts"
+            description="Choose when MoodBoard AI shows success toasts during editing and collaboration."
+          >
+            <div className="space-y-3">
+              <ToggleRow
+                label="Auto-save toasts"
+                description="Show a toast when background auto-save completes successfully."
+                enabled={settings.autosaveToastEnabled}
+                onToggle={handleAutosaveToastToggle}
+              />
+              <ToggleRow
+                label="Remote save toasts"
+                description="Show a toast when a collaborator saves and your board reloads."
+                enabled={settings.remoteSaveToastEnabled}
+                onToggle={handleRemoteSaveToastToggle}
+              />
+            </div>
           </SettingsSection>
 
           <SettingsSection

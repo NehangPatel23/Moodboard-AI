@@ -74,6 +74,40 @@ async function main() {
     } else {
       fail('Settings page loads after sign-in');
     }
+
+    const editorSection = page.locator('#editor');
+    if (await editorSection.isVisible().catch(() => false)) {
+      pass('Settings Editor section present');
+    } else {
+      await page.getByRole('link', { name: /^Editor$/i }).click().catch(() => {});
+      if (await editorSection.isVisible().catch(() => false)) {
+        pass('Settings Editor section present');
+      } else {
+        fail('Settings Editor section present', 'Apply migration 025 on Supabase if missing');
+      }
+    }
+
+    if (await page.getByText(/Auto-save interval/i).isVisible().catch(() => false)) {
+      pass('Auto-save interval control visible');
+    } else {
+      fail('Auto-save interval control visible');
+    }
+
+    await page.goto(`${BASE_URL}/templates`, { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle', { timeout: 20_000 }).catch(() => {});
+    if (await page.getByRole('button', { name: /^Community$/i }).isVisible().catch(() => false)) {
+      pass('Templates Community tab visible');
+    } else {
+      fail('Templates Community tab visible', 'Community templates tab may be missing');
+    }
+
+    await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle', { timeout: 20_000 }).catch(() => {});
+    if (await page.getByRole('heading', { name: /Turn rough ideas/i }).isVisible().catch(() => false)) {
+      pass('Landing page loads');
+    } else {
+      fail('Landing page loads');
+    }
   } finally {
     await browser.close();
   }
@@ -107,10 +141,31 @@ async function main() {
     fail('Auth callback route reachable', `HTTP ${callback.status}, location=${location || 'none'}`);
   }
 
+  const recoveryCallback = await fetch(
+    `${BASE_URL}/auth/callback?token_hash=invalid&type=recovery`,
+    { redirect: 'manual' },
+  );
+  const recoveryLocation = recoveryCallback.headers.get('location') ?? '';
+  if (
+    recoveryCallback.status >= 300 &&
+    recoveryCallback.status < 400 &&
+    recoveryLocation.includes('error=auth_callback')
+  ) {
+    pass('Auth callback handles token_hash recovery', 'invalid hash redirects with auth_callback error');
+  } else {
+    fail(
+      'Auth callback handles token_hash recovery',
+      `HTTP ${recoveryCallback.status}, location=${recoveryLocation || 'none'}`,
+    );
+  }
+
   console.log('\nManual Supabase checks (dashboard):');
   console.log('  • Site URL = https://moodboard-ai-omega.vercel.app');
   console.log('  • Redirect URLs include https://moodboard-ai-omega.vercel.app/auth/callback');
   console.log('  • Migration 024 applied if avatar upload fails (avatar-uploads bucket + avatar_image_url column)');
+  console.log('  • Migration 025 applied if Settings → Editor interval fails to persist (autosave_interval column)');
+  console.log('  • Migration 026 applied if notification toasts fail to persist (autosave_toast_enabled, remote_save_toast_enabled)');
+  console.log('  • Verify locally: npm run verify:collaboration');
 
   const failed = checks.filter((check) => !check.ok);
   console.log(`\n${checks.length - failed.length}/${checks.length} automated checks passed.`);

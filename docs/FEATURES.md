@@ -226,7 +226,7 @@ Overview, Palette, Typography, References, and Notes — jump via editor tabs or
 #### Save & auto-save
 
 - **Manual save** — **Save changes** opens an **Apply these changes?** confirmation modal; success shows a toast
-- **Auto-save** — debounced save after idle edits (default **8 seconds**); success and error toasts (**Changes auto-saved.** / **Auto-save failed.**)
+- **Auto-save** — debounced save after idle edits (default **8 seconds**); success and error toasts (**Changes auto-saved.** / **Auto-save failed.**) when enabled in Settings → Notifications
 - Toolbar status: **Unsaved changes** | **Saving…** | **Saved** | **Save failed**; manual Save disabled while saving
 - Auto-save pauses when a collaboration conflict banner is showing (`pendingRemoteBoard`) or in replay/viewer mode
 - **Settings → Editor** — auto-save interval **Off** / **5s** / **8s** / **10s** (migration `025`)
@@ -239,6 +239,7 @@ Implemented:
 - Share / Collaborate (public link + people management — owner only)
 - Export (JSON, PNG, PDF, design system — with live preview)
 - Duplicate
+- **Save as template** (owner) — publish to Community or save privately via [`SaveTemplateModal`](../src/components/board/SaveTemplateModal.tsx)
 - Snapshots (save, preview, restore, auto-backup before restore; cap + auto-prune via migration `020`)
 
 #### Team collaboration
@@ -266,6 +267,7 @@ POST /api/boards/[id]/favorite     # Per-member favorite (migration 019)
 - Switching tabs scrolls the tab bar below the app top bar so tabs stay visible
 - Live board sync via `postgres_changes` on `boards` when local draft is clean
 - Conflict banner on unsaved local edits when a collaborator saves — **Reload** or **Keep editing**
+- **Live field sync** — debounced broadcast patches for creative summary and note text ([`use-board-field-sync.ts`](../src/lib/realtime/use-board-field-sync.ts)); [`CollaboratorFieldHighlight`](../src/components/board/CollaboratorFieldHighlight.tsx) shows who is editing each field; active field id in presence
 
 **Board comments** (migration `022` adds `section`):
 
@@ -306,10 +308,11 @@ DELETE /api/boards/[id]/comments/[commentId]
 
 **Notifications:**
 
-- Remote-save toast when local draft is clean
+- Remote-save toast when local draft is clean (toggle in Settings → Notifications, migration `026`)
+- Auto-save success toast after server confirms (toggle in Settings → Notifications)
 - Unread count in tab title + pulsing toolbar badges on Comments / Activity / Snapshots
 
-Planned: live cursors and character-level sync in a single field.
+Planned: live cursors and character-level sync in a single field (field sync is the foundation).
 
 ---
 
@@ -393,6 +396,7 @@ Implemented:
 Current functionality:
 
 - Responsive template grid with softened, palette-tinted cards
+- **Curated** and **Community** tabs — community templates load from `GET /api/templates`
 - Detailed **preview modal** (palette, typography rendered in the actual typefaces, references)
 - **Tag filter dropdown** with selected tags shown as removable pills, an "All" option, and a reset action
 - **Live tags** — tags added while creating/editing boards automatically appear as filter options
@@ -400,7 +404,9 @@ Current functionality:
 
 #### Template generation UX
 
-**Use template** runs the same draft → enrich pipeline as prompt creation. Gemini receives full template context (palette, typography, notes, references) via `buildTemplateGenerationPrompt()` in [`src/lib/ai-generate.ts`](../src/lib/ai-generate.ts).
+**Use template** runs the draft → enrich pipeline as prompt creation. **Curated** templates call `POST /api/generate/draft` with full template context via `buildTemplateGenerationPrompt()` in [`src/lib/ai-generate.ts`](../src/lib/ai-generate.ts). **Community** templates use [`templateToBoard()`](../src/lib/board-to-template.ts) then the enrich pipeline (no AI draft regeneration).
+
+Board owners can **Save as template** from the editor More menu ([`SaveTemplateModal`](../src/components/board/SaveTemplateModal.tsx)) — private library or publish to Community via `POST /api/templates`.
 
 During creation:
 
@@ -409,12 +415,11 @@ During creation:
 - **Inline preview** below the active card ([`TemplateGenerationPanel`](../src/components/creation/TemplateGenerationPanel.tsx) + `GenerationPreview`); modal path shows the same preview inside the modal
 - **~4s pause** on the completed preview before redirect to the editor
 
-Template metadata is still curated in-app (not a marketplace yet).
+Community templates are stored in `board_templates` (Supabase) and listed on the Community tab when `is_public`.
 
 Planned:
 
-- Real template marketplace
-- Community templates
+- Real template marketplace (payments, moderation)
 
 ---
 
@@ -456,7 +461,13 @@ Implemented (all controls are wired to real behavior — no decorative toggles):
 
 #### Presentation Mode
 
-User-configurable toggle that gates the keyboard-driven slideshow on the share/view page.
+User-configurable toggle that gates the keyboard-driven slideshow on the share/view page. When enabled, section tabs show **progress dots** and an **n / 5** counter; header chrome is simplified to title + summary.
+
+#### Notifications
+
+- **Auto-save toasts** — show/hide **Changes auto-saved.** after background saves
+- **Remote save toasts** — show/hide collaborator save notifications
+- Migration `026_notification_prefs.sql`
 
 #### Collaboration retention
 

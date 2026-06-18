@@ -36,6 +36,8 @@ export type UserSettingsRow = {
   snapshot_max_per_board?: number;
   snapshot_auto_prune?: boolean;
   autosave_interval?: string;
+  autosave_toast_enabled?: boolean;
+  remote_save_toast_enabled?: boolean;
   updated_at: string;
 };
 
@@ -82,6 +84,14 @@ export function rowToSettings(row: UserSettingsRow): AppSettings {
     autosaveInterval: normalizeAutosaveInterval(
       row.autosave_interval ?? DEFAULT_AUTOSAVE_INTERVAL,
     ),
+    autosaveToastEnabled:
+      typeof row.autosave_toast_enabled === 'boolean'
+        ? row.autosave_toast_enabled
+        : DEFAULT_APP_SETTINGS.autosaveToastEnabled,
+    remoteSaveToastEnabled:
+      typeof row.remote_save_toast_enabled === 'boolean'
+        ? row.remote_save_toast_enabled
+        : DEFAULT_APP_SETTINGS.remoteSaveToastEnabled,
   };
 }
 
@@ -107,6 +117,8 @@ export function settingsToRow(settings: AppSettings, userId: string): Omit<UserS
     snapshot_max_per_board: settings.snapshotMaxPerBoard,
     snapshot_auto_prune: settings.snapshotAutoPrune,
     autosave_interval: settings.autosaveInterval,
+    autosave_toast_enabled: settings.autosaveToastEnabled,
+    remote_save_toast_enabled: settings.remoteSaveToastEnabled,
   };
 }
 

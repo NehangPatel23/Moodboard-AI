@@ -9,6 +9,46 @@ export type ChangelogEntry = {
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
     date: '2026-06',
+    sprint: 'T',
+    title: 'Verification + docs',
+    bullets: [
+      'Collaboration verify script checks migration 026 notification columns',
+      'Prod smoke test includes Templates Community tab check',
+      'Roadmap, features, changelog, and agent handoff updated for Sprints Q–T',
+    ],
+  },
+  {
+    date: '2026-06',
+    sprint: 'S',
+    title: 'Notifications + presentation polish',
+    bullets: [
+      'Settings Notifications section: toggle auto-save and remote-save toasts (migration 026)',
+      'Presentation mode shows section progress dots and n / 5 counter',
+      'Discover Remix redirects unauthenticated users to sign-in',
+    ],
+  },
+  {
+    date: '2026-06',
+    sprint: 'R',
+    title: 'Community templates',
+    bullets: [
+      'Save as template from board editor (private or publish to Community)',
+      'Templates page Community tab loads public templates from /api/templates',
+      'Community templates use templateToBoard + enrich pipeline instead of AI draft regeneration',
+    ],
+  },
+  {
+    date: '2026-06',
+    sprint: 'Q',
+    title: 'Live field sync',
+    bullets: [
+      'Debounced field patches broadcast summary and note text to collaborators',
+      'CollaboratorFieldHighlight shows who is editing each field',
+      'Active field id included in realtime presence',
+    ],
+  },
+  {
+    date: '2026-06',
     sprint: 'P',
     title: 'Landing polish + password reset hardening',
     bullets: [

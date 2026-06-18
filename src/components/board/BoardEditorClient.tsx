@@ -23,6 +23,12 @@ import {
   persistBoardRemote,
 } from '@/lib/board-store';
 import { useBoardRealtime, type BoardPresenceUser } from '@/lib/realtime/use-board-realtime';
+import {
+  useBoardFieldSync,
+  useRemoteFieldValues,
+  type BoardFieldPatch,
+} from '@/lib/realtime/use-board-field-sync';
+import { buildFieldId, parseFieldId } from '@/lib/realtime/collaborator-fields';
 import { useBoardComments } from '@/lib/realtime/use-board-comments';
 import { useBoardActivity } from '@/lib/realtime/use-board-activity';
 import { useBoardCollaborationState } from '@/lib/realtime/use-board-collaboration-state';
@@ -49,6 +55,8 @@ import { BoardReplayBanner } from '@/components/board/BoardReplayBanner';
 import { BoardReplayCallout, BoardReplaySectionBlock } from '@/components/board/BoardReplayCallout';
 import { BoardEditorSkeleton } from '@/components/board/BoardEditorSkeleton';
 import { BoardEditorToolbar } from '@/components/board/BoardEditorToolbar';
+import { CollaboratorFieldHighlight } from '@/components/board/CollaboratorFieldHighlight';
+import { SaveTemplateModal } from '@/components/board/SaveTemplateModal';
 import { RemoteUpdateBanner } from '@/components/board/RemoteUpdateBanner';
 import { ReferenceImageDisplay } from '@/components/board/ReferenceImageDisplay';
 import { ReferenceImageSearchButton } from '@/components/board/ReferenceImageSearchButton';
@@ -652,6 +660,10 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
   const activityButtonRef = useRef<HTMLButtonElement>(null);
   const snapshotsButtonRef = useRef<HTMLButtonElement>(null);
   const [aiActionRequest, setAiActionRequest] = useState<EditorQuickAction | null>(null);
+  const [activeFieldId, setActiveFieldId] = useState<string | null>(null);
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  const applyingRemotePatchRef = useRef(false);
+  const fieldPatchTimersRef = useRef<Record<string, number>>({});
 
   useEffect(() => {
     activeSectionIndexRef.current = activeSectionIndex;
@@ -697,25 +709,16 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
       setPendingRemoteBoard(null);
       setPendingRemoteSavedByName(null);
       const savedBy = savedByName?.trim() || 'A collaborator';
-      showToast(`${savedBy} saved changes. Your board was updated.`, 'default');
+      if (readAppSettings().remoteSaveToastEnabled) {
+        showToast(`${savedBy} saved changes. Your board was updated.`, 'default');
+      }
     },
     [boardId, isDirty],
   );
 
   const activeSectionLabel = EDITOR_SECTION_META[EDITOR_SECTION_ORDER[activeSectionIndex]].label;
 
-  const { onlineUsers } = useBoardRealtime({
-    boardId,
-    userId: auth.user?.id ?? null,
-    userName: auth.user?.name ?? settings.workspaceName,
-    boardRole,
-    localUpdatedAt: editorBoard?.updatedAt ?? null,
-    isDirty,
-    enabled: realtimeEnabled,
-    activeSectionIndex,
-    activeSectionLabel,
-    onRemoteBoard: handleRemoteBoard,
-  });
+  const { applyRemotePatch } = useRemoteFieldValues();
 
   const {
     commentsLastReadAt,
@@ -1024,6 +1027,82 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     [canEditBoard, markDirty, savedBoard],
   );
 
+  const fieldSyncEnabled = canEditBoard && !isReplayMode && !pendingRemoteBoard;
+
+  const handleRemoteFieldPatch = useCallback(
+    (patch: BoardFieldPatch) => {
+      if (applyingRemotePatchRef.current) return;
+
+      const parsed = parseFieldId(patch.fieldId);
+      applyingRemotePatchRef.current = true;
+
+      try {
+        if (parsed.kind === 'overview-summary') {
+          updateDraft((current) => ({ ...current, summary: patch.value }));
+        } else if (parsed.kind === 'note' && parsed.noteId) {
+          updateDraft((current) => ({
+            ...current,
+            notes: current.notes.map((note) =>
+              note.id === parsed.noteId ? { ...note, text: patch.value } : note,
+            ),
+          }));
+        }
+        applyRemotePatch(patch);
+      } finally {
+        applyingRemotePatchRef.current = false;
+      }
+    },
+    [applyRemotePatch, updateDraft],
+  );
+
+  const { broadcastFieldPatch } = useBoardFieldSync({
+    boardId,
+    userId: auth.user?.id ?? null,
+    userName: auth.user?.name ?? settings.workspaceName,
+    enabled: fieldSyncEnabled,
+    onRemotePatch: handleRemoteFieldPatch,
+  });
+
+  const scheduleFieldPatch = useCallback(
+    (fieldId: string, value: string) => {
+      if (applyingRemotePatchRef.current) return;
+
+      const timers = fieldPatchTimersRef.current;
+      if (timers[fieldId]) {
+        window.clearTimeout(timers[fieldId]);
+      }
+
+      timers[fieldId] = window.setTimeout(() => {
+        broadcastFieldPatch(fieldId, value);
+        delete timers[fieldId];
+      }, 250);
+    },
+    [broadcastFieldPatch],
+  );
+
+  useEffect(() => {
+    return () => {
+      for (const timer of Object.values(fieldPatchTimersRef.current)) {
+        window.clearTimeout(timer);
+      }
+      fieldPatchTimersRef.current = {};
+    };
+  }, []);
+
+  const { onlineUsers } = useBoardRealtime({
+    boardId,
+    userId: auth.user?.id ?? null,
+    userName: auth.user?.name ?? settings.workspaceName,
+    boardRole,
+    localUpdatedAt: editorBoard?.updatedAt ?? null,
+    isDirty,
+    enabled: realtimeEnabled,
+    activeSectionIndex,
+    activeSectionLabel,
+    activeFieldId,
+    onRemoteBoard: handleRemoteBoard,
+  });
+
   const persistDraft = useCallback(
     async (options?: { showToast?: boolean; source?: 'manual' | 'auto' }) => {
       const board = editorBoardRef.current;
@@ -1055,7 +1134,9 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
       setIsDirty(false);
       setSaveStatus('Saved');
       if (options?.source === 'auto') {
-        showToast('Changes auto-saved.', 'success');
+        if (readAppSettings().autosaveToastEnabled) {
+          showToast('Changes auto-saved.', 'success');
+        }
       } else if (options?.showToast) {
         showToast('Changes saved.', 'success');
       }
@@ -1587,6 +1668,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
             showToast('You are about to permanently delete this board.', 'destructive');
             setDeleteOpen(true);
           }}
+          onSaveAsTemplate={isOwner && canEditBoard ? () => setSaveTemplateOpen(true) : undefined}
         />
 
           <div className="grid gap-6 xl:grid-cols-[1fr_280px]">
@@ -1734,12 +1816,24 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                 <label className={editorLabelClass}>
                   Creative summary
                 </label>
-                <Textarea
-                  value={editorBoard.summary}
-                  readOnly={effectiveReadOnly}
-                  onChange={(e) => updateDraft((current) => ({ ...current, summary: e.target.value }))}
-                  className="min-h-42.5 rounded-3xl border-(--border) bg-(--surface-elevated) text-(--text) placeholder:text-(--text-muted) focus-visible:ring-(--ring)"
-                />
+                <CollaboratorFieldHighlight
+                  fieldId={buildFieldId('overview-summary')}
+                  onlineUsers={onlineUsers}
+                  currentUserId={currentUserId}
+                >
+                  <Textarea
+                    value={editorBoard.summary}
+                    readOnly={effectiveReadOnly}
+                    onFocus={() => setActiveFieldId(buildFieldId('overview-summary'))}
+                    onBlur={() => setActiveFieldId(null)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      updateDraft((current) => ({ ...current, summary: value }));
+                      scheduleFieldPatch(buildFieldId('overview-summary'), value);
+                    }}
+                    className="min-h-42.5 rounded-3xl border-(--border) bg-(--surface-elevated) text-(--text) placeholder:text-(--text-muted) focus-visible:ring-(--ring)"
+                  />
+                </CollaboratorFieldHighlight>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
@@ -2052,19 +2146,29 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                         <label className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
                           Note text
                         </label>
-                        <Textarea
-                          value={note.text}
-                          readOnly={effectiveReadOnly}
-                          onChange={(event) =>
-                            updateDraft((current) => ({
-                              ...current,
-                              notes: current.notes.map((item, currentIndex) =>
-                                currentIndex === index ? { ...item, text: event.target.value } : item,
-                              ),
-                            }))
-                          }
-                          className={`min-h-35 rounded-3xl ${fieldClass}`}
-                        />
+                        <CollaboratorFieldHighlight
+                          fieldId={buildFieldId('note', note.id)}
+                          onlineUsers={onlineUsers}
+                          currentUserId={currentUserId}
+                        >
+                          <Textarea
+                            value={note.text}
+                            readOnly={effectiveReadOnly}
+                            onFocus={() => setActiveFieldId(buildFieldId('note', note.id))}
+                            onBlur={() => setActiveFieldId(null)}
+                            onChange={(event) => {
+                              const value = event.target.value;
+                              updateDraft((current) => ({
+                                ...current,
+                                notes: current.notes.map((item, currentIndex) =>
+                                  currentIndex === index ? { ...item, text: value } : item,
+                                ),
+                              }));
+                              scheduleFieldPatch(buildFieldId('note', note.id), value);
+                            }}
+                            className={`min-h-35 rounded-3xl ${fieldClass}`}
+                          />
+                        </CollaboratorFieldHighlight>
                       </div>
                     </CardContent>
                   </Card>
@@ -2623,6 +2727,13 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
           void refreshActivity();
         }}
         returnFocusRef={snapshotsButtonRef}
+      />
+
+      <SaveTemplateModal
+        key={saveTemplateOpen ? `save-template-${editorBoard.id}` : 'save-template-closed'}
+        open={saveTemplateOpen}
+        board={editorBoard}
+        onOpenChange={setSaveTemplateOpen}
       />
     </div>
   );

@@ -56,14 +56,16 @@ flowchart TD
 - **View-only sharing** at `/share/[id]` for boards with visibility **Shared** (migration `002`).
 - **Discover** at `/discover` — featured row + creator names on cards.
 - **Collaboration** — invite by email; dashboard **With me** / **With others** / **Public** / **Private** filters; per-member favorites (migration `019`).
-- **Real-time co-editing** — presence dots on section tabs, live board sync, conflict banner (migration `006`). Section metadata: [`editor-sections.ts`](../src/lib/editor-sections.ts).
+- **Real-time co-editing** — presence dots on section tabs, live board sync, conflict banner (migration `006`). **Live field sync** for summary + notes (Sprint Q). Section metadata: [`editor-sections.ts`](../src/lib/editor-sections.ts).
+- **Community templates** — save boards as templates; Community tab on `/templates`; `board_templates` table + `/api/templates` (Sprint R).
 - **Board comments** — `GET/POST/PATCH/DELETE /api/boards/[id]/comments`; `section` column (migration `022`) links comments to editor tabs.
 - **Collaboration unread** — yellow-dot unseen on comments, activity, snapshots; own content excluded ([`collaboration-read-state.ts`](../src/lib/collaboration-read-state.ts)). Snapshots last-read: migration `023`. Mark read explicitly — panels do not auto-clear on open.
 - **Board activity + replay** — migrations `008`–`013`; verify with `npm run verify:collaboration`.
 - **Collaboration retention** — migration `018`.
 - **Reference photos** — [REFERENCE_PHOTOS](REFERENCE_PHOTOS.md).
 - **AI suggestions** — typography, palette, brand (`021` for persisted brand strategy).
-- **Collaboration notifications** — remote-save toast, unread tab title, toolbar pulse.
+- **Collaboration notifications** — remote-save toast (toggle in Settings), unread tab title, toolbar pulse.
+- **Notification toast prefs** — migration `026`; Settings → Notifications section.
 - **Snapshot limits** — migration `020`.
 - **Visual export** — JSON / PNG / PDF with live preview; brand strategy in visual export. See [SYSTEMS](SYSTEMS.md#visual-board-export).
 - **Design system export** — CSS, Tailwind, tokens JSON, Markdown from Export modal; optional AI token naming via `POST /api/generate/design-system`.
@@ -80,13 +82,13 @@ flowchart TD
 - **Profile layout** — [`src/app/profile/layout.tsx`](../src/app/profile/layout.tsx) wraps public profiles with [`LandingHeader`](../src/components/landing/LandingHeader.tsx) (same shell as landing/discover).
 - **Share / remix** — creator link on share page; Discover nav active on `/share` and `/profile`; prompt pre-fill on `/app/new?prompt=`.
 - **Auth** — email/password sign-in and sign-up, demo account, and **forgot password** (`requestPasswordReset` → email → [`/auth/callback`](../src/app/auth/callback/route.ts) → `/sign-in?mode=update-password`). Callback handles PKCE `code` and `token_hash` recovery links. OAuth (Google/GitHub) is **not implemented** — deferred.
-- **Board auto-save** — [`use-board-auto-save.ts`](../src/lib/use-board-auto-save.ts) debounces PATCH saves; manual Save + confirmation modal unchanged ([`BoardEditorClient.tsx`](../src/components/board/BoardEditorClient.tsx)). Interval in Settings (migration `025`); auto saves omit Activity noise via `saveSource: 'auto'`. Success toast **Changes auto-saved.** fires only after the API confirms.
+- **Board auto-save** — [`use-board-auto-save.ts`](../src/lib/use-board-auto-save.ts) debounces PATCH saves; manual Save + confirmation modal unchanged ([`BoardEditorClient.tsx`](../src/components/board/BoardEditorClient.tsx)). Interval in Settings (migration `025`); auto saves omit Activity noise via `saveSource: 'auto'`. Success toast **Changes auto-saved.** fires only when `autosaveToastEnabled` is on (migration `026`).
 - **Landing polish** — softer hero gradients and `--surface-elevated` feature cards in [`app-surface-styles.ts`](../src/components/shared/app-surface-styles.ts).
 - **Portfolio metadata** — favicon ([`public/icon.svg`](../public/icon.svg) via [`AppIcon`](../src/components/shared/AppIcon.tsx)), default OG image ([`opengraph-image.tsx`](../src/app/opengraph-image.tsx)), route meta for Discover/share/profile ([`site-metadata.ts`](../src/lib/site-metadata.ts)).
 - **Comments scrim** — panel backdrop uses `--overlay-scrim` token.
 - **Demo boards seed** — `npm run db:seed-demo-boards` (after `db:seed-demo`) populates shared showcase boards.
 - **Tooltips** — [`tooltip.tsx`](../src/components/ui/tooltip.tsx) + `Button` `tooltip` prop. Use `triggerClassName="block w-full"` when wrapping full-width grid/card triggers; default wrapper is `inline-flex` (breaks vertical nav lists if parent is not `flex-col`).
-- **View mode** — [`BoardReadOnlyClient.tsx`](../src/components/board/BoardReadOnlyClient.tsx): one section heading per tab; no duplicate card titles.
+- **View mode** — [`BoardReadOnlyClient.tsx`](../src/components/board/BoardReadOnlyClient.tsx): one section heading per tab; presentation mode shows section progress dots + `n / 5`.
 - Board editor loads from Supabase after hydration (no false "not found").
 - Settings controls are wired to real behavior (theme, reduce motion, focus rings, default visibility, presentation mode, workspace identity).
 
@@ -94,6 +96,12 @@ flowchart TD
 
 ## When resuming work
 
-Follow [ROADMAP](ROADMAP.md): advanced reference APIs and long-term co-editing polish. Marketplace/pricing/Stripe are **parked**.
+**Portfolio MVP is complete** (Sprints A–T). Collaboration includes sync-on-save, field-level patches for summary/notes, and conflict handling — not full Google Docs–style simultaneous typing (long-term upgrade).
 
-Run migrations through **`025`** in production if not applied — see [DEPLOY](DEPLOY.md#step-5f--apply-latest-migration-025) and migrations `024`–`025`.
+If continuing development, recommended order:
+
+1. **Behance / Dribbble reference APIs** (only with legitimate API access)
+2. Incremental visual polish (landing, dashboard) — see [DEVELOPMENT.md](DEVELOPMENT.md)
+3. Live cursors / character-level co-editing — build on existing field sync + presence layer
+
+Run migrations through **`026`** in production if not applied — see [DEPLOY](DEPLOY.md#step-5f--apply-latest-migration-025). Verify with `npm run verify:collaboration` and `npm run verify:prod-smoke`.

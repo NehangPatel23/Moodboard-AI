@@ -6,7 +6,9 @@ Back to [README](../README.md) · Features: [FEATURES](FEATURES.md) · Deploy: [
 
 ## Current status
 
-Waves 1–3 and Sprints A–M are **complete**. The app is a deployed MVP with Supabase persistence, collaboration, AI generation, snapshots, visual export, developer handoff tokens, public creator profiles, inspiration/help surfaces, command palette AI actions, portfolio-ready Discover browsing, email auth with forgot password, and share/profile OG metadata. Monetization (marketplace, pricing, Stripe) is **not planned near term**.
+Waves 1–3 and Sprints A–P are **complete**. The app is a **portfolio-grade MVP** — feature-complete for demo and job-search use. Supabase persistence, collaboration (presence, sync-on-save, conflict banner), AI generation, snapshots, visual export, developer handoff tokens, public creator profiles, inspiration/help surfaces, command palette AI actions, Discover browsing, email auth with forgot password, board auto-save, and share/profile OG metadata are all shipped. Monetization (marketplace, pricing, Stripe) is **not planned near term**.
+
+**Ops:** Migrations through **`026`** should be applied on production Supabase — verify with `npm run verify:collaboration`.
 
 ---
 
@@ -64,6 +66,11 @@ Waves 1–3 and Sprints A–M are **complete**. The app is a deployed MVP with S
 | 47 | Auto-save settings | Configurable interval Off / 5s / 8s / 10s in Settings (migration `025`) |
 | 48 | Landing polish | Softer hero gradients; elevated feature cards for light-mode hierarchy |
 | 49 | Password reset hardening | `/auth/callback` handles `token_hash` recovery links + clearer error copy |
+| 50 | Live field sync | Debounced field patches for summary + notes; collaborator field highlights; active field presence |
+| 51 | Community templates | Save board as template; Community tab on `/templates`; enrich pipeline from saved templates |
+| 52 | Notification toast prefs | Settings toggles for auto-save and remote-save toasts (migration `026`) |
+| 53 | Presentation progress | Section dots + `n / 5` indicator in presentation mode; simplified read-only chrome |
+| 54 | Discover remix auth | Remix button redirects unauthenticated users to sign-in via auth store |
 
 ### Sprint summary (completed)
 
@@ -85,14 +92,26 @@ Waves 1–3 and Sprints A–M are **complete**. The app is a deployed MVP with S
 | **O** | Board auto-save | Debounced save + manual Save unchanged |
 | **O+** | Auto-save follow-ups | Settings interval; auto-save skips Activity noise |
 | **P** | Landing + auth reliability | Landing hierarchy polish; password reset callback hardening |
+| **Q** | Live field sync | Field-level broadcast for summary + notes; collaborator highlights; active field in presence |
+| **R** | Community templates | Save as template modal; Community tab; `templateToBoard` + enrich for community templates |
+| **S** | Notifications + presentation | Toast preference toggles (`026`); presentation section progress; Discover remix auth fix |
+| **T** | Verification + docs | Migration verify script; prod smoke Community tab check; roadmap/features/changelog updates |
 
 ---
 
 ## Next priorities
 
-1. Advanced reference APIs (Behance, Dribbble)
-2. Live cursors / character-level co-editing (long-term)
-3. README screenshot assets (capture Discover, editor, share, settings avatar) — **done**; refresh via `node scripts/capture-portfolio-screenshots.mjs`
+**Portfolio MVP:** no required features remain. Optional follow-ups only.
+
+| Priority | Sprint | Scope | When |
+|----------|--------|-------|------|
+| 1 (optional) | — | Behance / Dribbble reference APIs | When legitimate API keys are available |
+| 2 (optional) | — | Incremental landing / dashboard visual polish | Portfolio refresh |
+| 3 (long-term) | — | Live cursors / character-level co-editing | Upgrade on top of existing field sync + sync-on-save collaboration |
+
+**Deferred / parked:** OAuth, marketplace, pricing/Stripe, full landing redesign.
+
+**Prod verification:** `npm run verify:prod-smoke` · `npm run verify:collaboration` · refresh README screenshots via `npm run capture:screenshots`
 
 ---
 
@@ -152,6 +171,11 @@ Use these for manual QA after changes:
 - Command palette templates: `⌘K` → template name → opens `/templates?focus=<id>` with scroll highlight
 - Help: `/help` FAQ sections + deep links; GitHub support link
 - Command palette AI: `⌘K` on editor board → suggest brand, palette, typography
+- Field sync: collaborator highlights on summary + note fields; debounced live patches while editing
+- Community templates: owners save boards as templates; Community tab lists public templates from `/api/templates`
+- Notification toasts: Settings → Notifications toggles for auto-save and remote-save toasts (migration `026`)
+- Presentation mode: section progress dots and `n / 5` counter; simplified header chrome
+- Discover remix: unauthenticated users redirect to sign-in before remix API call
 
 ---
 

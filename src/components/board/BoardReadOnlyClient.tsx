@@ -37,7 +37,7 @@ import {
   readAppSettings,
   subscribeAppSettings,
 } from '@/lib/settings-store';
-import { formatDateTime } from '@/lib/utils';
+import { cn, formatDateTime } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -173,7 +173,7 @@ function PresentationPill({
   index,
 }: {
   label: string;
-  description: string;
+  description?: string;
   icon: typeof EDITOR_SECTION_META.overview.icon;
   active: boolean;
   onClick: () => void;
@@ -208,7 +208,7 @@ function PresentationPill({
         <p className="text-sm font-medium">
           {index + 1}. {label}
         </p>
-        <p className="mt-1 text-xs text-(--text-muted)">{description}</p>
+        {description ? <p className="mt-1 text-xs text-(--text-muted)">{description}</p> : null}
       </div>
     </button>
   );
@@ -489,26 +489,32 @@ export function BoardReadOnlyClient({ boardId, publicView = false }: BoardReadOn
                 {board.title}
               </h1>
 
-              <p className="max-w-3xl text-sm leading-6 text-(--text-muted)">
-                Prompt: <span className="font-medium text-(--text-strong)">{board.prompt}</span>
-              </p>
+              {!presentationModeEnabled ? (
+                <>
+                  <p className="max-w-3xl text-sm leading-6 text-(--text-muted)">
+                    Prompt: <span className="font-medium text-(--text-strong)">{board.prompt}</span>
+                  </p>
 
-              <p className="max-w-4xl text-base leading-7 text-(--text-muted)">{board.summary}</p>
+                  <p className="max-w-4xl text-base leading-7 text-(--text-muted)">{board.summary}</p>
 
-              <div className="flex flex-wrap gap-2">
-                {board.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-full border border-(--border) bg-(--surface) px-3 py-1 text-[11px] font-medium tracking-wide text-(--text-muted) dark:bg-[rgba(255,255,255,0.04)]"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
+                  <div className="flex flex-wrap gap-2">
+                    {board.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full border border-(--border) bg-(--surface) px-3 py-1 text-[11px] font-medium tracking-wide text-(--text-muted) dark:bg-[rgba(255,255,255,0.04)]"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
 
-              <p className="text-xs uppercase tracking-[0.24em] text-(--text-muted)">
-                Updated {formatDateTime(board.updatedAt)}
-              </p>
+                  <p className="text-xs uppercase tracking-[0.24em] text-(--text-muted)">
+                    Updated {formatDateTime(board.updatedAt)}
+                  </p>
+                </>
+              ) : (
+                <p className="max-w-4xl text-base leading-7 text-(--text-muted)">{board.summary}</p>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center gap-3 lg:max-w-xs lg:justify-end">
@@ -534,27 +540,59 @@ export function BoardReadOnlyClient({ boardId, publicView = false }: BoardReadOn
         aria-label="Presentation sections"
         className="scroll-mt-24 rounded-[2rem] border border-(--border) bg-(--surface-elevated) px-4 py-4 shadow-[var(--shadow-card)] md:scroll-mt-28 md:px-5"
       >
-        <div className="flex flex-wrap gap-2">
-          {presentationSections.map((section, index) => {
-            const isActive = index === activeSectionIndex;
-            return (
-              <PresentationPill
-                key={section.key}
-                label={section.label}
-                description={section.description}
-                icon={section.icon}
-                active={isActive}
-                onClick={() => setActiveSectionIndex(index)}
-                index={index}
-              />
-            );
-          })}
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-2">
+              {presentationSections.map((section, index) => {
+                const isActive = index === activeSectionIndex;
+                return (
+                  <PresentationPill
+                    key={section.key}
+                    label={section.label}
+                    description={presentationModeEnabled ? undefined : section.description}
+                    icon={section.icon}
+                    active={isActive}
+                    onClick={() => setActiveSectionIndex(index)}
+                    index={index}
+                  />
+                );
+              })}
+            </div>
+
+            {presentationModeEnabled ? (
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5" aria-hidden="true">
+                  {presentationSections.map((section, index) => (
+                    <span
+                      key={section.key}
+                      className={cn(
+                        'h-2 w-2 rounded-full transition',
+                        index === activeSectionIndex
+                          ? 'bg-(--text-strong)'
+                          : index < activeSectionIndex
+                            ? 'bg-(--text-muted)'
+                            : 'bg-(--border)',
+                      )}
+                    />
+                  ))}
+                </div>
+                <p className="text-sm font-medium tabular-nums text-(--text-muted)">
+                  {activeSectionIndex + 1} / {presentationSections.length}
+                </p>
+              </div>
+            ) : null}
+          </div>
+
+          {!presentationModeEnabled ? (
+            <p className="text-center text-sm leading-6 text-(--text-muted)" aria-live="polite">
+              Select a section to explore this board.
+            </p>
+          ) : (
+            <p className="sr-only" aria-live="polite">
+              Section {activeSectionIndex + 1} of {presentationSections.length}. Use arrow keys or space to navigate.
+            </p>
+          )}
         </div>
-        <p className="mt-3 text-center text-sm leading-6 text-(--text-muted)" aria-live="polite">
-          {presentationModeEnabled
-            ? 'Use ← → or Space to move through sections. Press Esc to leave presentation mode.'
-            : 'Select a section to explore this board.'}
-        </p>
       </nav>
 
       <section

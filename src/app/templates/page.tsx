@@ -12,10 +12,14 @@ import { PageLabel } from '@/components/shared/PageLabel';
 import { cn } from '@/lib/utils';
 import { loadBoards, saveBoards, subscribeBoards, upsertBoard } from '@/lib/board-store';
 import { readAppSettings } from '@/lib/settings-store';
+import { apiFetch } from '@/lib/api-client';
+import { templateToBoard } from '@/lib/board-to-template';
+import type { CommunityTemplateRecord } from '@/lib/db/template-mappers';
 import {
   fetchGeneratedBoardDraftFromTemplate,
   getBoardTemplates,
   runProgressiveBoardGeneration,
+  type GeneratedBoardDraft,
 } from '@/lib/ai';
 import { type GenerationPhase } from '@/components/creation/GenerationPreview';
 import { TemplateGenerationPanel } from '@/components/creation/TemplateGenerationPanel';
@@ -532,9 +536,20 @@ function TemplatesPageContent() {
   const searchParams = useSearchParams();
   const redirectTimerRef = useRef<number | null>(null);
   const focusHandledRef = useRef<string | null>(null);
-  const templates = useMemo(() => getBoardTemplates(), []);
+  const curatedTemplates = useMemo(
+    () =>
+      getBoardTemplates().map(
+        (template): CommunityTemplateRecord => ({
+          ...template,
+          source: 'curated',
+        }),
+      ),
+    [],
+  );
   const boards = useSyncExternalStore(subscribeBoards, loadBoards, loadBoards);
   useSyncExternalStore(subscribeTemplateMetadata, loadTemplateMetadata, loadTemplateMetadata);
+  const [templateSource, setTemplateSource] = useState<'curated' | 'community'>('curated');
+  const [communityTemplates, setCommunityTemplates] = useState<CommunityTemplateRecord[]>([]);
   const [query, setQuery] = useState('');
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
@@ -551,6 +566,14 @@ function TemplatesPageContent() {
   useEffect(() => {
     hydrateTemplateMetadataStore();
   }, []);
+
+  useEffect(() => {
+    void apiFetch<{ community: CommunityTemplateRecord[] }>('/api/templates')
+      .then((data) => setCommunityTemplates(data.community ?? []))
+      .catch(() => setCommunityTemplates([]));
+  }, []);
+
+  const templates = templateSource === 'curated' ? curatedTemplates : communityTemplates;
 
   useEffect(() => {
     if (!focusParam || focusHandledRef.current === focusParam) return;
@@ -596,7 +619,13 @@ function TemplatesPageContent() {
       counts.set(key, (counts.get(key) ?? 0) + 1);
     };
 
-    for (const template of templates) {
+    for (const template of curatedTemplates) {
+      for (const tag of template.tags) {
+        countTag(tag);
+      }
+    }
+
+    for (const template of communityTemplates) {
       for (const tag of template.tags) {
         countTag(tag);
       }
@@ -611,7 +640,7 @@ function TemplatesPageContent() {
     return Array.from(counts.entries())
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
       .map(([tag]) => tag);
-  }, [boards, templates]);
+  }, [boards, communityTemplates, curatedTemplates]);
 
   const visibleTemplates = useMemo(() => {
     const normalizedQuery = normalizeText(query);
@@ -655,7 +684,7 @@ function TemplatesPageContent() {
     setPreviewTemplateId(templateId);
   };
 
-  const handleUseTemplate = async (template: BoardTemplate) => {
+  const handleUseTemplate = async (template: CommunityTemplateRecord) => {
     if (isCreating) return;
 
     setIsCreating(true);
@@ -668,24 +697,29 @@ function TemplatesPageContent() {
     try {
       recordTemplateUse(template.id);
 
-      const { board: enrichedBoard } = await runProgressiveBoardGeneration(
-        fetchGeneratedBoardDraftFromTemplate(template.id),
-        {
-          onDraft: (draft) => {
-            setPreviewBoard(draft.board);
-            setCreationStatus('Creative direction ready. Finding reference images...');
-          },
-          onEnrichStart: (total) => {
-            setGenerationPhase('enriching');
-            setEnrichProgress({ done: 0, total });
-          },
-          onEnrichProgress: (done, total, board) => {
-            setPreviewBoard(board);
-            setEnrichProgress({ done, total });
-            setCreationStatus(`Finding reference ${done} of ${total}...`);
-          },
+      const isCommunityTemplate = template.source === 'community';
+      const draftPromise: Promise<GeneratedBoardDraft> = isCommunityTemplate
+        ? Promise.resolve({
+            board: templateToBoard(template),
+            followUpPrompt: template.prompt,
+          })
+        : fetchGeneratedBoardDraftFromTemplate(template.id);
+
+      const { board: enrichedBoard } = await runProgressiveBoardGeneration(draftPromise, {
+        onDraft: (draft) => {
+          setPreviewBoard(draft.board);
+          setCreationStatus('Creative direction ready. Finding reference images...');
         },
-      );
+        onEnrichStart: (total) => {
+          setGenerationPhase('enriching');
+          setEnrichProgress({ done: 0, total });
+        },
+        onEnrichProgress: (done, total, board) => {
+          setPreviewBoard(board);
+          setEnrichProgress({ done, total });
+          setCreationStatus(`Finding reference ${done} of ${total}...`);
+        },
+      });
 
       setGenerationPhase('complete');
 
@@ -760,6 +794,37 @@ function TemplatesPageContent() {
 
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setTemplateSource('curated')}
+                aria-pressed={templateSource === 'curated'}
+                className={cn(
+                  'rounded-full border px-4 py-2 text-sm font-medium transition',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)',
+                  templateSource === 'curated'
+                    ? 'border-(--text-strong) bg-(--text-strong) text-(--background)!'
+                    : 'border-(--border) bg-(--surface) text-(--text-muted) hover:bg-(--surface-subtle) hover:text-(--text-strong)',
+                )}
+              >
+                Curated
+              </button>
+              <button
+                type="button"
+                onClick={() => setTemplateSource('community')}
+                aria-pressed={templateSource === 'community'}
+                className={cn(
+                  'rounded-full border px-4 py-2 text-sm font-medium transition',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)',
+                  templateSource === 'community'
+                    ? 'border-(--text-strong) bg-(--text-strong) text-(--background)!'
+                    : 'border-(--border) bg-(--surface) text-(--text-muted) hover:bg-(--surface-subtle) hover:text-(--text-strong)',
+                )}
+              >
+                Community
+              </button>
+
+              <span className="h-6 w-px bg-(--border)" aria-hidden="true" />
+
               <button
                 type="button"
                 onClick={() => setActiveFilters([])}

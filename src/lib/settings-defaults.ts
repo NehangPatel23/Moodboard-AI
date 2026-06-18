@@ -30,6 +30,8 @@ export type AppSettings = {
   snapshotMaxPerBoard: number;
   snapshotAutoPrune: boolean;
   autosaveInterval: AutosaveInterval;
+  autosaveToastEnabled: boolean;
+  remoteSaveToastEnabled: boolean;
 };
 
 export const SNAPSHOT_LIMIT_OPTIONS = [
@@ -121,4 +123,6 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   snapshotMaxPerBoard: 25,
   snapshotAutoPrune: true,
   autosaveInterval: DEFAULT_AUTOSAVE_INTERVAL,
+  autosaveToastEnabled: true,
+  remoteSaveToastEnabled: true,
 };

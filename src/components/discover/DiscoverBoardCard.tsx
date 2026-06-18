@@ -15,6 +15,7 @@ import {
   appPreviewTileFooterClass,
   appPreviewTileOverlayClass,
 } from '@/components/shared/app-surface-styles';
+import { DiscoverRemixButton } from '@/components/discover/DiscoverRemixButton';
 
 type DiscoverBoardCardProps = {
   board: Board;
@@ -122,8 +123,8 @@ export function DiscoverBoardCard({ board, featured = false }: DiscoverBoardCard
         </div>
       </Link>
 
-      <div className="border-t border-(--border) bg-(--surface-subtle)/40 px-4 py-3">
-        <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
+      <div className="flex items-center justify-between gap-3 border-t border-(--border) bg-(--surface-subtle)/40 px-4 py-3">
+        <p className="min-w-0 flex-1 text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
           {profileHref ? (
             <>
               By{' '}
@@ -143,6 +144,7 @@ export function DiscoverBoardCard({ board, featured = false }: DiscoverBoardCard
           ) : null}
           Updated {formatDateTime(board.updatedAt)}
         </p>
+        <DiscoverRemixButton boardId={board.id} boardTitle={board.title} />
       </div>
     </article>
   );
