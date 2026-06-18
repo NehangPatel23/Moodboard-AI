@@ -6,7 +6,7 @@ Back to [README](../README.md) · Features: [FEATURES](FEATURES.md) · Deploy: [
 
 ## Current status
 
-Waves 1–3 and Sprints A–M are **complete**. The app is a deployed MVP with Supabase persistence, collaboration, AI generation, snapshots, visual export, developer handoff tokens, public creator profiles, inspiration/help surfaces, command palette AI actions, portfolio-ready Discover browsing, auth completeness (forgot password + OAuth), and share/profile OG metadata. Monetization (marketplace, pricing, Stripe) is **not planned near term**.
+Waves 1–3 and Sprints A–M are **complete**. The app is a deployed MVP with Supabase persistence, collaboration, AI generation, snapshots, visual export, developer handoff tokens, public creator profiles, inspiration/help surfaces, command palette AI actions, portfolio-ready Discover browsing, email auth with forgot password, and share/profile OG metadata. Monetization (marketplace, pricing, Stripe) is **not planned near term**.
 
 ---
 
@@ -54,11 +54,12 @@ Waves 1–3 and Sprints A–M are **complete**. The app is a deployed MVP with S
 | 37 | Discover mood browse | Mood filter **dropdown** on `/discover` with `?mood=` deep links |
 | 38 | Demo public boards | `db:seed-demo-boards` seeds shared showcase boards for Discover |
 | 39 | Creator identity | Display name (`profiles.name`) on profiles + Settings; workspace name stays separate |
-| 40 | Profile photos | Custom avatar upload + crop; migration `024`; remove photo in Settings |
+| 40 | Profile photos | Custom avatar upload + crop; migration `024`; remove photo via X on avatar tile in Settings |
 | 41 | Share / remix polish | Creator attribution, Discover nav on share/profile, prompt pre-fill from share |
-| 42 | Auth completeness | Forgot password + Google/GitHub OAuth on `/sign-in`; `/auth/callback` |
+| 42 | Auth completeness | Forgot password on `/sign-in`; `/auth/callback` code exchange for reset links |
 | 43 | Portfolio metadata | Favicon, default OG image, per-route meta for Discover, share, profile |
 | 44 | Comments scrim | Comments panel uses `--overlay-scrim` like other modals |
+| 45 | Profile shell | Public `/profile/[id]` uses shared landing header via `profile/layout.tsx` |
 
 ### Sprint summary (completed)
 
@@ -75,7 +76,7 @@ Waves 1–3 and Sprints A–M are **complete**. The app is a deployed MVP with S
 | **I** | Changelog + palette templates | `/changelog` page; command palette template navigation |
 | **J** | Product surfaces + polish | Snapshot mark-seen; `/help`; palette AI; editor scrim tokens |
 | **L** | Discover + identity polish | Demo shared boards seed; mood dropdown; display name; avatar photo + crop (`024`); share/remix UX |
-| **M** | Auth + portfolio surface | Forgot password; OAuth; favicon/OG meta; remove avatar photo; comments scrim |
+| **M** | Auth + portfolio surface | Forgot password; favicon/OG meta; remove avatar photo; comments scrim |
 
 ---
 
@@ -133,8 +134,9 @@ Use these for manual QA after changes:
 - Discover: `/discover` lists public boards with search; mood filter **dropdown** + `?mood=` deep links; landing nav active pill on discover, share, and profile routes
 - Demo boards: `npm run db:seed-demo-boards` after `db:seed-demo` populates shared showcase boards on the demo account
 - Profiles: creator **display name** from `profiles.name` (not workspace name); Settings edits name via `PATCH /api/profile/me`
-- Avatars: custom photo upload + crop in Settings; remove photo reverts to emoji/initials; migration `024`
-- Auth: forgot password email flow; Google/GitHub OAuth; `/auth/callback` exchange route
+- Avatars: custom photo upload + crop in Settings; X on avatar tile removes photo and reverts to emoji/initials; migration `024`
+- Auth: forgot password email flow → `/auth/callback` → update-password screen; email/password + demo only (no OAuth)
+- Profile pages: `/profile/[id]` uses landing header shell; creator display name + shared boards grid
 - OG meta: default favicon + opengraph image; Discover, share, and profile routes set title/description (share uses board cover when available)
 - `/explore` redirects permanently to `/discover`
 - Command palette templates: `⌘K` → template name → opens `/templates?focus=<id>` with scroll highlight
@@ -145,6 +147,7 @@ Use these for manual QA after changes:
 
 ## Out of scope (near term)
 
+- Google / GitHub OAuth sign-in — **deferred**
 - Full real-time co-editing (shared cursor + simultaneous typing in one field)
 - Landing page full redesign
 - Template marketplace / payments — **not planned near term**

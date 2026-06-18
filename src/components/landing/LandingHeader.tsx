@@ -63,15 +63,15 @@ export function LandingHeader() {
         >
           <Link
             href="/"
-            className="group flex min-w-0 items-center gap-4 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)"
+            className="group flex min-w-0 items-center gap-3.5 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background) sm:gap-4"
             aria-label="MoodBoard AI home"
           >
             <motion.div
-              className="flex h-12 w-12 items-center justify-center rounded-[1.1rem] border border-(--border) bg-(--surface-elevated) shadow-[var(--shadow-card)] transition group-hover:border-(--text-muted)/30 md:h-14 md:w-14"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[1.1rem] border border-(--border) bg-(--surface-elevated) p-1 shadow-[var(--shadow-card)] transition group-hover:border-(--text-muted)/30 sm:h-[3.625rem] sm:w-[3.625rem] sm:p-1.5 md:h-16 md:w-16"
               whileHover={reduceMotion ? undefined : { scale: 1.03 }}
               transition={{ duration: 0.2 }}
             >
-              <AppIcon />
+              <AppIcon className="h-full w-full" />
             </motion.div>
 
             <div className="min-w-0">

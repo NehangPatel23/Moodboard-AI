@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useRef, useSyncExternalStore, useState } from 'react';
 import type { ChangeEvent, ReactNode } from 'react';
-import { Camera, Loader2 } from 'lucide-react';
+import { Camera, Loader2, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -610,38 +610,58 @@ function AvatarPhotoTile({
   imageUrl,
   uploading,
   onPickPhoto,
+  onRemovePhoto,
 }: {
   selected: boolean;
   imageUrl: string | null;
   uploading: boolean;
   onPickPhoto: () => void;
+  onRemovePhoto?: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onPickPhoto}
-      aria-pressed={selected}
-      aria-label="Upload profile photo"
-      title="Upload profile photo"
-      disabled={uploading}
-      className={cn(
-        'relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-(--surface-elevated) transition',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-1 focus-visible:ring-offset-(--background)',
-        'disabled:cursor-wait disabled:opacity-70',
-        selected
-          ? 'border-(--text-strong)/40 ring-1 ring-(--text-strong) ring-offset-1 ring-offset-(--surface)'
-          : 'border-(--border) hover:border-(--text-muted)/30 hover:bg-(--surface-subtle)',
-      )}
-    >
-      {uploading ? (
-        <Loader2 className="h-4 w-4 animate-spin text-(--text-muted)" aria-hidden="true" />
-      ) : imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element -- uploaded avatar preview tile
-        <img src={imageUrl} alt="" className="h-full w-full object-cover" />
-      ) : (
-        <Camera className="h-4 w-4 text-(--text-muted)" aria-hidden="true" />
-      )}
-    </button>
+    <div className="relative h-10 w-10 shrink-0">
+      <button
+        type="button"
+        onClick={onPickPhoto}
+        aria-pressed={selected}
+        aria-label="Upload profile photo"
+        title="Upload profile photo"
+        disabled={uploading}
+        className={cn(
+          'relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border bg-(--surface-elevated) transition',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-1 focus-visible:ring-offset-(--background)',
+          'disabled:cursor-wait disabled:opacity-70',
+          selected
+            ? 'border-(--text-strong)/40 ring-1 ring-(--text-strong) ring-offset-1 ring-offset-(--surface)'
+            : 'border-(--border) hover:border-(--text-muted)/30 hover:bg-(--surface-subtle)',
+        )}
+      >
+        {uploading ? (
+          <Loader2 className="h-4 w-4 animate-spin text-(--text-muted)" aria-hidden="true" />
+        ) : imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- uploaded avatar preview tile
+          <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <Camera className="h-4 w-4 text-(--text-muted)" aria-hidden="true" />
+        )}
+      </button>
+
+      {imageUrl && onRemovePhoto ? (
+        <button
+          type="button"
+          aria-label="Remove profile photo"
+          title="Remove profile photo"
+          disabled={uploading}
+          onClick={(event) => {
+            event.stopPropagation();
+            onRemovePhoto();
+          }}
+          className="absolute -right-0.5 -top-0.5 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-rose-600 text-white shadow-sm transition hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 disabled:opacity-50 dark:bg-rose-500 dark:hover:bg-rose-600"
+        >
+          <X className="h-2.5 w-2.5" strokeWidth={3} aria-hidden="true" />
+        </button>
+      ) : null}
+    </div>
   );
 }
 
@@ -1227,6 +1247,11 @@ export default function SettingsPage() {
                         imageUrl={settings.avatarImageUrl}
                         uploading={uploadingAvatar}
                         onPickPhoto={handleAvatarPhotoPick}
+                        onRemovePhoto={
+                          settings.avatarId === CUSTOM_AVATAR_ID && settings.avatarImageUrl
+                            ? () => void handleRemoveAvatarPhoto()
+                            : undefined
+                        }
                       />
 
                       <AvatarTile
@@ -1259,16 +1284,6 @@ export default function SettingsPage() {
                         </>
                       ) : null}
                     </p>
-                    {settings.avatarId === CUSTOM_AVATAR_ID && settings.avatarImageUrl ? (
-                      <button
-                        type="button"
-                        onClick={() => void handleRemoveAvatarPhoto()}
-                        disabled={uploadingAvatar}
-                        className="text-xs font-medium text-rose-600 transition hover:text-rose-700 disabled:opacity-50 dark:text-rose-300 dark:hover:text-rose-200"
-                      >
-                        Remove profile photo
-                      </button>
-                    ) : null}
                   </div>
 
                   <div className="space-y-2">

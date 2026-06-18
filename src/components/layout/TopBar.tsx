@@ -37,8 +37,8 @@ export function TopBar() {
             aria-label="MoodBoard AI home"
             className="flex min-w-0 items-center gap-3 rounded-2xl transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
           >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] shadow-sm">
-              <AppIcon className="h-6 w-6" />
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-1 shadow-sm sm:h-14 sm:w-14 sm:p-1.5">
+              <AppIcon className="h-full w-full" />
             </span>
             <div className="min-w-0">
               <p className="[font-family:var(--font-display),serif] truncate text-2xl tracking-tight text-[var(--text-strong)] md:text-[2rem]">

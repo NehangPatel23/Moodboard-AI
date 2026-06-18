@@ -152,6 +152,15 @@ function mapAuthError(message: string): string {
   if (normalized.includes('email not confirmed')) {
     return 'Please confirm your email before signing in.';
   }
+  if (normalized.includes('provider is not enabled') || normalized.includes('unsupported provider')) {
+    return 'This sign-in provider is not enabled yet. Use email or ask the project owner to enable it in Supabase.';
+  }
+  if (normalized.includes('redirect') && normalized.includes('url')) {
+    return 'Sign-in redirect URL is not allowed. Add /auth/callback to Supabase redirect URLs (see docs/SUPABASE_SETUP.md).';
+  }
+  if (normalized.includes('rate limit') || normalized.includes('too many requests')) {
+    return 'Too many attempts. Please wait a few minutes and try again.';
+  }
   return message;
 }
 
@@ -255,29 +264,6 @@ export async function signOut(): Promise<void> {
 
 export async function signInWithDemo(): Promise<AuthResult> {
   return signIn({ ...DEMO_CREDENTIALS });
-}
-
-export type OAuthProvider = 'google' | 'github';
-
-export async function signInWithOAuth(
-  provider: OAuthProvider,
-  redirectPath: string,
-): Promise<{ ok: true } | { ok: false; error: string }> {
-  const supabase = createClient();
-  const origin = window.location.origin;
-  const next = redirectPath.startsWith('/') ? redirectPath : '/app';
-  const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
-
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider,
-    options: { redirectTo },
-  });
-
-  if (error) {
-    return { ok: false, error: mapAuthError(error.message) };
-  }
-
-  return { ok: true };
 }
 
 export async function requestPasswordReset(email: string): Promise<{ ok: true } | { ok: false; error: string }> {

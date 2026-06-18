@@ -145,10 +145,8 @@ flowchart LR
 Current:
 
 - Supabase (boards + per-user settings via API routes)
-- Custom stores (hand-rolled with React's `useSyncExternalStore` — see `src/lib/board-store.ts`, `src/lib/settings-store.ts`, `src/components/shared/toast-store.ts`, `src/components/shared/command-palette-store.ts`)
+- Custom stores (hand-rolled with React's `useSyncExternalStore` — see `src/lib/board-store.ts`, `src/lib/settings-store.ts`, `src/lib/auth-store.ts`, `src/components/shared/toast-store.ts`, `src/components/shared/command-palette-store.ts`)
 - Device-only UI prefs in localStorage (sidebar collapse)
-
-> Note: `zustand` and `radix-ui` are listed in `package.json` but are currently **unused** (no imports). The app relies on the custom `useSyncExternalStore` stores above rather than a state-management library.
 
 ### Deployment
 
@@ -167,24 +165,31 @@ Implemented:
 ```txt
 src/
 ├── app/
-│   ├── api/           # boards, comments, discover, generate/draft|enrich, migrate, settings, snapshots
+│   ├── api/           # boards, comments, discover, generate/draft|enrich, profile, migrate, settings, snapshots
+│   ├── auth/callback/ # password-reset code exchange
 │   ├── page.tsx       # landing
 │   ├── layout.tsx     # ThemeSync + SettingsBootstrap
 │   ├── (auth)/sign-in/
 │   ├── app/           # dashboard, editor, new board
 │   ├── discover/
+│   ├── profile/[id]/  # public creator profiles (layout.tsx + LandingHeader)
 │   ├── settings/
 │   ├── share/[id]/    # public view + Open Graph meta
-│   └── templates/
+│   ├── templates/
+│   ├── help/
+│   ├── changelog/
+│   └── about/
 ├── components/
+│   ├── auth/          # AuthForm, AuthGuard, use-gated-href
 │   ├── landing/
 │   ├── layout/        # AppShell, Sidebar, TopBar, BoardStoreBootstrap
 │   ├── board/         # BoardEditorClient, BoardExportCapture, BoardSnapshotsPanel, board-editor-styles.ts
 │   ├── creation/      # PromptComposer, GenerationPreview, TemplateGenerationPanel
-│   └── shared/        # ExportModal, CommandPalette, ThemeToggle, SettingsBootstrap, Toast
+│   └── shared/        # ExportModal, CommandPalette, AppIcon, ThemeToggle, SettingsBootstrap, Toast
 ├── lib/
 │   ├── ai-generate.ts
 │   ├── ai.ts          # runProgressiveBoardGeneration, streamEnrichedBoard
+│   ├── auth-store.ts
 │   ├── board-store.ts
 │   ├── export-capture.ts
 │   ├── export-pdf.ts
@@ -192,6 +197,6 @@ src/
 │   ├── settings-store.ts
 │   └── supabase/
 docs/                  # setup, deploy, ARCHITECTURE, FEATURES, SYSTEMS, ROADMAP, etc.
-scripts/               # setup:supabase, verify:generate, seed-demo
-supabase/migrations/   # 001–023 (collaboration, snapshots, retention, brand strategy, section comments)
+scripts/               # setup:supabase, verify:generate, seed-demo, seed-demo-boards
+supabase/migrations/   # 001–024 (collaboration, snapshots, retention, brand strategy, section comments, avatars)
 ```

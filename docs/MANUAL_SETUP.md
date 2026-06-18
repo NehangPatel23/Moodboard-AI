@@ -40,7 +40,7 @@ flowchart TD
 | 2 | Run [`supabase/migrations/001_initial.sql`](../supabase/migrations/001_initial.sql) in SQL Editor | Verify tables exist |
 | 3 | Copy 3 keys into `.env.local` | You did this |
 | 4 | **Authentication → Providers → Email** → disable **Confirm email** | Check if not done |
-| 5 | **Authentication → URL Configuration** → Site URL `http://localhost:3000` | Check if not done |
+| 5 | **Authentication → URL Configuration** → Site URL `http://localhost:3000`; add `http://localhost:3000/auth/callback` for password reset | Check if not done |
 | 6 | Run `npm run setup:supabase` | Should pass |
 
 Demo login: `admin@moodboard.ai` / `moodboard123`
@@ -71,7 +71,7 @@ Full guide: [`docs/GEMINI_SETUP.md`](GEMINI_SETUP.md)
 | 2 | Add env vars (see table below) |
 | 3 | **Delete** `OPENAI_API_KEY` from Vercel if present |
 | 4 | **Redeploy** after any env change |
-| 5 | Supabase → **URL Configuration** → set your `https://your-app.vercel.app` domain |
+| 5 | Supabase → **URL Configuration** → set your `https://your-app.vercel.app` domain and `/auth/callback` redirect URL |
 | 6 | Smoke test live site |
 
 ### Vercel environment variables
@@ -117,6 +117,7 @@ git status                # .env.local must NOT appear
 4. Refresh → board persists
 5. `/templates` → use a template → board created
 6. `/settings` → change theme → persists after sign-out/in
+7. `/sign-in` → **Forgot password?** → request reset email (complete update-password in the same browser after clicking the link)
 
 ---
 
@@ -131,6 +132,7 @@ Same as local, on your Vercel URL.
 | Symptom | Fix |
 |---------|-----|
 | Redirect loop on sign-in | Supabase Site URL / Redirect URLs don’t match your domain |
+| Password reset link invalid | Add `/auth/callback` to Supabase redirect URLs; match Site URL to your domain; use fresh link in same browser |
 | 401 on boards/settings | Missing or wrong Supabase env vars; redeploy |
 | Demo generation only | `GEMINI_API_KEY` not set or not redeployed |
 | Gemini quota error | Free tier limit; wait or remove key for demo mode |

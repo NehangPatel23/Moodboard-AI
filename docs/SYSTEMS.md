@@ -12,8 +12,9 @@ User login / authentication and gated CTAs use **Supabase Auth** with cookie-bas
 
 **What was built:**
 
-- **Auth store** — `src/lib/auth-store.ts`. Subscribes to `supabase.auth.onAuthStateChange`, maps sessions to `AuthUser`, and wraps Supabase sign-up/sign-in/sign-out. Demo account: `admin@moodboard.ai` / `moodboard123` (seed via `npm run db:seed-demo`).
-- **Auth page** — a single consolidated page in the route group `src/app/(auth)/` at `/sign-in`, with an in-page **Sign in / Create account** toggle (the header's "Get started" deep-links via `/sign-in?mode=sign-up`). It reads a `?redirect=` target (sanitized to internal paths) via `useSearchParams` inside a `<Suspense>` boundary, has a password show/hide toggle, a one-click demo-account button, inline validation/errors, loading states, and toast feedback. A premium split-screen layout and a pre-login theme toggle live in `src/app/(auth)/layout.tsx`.
+- **Auth store** — `src/lib/auth-store.ts`. Subscribes to `supabase.auth.onAuthStateChange`, maps sessions to `AuthUser`, and wraps Supabase sign-up/sign-in/sign-out, demo sign-in, **forgot password** (`requestPasswordReset`), and **update password** (`updatePassword`). Demo account: `admin@moodboard.ai` / `moodboard123` (seed via `npm run db:seed-demo`).
+- **Auth page** — a single consolidated page in the route group `src/app/(auth)/` at `/sign-in`, with an in-page **Sign in / Create account** toggle (the header's "Get started" deep-links via `/sign-in?mode=sign-up`). Modes: sign-in, sign-up, forgot-password, update-password. It reads a `?redirect=` target (sanitized to internal paths) via `useSearchParams` inside a `<Suspense>` boundary, has a password show/hide toggle, a **Forgot password?** link, a one-click demo-account button, inline validation/errors, loading states, and toast feedback. A premium split-screen layout and a pre-login theme toggle live in `src/app/(auth)/layout.tsx`.
+- **Auth callback** — `src/app/auth/callback/route.ts` exchanges Supabase auth codes for a session (`exchangeCodeForSession`) and redirects to `?next=` (password reset lands on `/sign-in?mode=update-password`). Requires `/auth/callback` in Supabase redirect URLs.
 - **Route gating** — `src/components/auth/AuthGuard.tsx` wraps the `/app` and `/settings` layouts. It shows a loading state while the session resolves, and redirects unauthenticated users to `/sign-in?redirect=<intended path>`.
 - **Gated landing CTAs** — `useGatedHref` (`src/components/auth/use-gated-href.ts`) makes the CTAs in `src/components/landing/Hero.tsx` ("Start a board" → `/app/new`, "View my boards" → `/app`) and `src/components/landing/CTASection.tsx` ("Begin your first board" → `/app/new`) route through `/sign-in` when unauthenticated, then bounce to the intended destination after signing in.
 - **Per-user boards** — `src/lib/board-store.ts` loads boards from `/api/boards` for the signed-in user, driven by `src/components/layout/BoardStoreBootstrap.tsx`. New accounts start with an empty workspace; legacy localStorage data is imported once via `/api/migrate`.
@@ -41,12 +42,16 @@ flowchart TD
   session2 -->|Yes| target["Navigate to /app/new or /app"]
 
   redirect --> signin["sign-in page"]
-  signin --> supaAuth["supabase.auth signIn / signUp"]
+  signin --> supaAuth["supabase.auth signIn / signUp / resetPasswordForEmail"]
+  signin --> forgot["Forgot password → email link"]
+  forgot --> callback["/auth/callback exchange code"]
+  callback --> updatePw["/sign-in?mode=update-password"]
   supaAuth --> authStore["auth-store.ts onAuthStateChange"]
   authStore --> bounce["Redirect to intended path"]
+  updatePw --> authStore
 ```
 
-**Key files:** [`auth-store.ts`](../src/lib/auth-store.ts) · [`AuthGuard.tsx`](../src/components/auth/AuthGuard.tsx) · [`proxy.ts`](../src/proxy.ts) · [`use-gated-href.ts`](../src/components/auth/use-gated-href.ts)
+**Key files:** [`auth-store.ts`](../src/lib/auth-store.ts) · [`AuthForm.tsx`](../src/components/auth/AuthForm.tsx) · [`AuthGuard.tsx`](../src/components/auth/AuthGuard.tsx) · [`auth/callback/route.ts`](../src/app/auth/callback/route.ts) · [`proxy.ts`](../src/proxy.ts) · [`use-gated-href.ts`](../src/components/auth/use-gated-href.ts)
 
 ---
 
@@ -57,7 +62,7 @@ User-scoped data is stored in **Supabase (Postgres + Auth)** with Row Level Secu
 **Setup:** Follow the full guide in [SUPABASE_SETUP.md](SUPABASE_SETUP.md). Short version:
 
 1. Create a Supabase project at [supabase.com](https://supabase.com).
-2. Run migrations in [`supabase/migrations/`](../supabase/migrations/) through `023` in the SQL Editor (or follow [SUPABASE_SETUP.md](SUPABASE_SETUP.md) / [DEPLOY.md](DEPLOY.md) for the full ordered list).
+2. Run migrations in [`supabase/migrations/`](../supabase/migrations/) through `024` in the SQL Editor (or follow [SUPABASE_SETUP.md](SUPABASE_SETUP.md) / [DEPLOY.md](DEPLOY.md) for the full ordered list).
 3. Copy API keys into `.env.local` (see [`.env.local.example`](../.env.local.example)).
 4. Disable **Confirm email** under Authentication → Providers → Email.
 5. Run `npm run setup:supabase` (verifies tables + seeds demo user).

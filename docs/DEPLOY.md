@@ -22,7 +22,7 @@ flowchart LR
   end
 
   subgraph supabase ["Supabase production"]
-    mig["Run migrations 001–023"]
+    mig["Run migrations 001–024"]
     urls["Auth URL config + redirect URLs"]
     rt["Realtime + RLS policies"]
   end
@@ -75,9 +75,10 @@ Apply to **Production**, **Preview**, and **Development**.
 
 In Supabase → **Authentication** → **URL Configuration**:
 
-1. Set **Site URL** to your Vercel domain (e.g. `https://moodboard-ai.vercel.app`).
+1. Set **Site URL** to your Vercel domain (e.g. `https://moodboard-ai-omega.vercel.app`).
 2. Add redirect URLs:
    - `https://your-domain.vercel.app/**`
+   - `https://your-domain.vercel.app/auth/callback` (required for password reset)
    - `https://your-domain.vercel.app/sign-in`
 
 ## Step 5 — Deploy
@@ -110,6 +111,7 @@ After deploying collaboration features, run these in the **production** Supabase
 16. [`supabase/migrations/021_board_brand_strategy.sql`](../supabase/migrations/021_board_brand_strategy.sql) — optional `brand_strategy` JSON on `boards` for saved AI brand suggestions
 17. [`supabase/migrations/022_board_comment_section.sql`](../supabase/migrations/022_board_comment_section.sql) — `section` on `board_comments` (overview, palette, typography, references, notes)
 18. [`supabase/migrations/023_snapshots_last_read.sql`](../supabase/migrations/023_snapshots_last_read.sql) — `snapshots_last_read_at` on `board_collaboration_state` for unread snapshot badges
+19. [`supabase/migrations/024_avatar_image.sql`](../supabase/migrations/024_avatar_image.sql) — `user_settings.avatar_image_url` + `avatar-uploads` storage bucket for profile photos
 
 If collaboration was already live, confirm migrations `004` and `005` are applied before `006`.
 
@@ -163,6 +165,24 @@ where table_schema = 'public'
 
 Expected: one row per column. Re-deploy Vercel after applying if the app was already live.
 
+## Step 5e — Apply latest migration (024)
+
+If production was deployed before profile photo upload shipped, run this in the **production** Supabase SQL Editor:
+
+1. [`supabase/migrations/024_avatar_image.sql`](../supabase/migrations/024_avatar_image.sql)
+
+Verify column and bucket exist:
+
+```sql
+select column_name
+from information_schema.columns
+where table_schema = 'public'
+  and table_name = 'user_settings'
+  and column_name = 'avatar_image_url';
+```
+
+Expected: one row. Confirm **Storage** includes the `avatar-uploads` bucket. Re-deploy Vercel after applying if the app was already live.
+
 > **Presence:** By default the app uses a public Realtime presence channel so collaborators show up without extra setup. If you disable **Allow public access** under Supabase **Project Settings → Realtime**, run migration `016` and set `NEXT_PUBLIC_SUPABASE_REALTIME_PRIVATE=true` in Vercel.
 
 > `alter publication supabase_realtime add table` is not idempotent. If `006` was partially applied, check **Database → Publications → supabase_realtime** before re-running.
@@ -182,6 +202,7 @@ Confirm **Production** env vars on Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUB
 | Visit `/` | Landing page loads |
 | Visit `/app` logged out | Redirect to `/sign-in` |
 | Sign in | Dashboard loads |
+| Sign-in → **Forgot password?** | Reset email sent; link opens update-password flow via `/auth/callback` |
 | Create board from `/app/new` | Progressive preview visible during generation; board persists after refresh |
 | Create board from `/templates` | Inline preview on active card; ~4s pause then redirect to editor |
 | TopBar theme toggle | Sun/moon control next to search; theme persists across navigation |
@@ -221,6 +242,8 @@ Confirm **Production** env vars on Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUB
 
 **Auth redirect loop** — Supabase Site URL / Redirect URLs don't match your Vercel domain.
 
+**Password reset link invalid** — Add `https://your-domain.vercel.app/auth/callback` to Supabase redirect URLs; Site URL must match production (not `localhost.com`). Request a fresh reset email and complete the flow in the same browser.
+
 **Demo generation only** — `GEMINI_API_KEY` not set in Vercel (mock fallback is intentional).
 
 **Pexels photos missing** — `PEXELS_API_KEY` not set; Unsplash may still apply if `UNSPLASH_ACCESS_KEY` is set. Otherwise references use SVG demo placeholders.
@@ -237,7 +260,7 @@ Use this flow when recording or walking through the project:
 4. **Collaboration** — Set board visibility to **Shared**; open **Collaborate** modal. In a second browser (or incognito), accept invite or open `/share/[id]`.
 5. **Realtime** — Save in one browser; show presence avatars, live sync, or conflict banner in the other.
 6. **Activity** — Open **Activity** panel; save a change; replay a prior save. Show read/hide badges.
-7. **Discover** — Visit `/discover` and search public boards.
+7. **Discover** — Visit `/discover`; use mood filter dropdown; open a creator profile at `/profile/[id]`.
 
 **Env checklist for demos:** Supabase (required) · Gemini (AI text) · Pexels + Unsplash (stock photos) · Vercel deploy on `main`.
 

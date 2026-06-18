@@ -31,6 +31,7 @@ flowchart TB
   edit --> snap["Snapshots"]
 
   discover --> share
+  discover --> profile["Profile /profile/id"]
   collab --> invite["Accept /invite/token"]
   invite --> edit
 ```
@@ -82,16 +83,17 @@ Route:
 
 Implemented:
 
-- Email + password sign-in and sign-up tabs
-- **Forgot password** — email reset link via Supabase; update-password flow after `/auth/callback`
-- **OAuth** — Continue with Google or GitHub (requires Supabase provider config)
+- Email + password sign-in and sign-up tabs (in-page toggle; `/sign-in?mode=sign-up` for create account)
+- **Forgot password** — link on sign-in; email reset via `requestPasswordReset`; Supabase redirects to `/auth/callback?next=/sign-in?mode=update-password`; user sets a new password on the update-password screen
+- Password show/hide toggle on password fields
 - Demo account shortcut for portfolio exploration
-- Redirect-back to protected routes after auth
+- Redirect-back to protected routes after auth (`?redirect=` sanitized to internal paths)
+- Inline validation, error banners, loading states, and toast feedback
 
 Auth callback:
 
 ```txt
-/auth/callback   # OAuth + password-reset code exchange
+/auth/callback   # Password-reset code exchange (exchangeCodeForSession)
 ```
 
 ---
@@ -358,9 +360,10 @@ Route:
 Implemented:
 
 - Public creator profile (no sign-in required)
+- Shared **landing header** shell via [`profile/layout.tsx`](../src/app/profile/layout.tsx) (Discover nav, theme toggle, sign-in CTAs)
 - **Display name** from `profiles.name` (Settings **Your name**); workspace name/tagline remain separate branding fields
 - Workspace tagline and avatar from `user_settings` (falls back to profile name + defaults)
-- Custom **profile photo** upload with crop (migration `024`); remove photo reverts to emoji or initials
+- Custom **profile photo** upload with crop (migration `024`); remove photo via red **X** on avatar tile in Settings
 - Grid of **shared** boards by that creator (reuses Discover card component)
 - `GET /api/profile/[id]` — profile identity + shared boards (admin client; email not exposed)
 
@@ -421,7 +424,7 @@ Implemented (all controls are wired to real behavior — no decorative toggles):
 - Editable workspace **name** and **tagline**
 - Editable **display name** (`profiles.name`) — shown on public profile and account menu; synced via `PATCH /api/profile/me`
 - **Avatar** picker with curated emoji avatars grouped into **People** (Artist, Painter, Designer, Creator, Curator) and **Symbols** (Palette, Brush, Pencil, Camera, Film, Sparkle, Star, Moon, Idea), plus **initials** and **custom photo** (upload + crop)
-- **Remove profile photo** — clears custom image and reverts to default emoji avatar
+- **Remove profile photo** — red **X** overlay on the avatar tile clears the custom image and reverts to the default emoji avatar
 - **Avatar accent** picker (pastel palette) inside the avatar panel
 - The chosen identity renders consistently in the **sidebar** and the **top-right avatar** via a shared `WorkspaceAvatar` component
 

@@ -13,9 +13,9 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     title: 'Auth + portfolio surface',
     bullets: [
       'Forgot password email flow and update-password screen on /sign-in',
-      'Google and GitHub OAuth buttons with /auth/callback session exchange',
       'Favicon, default OG image, and route metadata for Discover, share, and profile pages',
-      'Remove profile photo in Settings; comments panel scrim uses shared overlay token',
+      'Remove profile photo via X on avatar tile; public profiles use shared landing header',
+      'Comments panel scrim uses shared overlay token',
     ],
   },
   {

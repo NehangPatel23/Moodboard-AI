@@ -1,4 +1,4 @@
-# MoodBoard AI
+# <img src="public/icon.svg" width="32" height="32" alt="" align="top"> MoodBoard AI
 
 **Turn a rough creative idea into a clear visual direction — in minutes, not days.**
 
@@ -65,7 +65,8 @@ Portfolio captures from the [live demo](https://moodboard-ai-omega.vercel.app) (
 | **Discover** | Mood dropdown, featured row, creator names linking to profiles |
 | **Board editor** | Tabbed sections, palette, references, AI suggestions |
 | **Share page** | View-only board, remix CTA, creator attribution |
-| **Settings** | Display name, avatar photo crop, workspace identity |
+| **Settings** | Display name, avatar photo crop + remove (X on tile), workspace identity |
+| **Sign-in** | Email/password, forgot password, demo account |
 
 **Try the demo:** sign in with `admin@moodboard.ai` / `moodboard123`, or browse Discover without an account. Run `npm run db:seed-demo && npm run db:seed-demo-boards` locally to populate showcase boards.
 
@@ -163,7 +164,11 @@ flowchart TB
     landing["/  Landing"]
     discover["/discover  Browse public boards"]
     share["/share/id  View-only board"]
-    signin["/sign-in  Sign in / sign up"]
+    profile["/profile/id  Creator profile"]
+    help["/help  Docs hub"]
+    changelog["/changelog  Product updates"]
+    about["/about  About"]
+    signin["/sign-in  Sign in / sign up / forgot password"]
   end
 
   subgraph app ["Authenticated workspace"]
@@ -178,6 +183,9 @@ flowchart TB
 
   landing --> signin
   landing --> discover
+  landing --> help
+  discover --> share
+  discover --> profile
   signin --> dashboard
   dashboard --> newboard
   dashboard --> editor
@@ -188,7 +196,6 @@ flowchart TB
   editor --> preview
   editor --> share
   invite --> editor
-  discover --> share
 ```
 
 ### Create a board — AI generation pipeline
@@ -267,7 +274,7 @@ flowchart TD
   authed1 -->|Yes| dest["Go to /app/new or /app"]
   authed2 -->|Yes| dest
 
-  signin --> creds["Sign in · create account · or demo login"]
+  signin --> creds["Sign in · create account · forgot password · demo login"]
   creds --> dest
 
   dest --> workspace["Dashboard, editor, settings, templates"]
@@ -348,6 +355,15 @@ flowchart LR
 ---
 
 ## What you can do
+
+<details open>
+<summary><strong>Account</strong></summary>
+
+- Email/password sign-in and sign-up
+- **Forgot password** — reset email → update password after `/auth/callback`
+- Demo account for portfolio exploration
+
+</details>
 
 <details open>
 <summary><strong>Create & edit</strong></summary>
@@ -472,7 +488,7 @@ It's a deployed MVP with auth, persistence, collaboration, AI generation, and ex
 |---------|---------|
 | `npm run dev` | Start dev server |
 | `npm run build` | Production build |
-| `npm run setup:supabase` | Verify Supabase + seed demo user and showcase boards |
+| `npm run setup:supabase` | Verify Supabase + seed demo user |
 | `npm run db:seed-demo-boards` | Seed shared demo boards for Discover (requires demo user) |
 | `npm run verify:generate` | Test Gemini / mock generation |
 | `npm run verify:collaboration` | Test collaboration APIs |

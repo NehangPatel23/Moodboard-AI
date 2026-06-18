@@ -7,7 +7,7 @@ The app code is ready. You only need to create a Supabase project once and conne
 - [ ] **Step 1** — Create Supabase project at [supabase.com](https://supabase.com)
 - [ ] **Step 2** — Run the SQL migration (dashboard or CLI)
 - [ ] **Step 3** — Copy API keys into `.env.local`
-- [ ] **Step 4** — Disable email confirmation for local dev
+- [ ] **Step 4** — Configure auth (email provider, redirect URLs including `/auth/callback`, password reset)
 - [ ] **Step 5** — Run `npm run setup:supabase` (seeds demo user + verifies)
 - [ ] **Step 6** — Run `npm run dev` and sign in with the demo account
 
@@ -109,20 +109,32 @@ Never commit `.env.local` or expose the `service_role` key in client code.
 
 ## Step 4 — Configure auth for local development
 
+### Email sign-in
+
 1. **Authentication** → **Providers** → **Email**.
-2. Turn **off** “Confirm email” / “Enable email confirmations”.
+2. Turn **off** “Confirm email” / “Enable email confirmations” for local dev (optional for production).
 3. Save.
 
-Optional:
+### URL configuration (required for password reset)
 
 1. **Authentication** → **URL Configuration**.
-2. Set **Site URL** to `http://localhost:3000` (production: your Vercel URL).
-3. Add redirect URLs:
-   - `http://localhost:3000/**`
-   - `https://your-app.vercel.app/**` (production)
-   - Include `http://localhost:3000/auth/callback` and production equivalent for OAuth and password reset.
+2. Set **Site URL** to `http://localhost:3000` (production: your Vercel URL, e.g. `https://moodboard-ai-omega.vercel.app`).
+3. Add these **Redirect URLs** (dev and production):
 
-Optional OAuth providers (Google, GitHub): enable under **Authentication** → **Providers** and use the same redirect URLs.
+   | URL | Purpose |
+   |-----|---------|
+   | `http://localhost:3000/auth/callback` | Password-reset callback (local) |
+   | `http://localhost:3000/**` | Wildcard for local deep links |
+   | `https://your-app.vercel.app/auth/callback` | Password-reset callback (prod) |
+   | `https://your-app.vercel.app/**` | Wildcard for prod deep links |
+
+The app exchanges auth codes at [`/auth/callback`](../src/app/auth/callback/route.ts), then redirects to `/app` or `/sign-in?mode=update-password` after a reset email link.
+
+### Password reset emails
+
+1. **Authentication** → **Email Templates** → confirm **Reset password** template exists.
+2. Default Supabase mail works for testing (rate-limited). For production deliverability, configure **Custom SMTP** under Project Settings → Auth.
+3. After sending a reset link, users land on `/sign-in?mode=update-password` to choose a new password.
 
 ---
 
@@ -151,6 +163,7 @@ Open [http://localhost:3000](http://localhost:3000):
 |------|----------|
 | Visit `/app` logged out | Redirect to sign-in |
 | Demo sign-in | Dashboard loads (demo account may have existing boards) |
+| Forgot password | Reset email sent; `/auth/callback` → update-password screen |
 | Sign up (new account) | Empty workspace with "Create a board" prompt |
 | Refresh | Boards persist |
 | Settings change | Persists after sign-out/in |
@@ -166,6 +179,8 @@ Open [http://localhost:3000](http://localhost:3000):
 **Demo sign-in fails** — Run `npm run db:seed-demo` or `npm run setup:supabase`.
 
 **Sign-up asks for email confirmation** — Disable confirm email (Step 4).
+
+**Password reset fails or link expired** — Confirm Site URL and `http://localhost:3000/auth/callback` (or production `/auth/callback`) are in Supabase redirect URLs. Use a fresh reset email in the same browser.
 
 **SQL “relation already exists”** — Migration already ran; skip unless resetting the database.
 

@@ -29,11 +29,9 @@ import {
   requestPasswordReset,
   signIn,
   signInWithDemo,
-  signInWithOAuth,
   signUp,
   subscribeAuth,
   updatePassword,
-  type OAuthProvider,
 } from '@/lib/auth-store';
 
 type AuthMode = 'sign-in' | 'sign-up' | 'forgot-password' | 'update-password';
@@ -170,9 +168,9 @@ export function AuthForm() {
   );
   const [submitting, setSubmitting] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
-  const [oauthPending, setOauthPending] = useState<OAuthProvider | null>(null);
 
   const errorRef = useRef<HTMLParagraphElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
   const fieldIds = useId();
   const nameId = `${fieldIds}-name`;
   const emailId = `${fieldIds}-email`;
@@ -192,7 +190,6 @@ export function AuthForm() {
         ? passwordRequirementsMet(password)
         : isAuthFormValid(mode, formValues);
   const showModeTabs = mode === 'sign-in' || mode === 'sign-up';
-  const showOAuth = showModeTabs;
   const showDemo = showModeTabs;
   const showEmailField = mode !== 'update-password';
   const showPasswordField = mode !== 'forgot-password';
@@ -231,26 +228,68 @@ export function AuthForm() {
     });
   }
 
+  function syncSignInUrl(nextMode: AuthMode) {
+    const params = new URLSearchParams();
+    if (nextMode !== 'sign-in') {
+      params.set('mode', nextMode);
+    }
+    if (redirectTarget !== DEFAULT_REDIRECT) {
+      params.set('redirect', redirectTarget);
+    }
+    const query = params.toString();
+    router.replace(query ? `/sign-in?${query}` : '/sign-in', { scroll: false });
+  }
+
   function handleModeChange(nextMode: AuthMode) {
     if (nextMode === mode) return;
     setMode(nextMode);
     setError(null);
     setFieldErrors({});
     setResetEmailSent(false);
+    if (nextMode === 'sign-in' || nextMode === 'sign-up' || nextMode === 'forgot-password') {
+      syncSignInUrl(nextMode);
+    }
   }
 
-  async function handleOAuthSignIn(provider: OAuthProvider) {
-    if (submitting || oauthPending) return;
+  async function submitPasswordReset(emailValue: string): Promise<boolean> {
+    const trimmedEmail = emailValue.trim();
+    if (!isValidEmail(trimmedEmail)) {
+      setFieldErrors({ email: 'Enter a valid email address.' });
+      setError(null);
+      return false;
+    }
 
-    setOauthPending(provider);
+    setFieldErrors({});
+    setSubmitting(true);
     setError(null);
 
-    const result = await signInWithOAuth(provider, redirectTarget);
+    const result = await requestPasswordReset(trimmedEmail);
 
-    if (!result.ok) {
-      setError(result.error);
-      setOauthPending(null);
+    if (result.ok) {
+      setResetEmailSent(true);
+      showToast('Check your email for a reset link.', 'success');
+      setSubmitting(false);
+      return true;
     }
+
+    setError(result.error);
+    setSubmitting(false);
+    return false;
+  }
+
+  async function handleForgotPasswordClick() {
+    if (submitting) return;
+
+    handleModeChange('forgot-password');
+
+    if (isValidEmail(email.trim())) {
+      await submitPasswordReset(email);
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      emailInputRef.current?.focus();
+    });
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -258,28 +297,7 @@ export function AuthForm() {
     if (submitting) return;
 
     if (mode === 'forgot-password') {
-      const nextFieldErrors = validateAuthFields('sign-in', { name: '', email, password: '' });
-      const emailError = nextFieldErrors.email;
-      if (emailError) {
-        setFieldErrors({ email: emailError });
-        setError(null);
-        return;
-      }
-
-      setFieldErrors({});
-      setSubmitting(true);
-      setError(null);
-
-      const result = await requestPasswordReset(email);
-
-      if (result.ok) {
-        setResetEmailSent(true);
-        setSubmitting(false);
-        return;
-      }
-
-      setError(result.error);
-      setSubmitting(false);
+      await submitPasswordReset(email);
       return;
     }
 
@@ -383,7 +401,7 @@ export function AuthForm() {
                 type="button"
                 onClick={() => handleModeChange(tab.mode)}
                 aria-pressed={active}
-                disabled={submitting || oauthPending !== null}
+                disabled={submitting}
                 className={cn(
                   'h-9 rounded-full text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
                   active
@@ -408,27 +426,6 @@ export function AuthForm() {
           </h1>
           <p className="text-sm leading-6 text-[var(--text-muted)]">{text.subtitle}</p>
         </div>
-
-        {resetEmailSent ? (
-          <p
-            role="status"
-            className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200"
-          >
-            Check your email for a password reset link. It may take a minute to arrive.
-          </p>
-        ) : null}
-
-        {error ? (
-          <p
-            ref={errorRef}
-            id={errorId}
-            tabIndex={-1}
-            role="alert"
-            className="rounded-2xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200"
-          >
-            {error}
-          </p>
-        ) : null}
 
         <div className="space-y-4">
           {mode === 'sign-up' ? (
@@ -466,6 +463,7 @@ export function AuthForm() {
             <div className="space-y-1.5">
               <FieldLabel htmlFor={emailId}>Email</FieldLabel>
               <Input
+                ref={emailInputRef}
                 id={emailId}
                 name="email"
                 type="text"
@@ -488,7 +486,7 @@ export function AuthForm() {
                   }
                 }}
                 placeholder="you@studio.com"
-                disabled={submitting || oauthPending !== null}
+                disabled={submitting}
                 aria-invalid={fieldErrors.email ? true : undefined}
                 aria-describedby={emailDescribedBy}
                 className={cn(fieldErrors.email && authInputErrorClassName)}
@@ -498,8 +496,8 @@ export function AuthForm() {
                 <div className="flex justify-end px-1">
                   <button
                     type="button"
-                    onClick={() => handleModeChange('forgot-password')}
-                    disabled={submitting || oauthPending !== null}
+                    onClick={() => void handleForgotPasswordClick()}
+                    disabled={submitting}
                     className="text-xs font-medium text-[var(--text-muted)] transition hover:text-[var(--text-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
                   >
                     Forgot password?
@@ -539,19 +537,22 @@ export function AuthForm() {
                       ? 'Create a password'
                       : 'Your password'
                   }
-                  disabled={submitting || oauthPending !== null}
+                  disabled={submitting}
                   aria-invalid={fieldErrors.password ? true : undefined}
                   aria-describedby={passwordDescribedBy}
                   className={cn('pr-11', fieldErrors.password && authInputErrorClassName)}
                 />
-                <Tooltip content={showPassword ? 'Hide password' : 'Show password'}>
+                <Tooltip
+                  content={showPassword ? 'Hide password' : 'Show password'}
+                  triggerClassName="absolute inset-y-0 right-0 flex w-11 items-center justify-center"
+                >
                   <button
                     type="button"
                     onClick={() => setShowPassword((value) => !value)}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                     aria-pressed={showPassword}
-                    disabled={submitting || oauthPending !== null}
-                    className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-2xl text-[var(--text-muted)] transition hover:text-[var(--text-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] disabled:opacity-50"
+                    disabled={submitting}
+                    className="flex h-full w-full items-center justify-center rounded-r-2xl text-[var(--text-muted)] transition hover:text-[var(--text-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] disabled:opacity-50"
                   >
                     {showPassword ? (
                       <EyeOff className="h-4.5 w-4.5" aria-hidden="true" />
@@ -575,7 +576,7 @@ export function AuthForm() {
           type="submit"
           size="lg"
           className="w-full"
-          disabled={submitting || oauthPending !== null || !canSubmit || resetEmailSent}
+          disabled={submitting || !canSubmit || resetEmailSent}
         >
           {submitting ? (
             <>
@@ -592,91 +593,65 @@ export function AuthForm() {
             <button
               type="button"
               onClick={() => handleModeChange('sign-in')}
-              disabled={submitting || oauthPending !== null}
+              disabled={submitting}
               className="font-medium text-[var(--text-strong)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
             >
               Back to sign in
             </button>
           </p>
         ) : null}
-
-        {showOAuth ? (
-          <>
-            <div className="flex items-center gap-3" aria-hidden="true">
-              <span className="h-px flex-1 bg-[var(--border)]" />
-              <span className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">or</span>
-              <span className="h-px flex-1 bg-[var(--border)]" />
-            </div>
-
-            <div className="grid gap-2.5 sm:grid-cols-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                className="w-full"
-                onClick={() => void handleOAuthSignIn('google')}
-                disabled={submitting || oauthPending !== null}
-              >
-                {oauthPending === 'google' ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  <span aria-hidden="true" className="text-sm font-semibold">
-                    G
-                  </span>
-                )}
-                Continue with Google
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                className="w-full"
-                onClick={() => void handleOAuthSignIn('github')}
-                disabled={submitting || oauthPending !== null}
-              >
-                {oauthPending === 'github' ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  <span aria-hidden="true" className="text-sm font-semibold">
-                    GH
-                  </span>
-                )}
-                Continue with GitHub
-              </Button>
-            </div>
-          </>
-        ) : null}
-
-        {showDemo ? (
-          <>
-            <div className="flex items-center gap-3" aria-hidden="true">
-              <span className="h-px flex-1 bg-[var(--border)]" />
-              <span className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">or</span>
-              <span className="h-px flex-1 bg-[var(--border)]" />
-            </div>
-
-            <div className="space-y-2.5">
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                className="w-full"
-                onClick={handleDemoSignIn}
-                disabled={submitting || oauthPending !== null}
-              >
-                <Sparkles className="h-4 w-4 text-[var(--text-muted)]" aria-hidden="true" />
-                Explore with the demo account
-              </Button>
-              <p className="text-center text-xs leading-5 text-[var(--text-muted)]">
-                Test credentials:{' '}
-                <span className="font-medium text-[var(--text-strong)]">{DEMO_CREDENTIALS.email}</span>
-                {' · '}
-                <span className="font-medium text-[var(--text-strong)]">{DEMO_CREDENTIALS.password}</span>
-              </p>
-            </div>
-          </>
-        ) : null}
       </form>
+
+      {resetEmailSent ? (
+        <p
+          role="status"
+          className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200"
+        >
+          Check your email for a password reset link. It may take a minute to arrive.
+        </p>
+      ) : null}
+
+      {error ? (
+        <p
+          ref={errorRef}
+          id={errorId}
+          tabIndex={-1}
+          role="alert"
+          className="rounded-2xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200"
+        >
+          {error}
+        </p>
+      ) : null}
+
+      {showDemo ? (
+        <>
+          <div className="flex items-center gap-3" aria-hidden="true">
+            <span className="h-px flex-1 bg-[var(--border)]" />
+            <span className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">or</span>
+            <span className="h-px flex-1 bg-[var(--border)]" />
+          </div>
+
+          <div className="space-y-2.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="w-full"
+              onClick={handleDemoSignIn}
+              disabled={submitting}
+            >
+              <Sparkles className="h-4 w-4 text-[var(--text-muted)]" aria-hidden="true" />
+              Explore with the demo account
+            </Button>
+            <p className="text-center text-xs leading-5 text-[var(--text-muted)]">
+              Test credentials:{' '}
+              <span className="font-medium text-[var(--text-strong)]">{DEMO_CREDENTIALS.email}</span>
+              {' · '}
+              <span className="font-medium text-[var(--text-strong)]">{DEMO_CREDENTIALS.password}</span>
+            </p>
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }
