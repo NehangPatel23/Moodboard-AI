@@ -58,17 +58,19 @@ AI-assisted workspace for creative direction and moodboarding. Describe a brand 
 
 ## Screenshots
 
-Portfolio captures from the [live demo](https://moodboard-ai-omega.vercel.app) (add images under `docs/screenshots/` when updating the README):
+Portfolio captures from the [live demo](https://moodboard-ai-omega.vercel.app):
 
-| Surface | What to highlight |
-|---------|-------------------|
-| **Discover** | Mood dropdown, featured row, creator names linking to profiles |
-| **Board editor** | Tabbed sections, palette, references, AI suggestions |
-| **Share page** | View-only board, remix CTA, creator attribution |
-| **Settings** | Display name, avatar photo crop + remove (X on tile), workspace identity |
-| **Sign-in** | Email/password, forgot password, demo account |
+| Surface | Preview |
+|---------|---------|
+| **Discover** — mood dropdown, featured row, creator profiles | ![Discover browse](docs/screenshots/discover.png) |
+| **Board editor** — tabbed sections, palette, references | ![Board editor](docs/screenshots/board-editor.png) |
+| **Share page** — view-only board, remix CTA, creator attribution | ![Share page](docs/screenshots/share.png) |
+| **Settings** — display name, avatar photo, workspace identity | ![Settings](docs/screenshots/settings.png) |
+| **Sign-in** — email/password, forgot password, demo account | ![Sign in](docs/screenshots/sign-in.png) |
 
 **Try the demo:** sign in with `admin@moodboard.ai` / `moodboard123`, or browse Discover without an account. Run `npm run db:seed-demo && npm run db:seed-demo-boards` locally to populate showcase boards.
+
+To refresh captures: `npm run capture:screenshots` (requires `npx playwright install chromium` once)
 
 ---
 
@@ -492,6 +494,8 @@ It's a deployed MVP with auth, persistence, collaboration, AI generation, and ex
 | `npm run db:seed-demo-boards` | Seed shared demo boards for Discover (requires demo user) |
 | `npm run verify:generate` | Test Gemini / mock generation |
 | `npm run verify:collaboration` | Test collaboration APIs |
+| `npm run verify:prod-smoke` | Automated checks against the live demo deploy |
+| `npm run capture:screenshots` | Refresh README portfolio screenshots |
 
 ---
 

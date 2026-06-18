@@ -84,7 +84,7 @@ Waves 1–3 and Sprints A–M are **complete**. The app is a deployed MVP with S
 
 1. Advanced reference APIs (Behance, Dribbble)
 2. Live cursors / character-level co-editing (long-term)
-3. README screenshot assets (capture Discover, editor, share, settings avatar)
+3. README screenshot assets (capture Discover, editor, share, settings avatar) — **done**; refresh via `node scripts/capture-portfolio-screenshots.mjs`
 
 ---
 
