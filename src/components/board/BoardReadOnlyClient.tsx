@@ -186,7 +186,8 @@ function PresentationPill({
       aria-pressed={active}
       aria-label={`Show ${label} section`}
       className={[
-        'flex min-w-40 items-start gap-3 rounded-3xl border px-4 py-3 text-left transition',
+        'flex min-w-40 gap-3 rounded-3xl border px-4 py-3 text-left transition',
+        description ? 'items-start' : 'items-center',
         'border-(--border) bg-(--surface) text-(--text-strong)',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)',
         'hover:bg-(--surface-subtle) dark:bg-[rgba(255,255,255,0.03)] dark:hover:bg-[rgba(255,255,255,0.06)]',
@@ -195,7 +196,8 @@ function PresentationPill({
     >
       <div
         className={[
-          'mt-0.5 flex h-8 w-8 items-center justify-center rounded-full border',
+          'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border',
+          description ? 'mt-0.5' : '',
           'border-(--border) bg-(--surface-elevated) dark:bg-[rgba(255,255,255,0.05)]',
         ].join(' ')}
       >

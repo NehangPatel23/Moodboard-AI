@@ -137,6 +137,7 @@ Four independent dimensions — do not conflate collaborator access with Discove
 - **`hasCollaborators`** on owned boards comes from `GET /api/boards` (batch `board_members` + pending `board_invites` counts).
 - **With me** access sub-filter: Any / Can edit / View only.
 - Sort by Recent or Favorites; filter state persists in the URL.
+- Click an active visibility filter again to toggle back to **All boards**; **Reset filters** and empty-state **Clear filters** clear visibility and access params.
 - [`CollaborateModal`](../src/components/shared/CollaborateModal.tsx) calls `reloadBoards()` after invite/member changes so filters stay fresh.
 
 #### Empty States
@@ -236,7 +237,7 @@ Overview, Palette, Typography, References, and Notes — jump via editor tabs or
 
 Implemented:
 
-- Share / Collaborate (public link + people management — owner only)
+- **Collaborate** (public link + people management — owner only; toolbar + ⌘K command palette)
 - Export (JSON, PNG, PDF, design system — with live preview)
 - Duplicate
 - **Save as template** (owner) — publish to Community or save privately via [`SaveTemplateModal`](../src/components/board/SaveTemplateModal.tsx)
@@ -262,7 +263,7 @@ POST /api/boards/[id]/favorite     # Per-member favorite (migration 019)
 
 **Real-time co-editing** (migration `006`):
 
-- Supabase Realtime presence on `board:{id}` — avatars + online count in header
+- Supabase Realtime presence on `board:{id}` — avatars + online count in header; connecting / live / offline states in [`BoardPresenceStrip`](../src/components/board/BoardPresenceStrip.tsx)
 - **Section presence** — colored dots on section tabs match each collaborator’s avatar color ([`EditorTabPill`](../src/components/board/BoardEditorClient.tsx)); shared section metadata lives in [`editor-sections.ts`](../src/lib/editor-sections.ts)
 - Switching tabs scrolls the tab bar below the app top bar so tabs stay visible
 - Live board sync via `postgres_changes` on `boards` when local draft is clean

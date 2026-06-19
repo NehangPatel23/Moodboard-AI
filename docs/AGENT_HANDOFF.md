@@ -56,7 +56,7 @@ flowchart TD
 - **View-only sharing** at `/share/[id]` for boards with visibility **Shared** (migration `002`).
 - **Discover** at `/discover` — featured row + creator names on cards.
 - **Collaboration** — invite by email; dashboard **With me** / **With others** / **Public** / **Private** filters; per-member favorites (migration `019`).
-- **Real-time co-editing** — presence dots on section tabs, live board sync, conflict banner (migration `006`). **Live field sync** for summary + notes (Sprint Q). Section metadata: [`editor-sections.ts`](../src/lib/editor-sections.ts).
+- **Real-time co-editing** — presence dots on section tabs, live board sync, conflict banner (migration `006`). **Live field sync** for summary + notes (Sprint Q). Presence reconnect + grace period; migration `028` for private field-sync broadcast. Section metadata: [`editor-sections.ts`](../src/lib/editor-sections.ts).
 - **Community templates** — save boards as templates; Community tab on `/templates`; `board_templates` table + `/api/templates` (Sprint R).
 - **Board comments** — `GET/POST/PATCH/DELETE /api/boards/[id]/comments`; `section` column (migration `022`) links comments to editor tabs.
 - **Collaboration unread** — yellow-dot unseen on comments, activity, snapshots; own content excluded ([`collaboration-read-state.ts`](../src/lib/collaboration-read-state.ts)). Snapshots last-read: migration `023`. Mark read explicitly — panels do not auto-clear on open.
@@ -104,4 +104,4 @@ If continuing development, recommended order:
 2. Incremental visual polish (landing, dashboard) — see [DEVELOPMENT.md](DEVELOPMENT.md)
 3. Live cursors / character-level co-editing — build on existing field sync + presence layer
 
-Run migrations through **`026`** in production if not applied — see [DEPLOY](DEPLOY.md#step-5f--apply-latest-migration-025). Verify with `npm run verify:collaboration` and `npm run verify:prod-smoke`.
+Run migrations through **`028`** in production if not applied — see [DEPLOY](DEPLOY.md#step-5h--apply-latest-migration-028). Verify with `npm run verify:collaboration` and `npm run verify:prod-smoke`.

@@ -1,11 +1,14 @@
 'use client';
 
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { ChevronDown, Eye, Pencil } from 'lucide-react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { ChevronDown, Eye, Loader2, Pencil, WifiOff } from 'lucide-react';
 import type { BoardRole } from '@/types/board';
 import { cn } from '@/lib/utils';
 import { Tooltip } from '@/components/ui/tooltip';
-import type { BoardPresenceUser } from '@/lib/realtime/use-board-realtime';
+import type {
+  BoardPresenceUser,
+  PresenceConnectionState,
+} from '@/lib/realtime/use-board-realtime';
 import {
   editorPresenceAvatarBorderClass,
   editorPresenceAvatarClass,
@@ -18,6 +21,7 @@ import {
 type BoardPresenceStripProps = {
   users: BoardPresenceUser[];
   currentUserId?: string | null;
+  connectionState?: PresenceConnectionState;
   className?: string;
 };
 
@@ -27,7 +31,6 @@ function initialsFromName(name: string): string {
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase();
 }
-
 
 function roleLabel(role: BoardRole): string {
   if (role === 'owner') return 'Owner';
@@ -107,6 +110,12 @@ function PresenceUserRow({
               <span className="truncate">On {sectionLabel}</span>
             </>
           ) : null}
+          {user.activeFieldId ? (
+            <>
+              <span aria-hidden="true">·</span>
+              <span className="truncate">In a text field</span>
+            </>
+          ) : null}
         </div>
       </div>
       <span
@@ -120,7 +129,34 @@ function PresenceUserRow({
   );
 }
 
-export function BoardPresenceStrip({ users, currentUserId, className }: BoardPresenceStripProps) {
+function PresenceStatusPill({
+  children,
+  className,
+  title,
+}: {
+  children: ReactNode;
+  className?: string;
+  title?: string;
+}) {
+  return (
+    <div
+      title={title}
+      className={cn(
+        'inline-flex items-center gap-2 rounded-full border border-(--border) bg-(--surface-elevated) px-3 py-1.5 text-xs shadow-sm',
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function BoardPresenceStrip({
+  users,
+  currentUserId,
+  connectionState = 'disabled',
+  className,
+}: BoardPresenceStripProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
@@ -154,7 +190,39 @@ export function BoardPresenceStrip({ users, currentUserId, className }: BoardPre
     };
   }, [open]);
 
-  if (users.length === 0) return null;
+  if (connectionState === 'disabled') return null;
+
+  if (connectionState === 'connecting') {
+    return (
+      <PresenceStatusPill className={className} title="Connecting to live co-editing session">
+        <Loader2 className="h-4 w-4 shrink-0 animate-spin text-(--text-muted)" aria-hidden="true" />
+        <span className="font-medium text-(--text-muted)">Connecting live session…</span>
+      </PresenceStatusPill>
+    );
+  }
+
+  if (connectionState === 'error') {
+    return (
+      <Tooltip
+        content="Live co-editing needs Supabase Realtime. Confirm migrations 006 and 016 are applied, or enable public Realtime access in your project settings."
+        side="bottom"
+      >
+        <PresenceStatusPill className={className}>
+          <WifiOff className="h-4 w-4 shrink-0 text-(--text-muted)" aria-hidden="true" />
+          <span className="font-medium text-(--text-muted)">Live co-editing offline</span>
+        </PresenceStatusPill>
+      </Tooltip>
+    );
+  }
+
+  if (users.length === 0) {
+    return (
+      <PresenceStatusPill className={className} title="Joining live co-editing session">
+        <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" aria-hidden="true" />
+        <span className="font-medium text-(--text-strong)">Live · Joining…</span>
+      </PresenceStatusPill>
+    );
+  }
 
   const visible = users.slice(0, 4);
   const overflow = users.length - visible.length;
@@ -165,7 +233,11 @@ export function BoardPresenceStrip({ users, currentUserId, className }: BoardPre
   return (
     <div className={cn('relative', className)} ref={containerRef}>
       <Tooltip
-        content={`${users.length} collaborator${users.length === 1 ? '' : 's'} online`}
+        content={
+          othersCount === 0
+            ? 'You are the only person on this board. Use Collaborate to invite someone, or open this board in another tab to test live co-editing.'
+            : `${users.length} collaborator${users.length === 1 ? '' : 's'} online`
+        }
         side="bottom"
       >
         <button
@@ -181,7 +253,8 @@ export function BoardPresenceStrip({ users, currentUserId, className }: BoardPre
             open && 'border-(--text-muted)/30 bg-(--surface-subtle)',
           )}
         >
-          <div className="flex -space-x-2">
+          <span className="relative flex -space-x-2">
+            <span className="absolute -left-1 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-emerald-500 ring-2 ring-(--surface-elevated)" aria-hidden="true" />
             {visible.map((user) => {
               const isCurrentUser = currentUserId === user.userId;
 
@@ -191,14 +264,14 @@ export function BoardPresenceStrip({ users, currentUserId, className }: BoardPre
                 </div>
               );
             })}
-          </div>
+          </span>
           <div className="min-w-0 text-xs leading-tight">
             <p className="font-medium text-(--text-strong)">
               {users.length} online
               {overflow > 0 ? ` (+${overflow})` : ''}
             </p>
             <p className="text-(--text-muted)">
-              {othersCount === 0 ? 'Just you' : `${othersCount} collaborator${othersCount === 1 ? '' : 's'}`}
+              {othersCount === 0 ? 'Just you · invite to co-edit' : `${othersCount} collaborator${othersCount === 1 ? '' : 's'}`}
             </p>
           </div>
           <ChevronDown
@@ -219,9 +292,11 @@ export function BoardPresenceStrip({ users, currentUserId, className }: BoardPre
           className="absolute right-0 z-50 mt-2 w-[min(100vw-2rem,20rem)] overflow-hidden rounded-2xl border border-(--border) bg-(--background) shadow-[var(--shadow-elevated)]"
         >
           <div className="border-b border-(--border) bg-(--background) px-4 py-3">
-            <p className="text-sm font-semibold text-(--text-strong)">Active now</p>
+            <p className="text-sm font-semibold text-(--text-strong)">Live co-editing</p>
             <p className="mt-0.5 text-xs text-(--text-muted)">
-              {users.length} person{users.length === 1 ? '' : 's'} on this board
+              {othersCount === 0
+                ? 'Open this board in another tab or invite a collaborator to see presence dots and live field sync.'
+                : `${users.length} person${users.length === 1 ? '' : 's'} on this board`}
             </p>
           </div>
 

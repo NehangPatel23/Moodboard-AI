@@ -8,7 +8,7 @@ Back to [README](../README.md) · Features: [FEATURES](FEATURES.md) · Deploy: [
 
 Waves 1–3 and Sprints A–P are **complete**. The app is a **portfolio-grade MVP** — feature-complete for demo and job-search use. Supabase persistence, collaboration (presence, sync-on-save, conflict banner), AI generation, snapshots, visual export, developer handoff tokens, public creator profiles, inspiration/help surfaces, command palette AI actions, Discover browsing, email auth with forgot password, board auto-save, and share/profile OG metadata are all shipped. Monetization (marketplace, pricing, Stripe) is **not planned near term**.
 
-**Ops:** Migrations through **`026`** should be applied on production Supabase — verify with `npm run verify:collaboration`.
+**Ops:** Migrations through **`028`** should be applied on production Supabase — verify with `npm run verify:collaboration`.
 
 ---
 

@@ -69,13 +69,20 @@ export function DashboardClient() {
 
   const handleAccessChange = (value: AccessFilter) => {
     replaceParams((params) => {
-      params.set('visibility', 'collaborating');
-
       if (value === 'all') {
         params.delete('access');
-      } else {
-        params.set('access', value);
+        return;
       }
+
+      params.set('visibility', 'collaborating');
+      params.set('access', value);
+    });
+  };
+
+  const handleClearFilters = () => {
+    replaceParams((params) => {
+      params.delete('visibility');
+      params.delete('access');
     });
   };
 
@@ -90,7 +97,12 @@ export function DashboardClient() {
         access={access}
         onAccessChange={handleAccessChange}
       />
-      <BoardGrid sort={sort} visibility={visibility} access={effectiveAccess} />
+      <BoardGrid
+        sort={sort}
+        visibility={visibility}
+        access={effectiveAccess}
+        onClearFilters={handleClearFilters}
+      />
     </div>
   );
 }

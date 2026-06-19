@@ -151,12 +151,11 @@ function BoardFilterMenu({
   }, [open]);
 
   function handleVisibilityChange(value: VisibilityFilter) {
-    onVisibilityChange(value);
+    onVisibilityChange(visibility === value && value !== 'all' ? 'all' : value);
   }
 
   function handleReset() {
     onVisibilityChange('all');
-    onAccessChange('all');
     setOpen(false);
   }
 

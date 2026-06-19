@@ -1089,7 +1089,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     };
   }, []);
 
-  const { onlineUsers } = useBoardRealtime({
+  const { onlineUsers, connectionState: presenceConnectionState } = useBoardRealtime({
     boardId,
     userId: auth.user?.id ?? null,
     userName: auth.user?.name ?? settings.workspaceName,
@@ -1635,6 +1635,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
           unreadSnapshotsCount={unreadSnapshotsCount}
           reduceMotionEnabled={settings.reduceMotionEnabled}
           onlineUsers={onlineUsers}
+          presenceConnectionState={presenceConnectionState}
           currentUserId={auth.user?.id ?? null}
           commentsOpen={commentsOpen}
           activityOpen={activityOpen}
@@ -1731,7 +1732,10 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
               const meta = EDITOR_SECTION_META[section];
               const hasReplayChanges =
                 isReplayMode && sectionHasReplayChanges(replayChanges, section);
-              const othersOnSection = onlineUsers.filter((user) => user.sectionIndex === index);
+              const othersOnSection = onlineUsers.filter(
+                (user) =>
+                  user.userId !== auth.user?.id && user.sectionIndex === index,
+              );
               return (
                 <EditorTabPill
                   key={section}

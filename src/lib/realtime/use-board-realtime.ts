@@ -12,6 +12,8 @@ import type { CollaboratorCursor } from '@/lib/realtime/collaborator-fields';
 
 export type BoardPresenceStatus = 'editing' | 'viewing';
 
+export type PresenceConnectionState = 'disabled' | 'connecting' | 'connected' | 'error';
+
 export type BoardPresenceUser = {
   userId: string;
   name: string;
@@ -38,7 +40,12 @@ type UseBoardRealtimeOptions = {
   onRemoteBoard: (board: Board, savedByName: string | null) => void;
 };
 
-const PRESENCE_HEARTBEAT_MS = 15_000;
+const PRESENCE_SYNC_MS = 5_000;
+const PRESENCE_KEEPALIVE_MS = 12_000;
+const PRESENCE_STALE_MS = 20_000;
+const PRESENCE_TRACK_DEBOUNCE_MS = 200;
+const RECONNECT_BASE_MS = 1_000;
+const RECONNECT_MAX_MS = 30_000;
 
 function parseBoardRow(payload: Record<string, unknown>): Board | null {
   try {
@@ -74,13 +81,6 @@ function collectPresenceUsers(state: Record<string, BoardPresenceUser[]>): Board
   });
 
   return Array.from(byUser.values());
-}
-
-function syncPresenceFromChannel(
-  channel: RealtimeChannel,
-  setOnlineUsers: (users: BoardPresenceUser[]) => void,
-) {
-  setOnlineUsers(collectPresenceUsers(channel.presenceState<BoardPresenceUser>()));
 }
 
 function buildPresencePayload(
@@ -121,6 +121,8 @@ export function useBoardRealtime({
 }: UseBoardRealtimeOptions) {
   const [onlineUsers, setOnlineUsers] = useState<BoardPresenceUser[]>([]);
   const [presenceReady, setPresenceReady] = useState(false);
+  const [channelState, setChannelState] = useState<'connecting' | 'connected' | 'error'>('connecting');
+
   const onRemoteBoardRef = useRef(onRemoteBoard);
   const localUpdatedAtRef = useRef(localUpdatedAt);
   const isDirtyRef = useRef(isDirty);
@@ -128,11 +130,19 @@ export function useBoardRealtime({
   const activeSectionLabelRef = useRef(activeSectionLabel);
   const activeFieldIdRef = useRef(activeFieldId);
   const cursorRef = useRef(cursor);
+  const userNameRef = useRef(userName);
   const syncChannelRef = useRef<RealtimeChannel | null>(null);
   const presenceChannelRef = useRef<RealtimeChannel | null>(null);
   const presenceSubscribedRef = useRef(false);
   const trackTimerRef = useRef<number | null>(null);
   const heartbeatTimerRef = useRef<number | null>(null);
+  const reconnectTimerRef = useRef<number | null>(null);
+  const reconnectAttemptRef = useRef(0);
+  const lastKeepaliveAtRef = useRef(0);
+  const lastTrackedPayloadRef = useRef('');
+  const presenceCacheRef = useRef<Map<string, { user: BoardPresenceUser; lastSeen: number }>>(new Map());
+  const cancelledRef = useRef(false);
+  const schedulePresenceTrackRef = useRef<(force?: boolean) => void>(() => {});
   const privatePresence = usePrivateRealtimePresence();
 
   useEffect(() => {
@@ -143,7 +153,8 @@ export function useBoardRealtime({
     activeSectionLabelRef.current = activeSectionLabel;
     activeFieldIdRef.current = activeFieldId;
     cursorRef.current = cursor;
-  }, [activeFieldId, activeSectionIndex, activeSectionLabel, cursor, isDirty, localUpdatedAt, onRemoteBoard]);
+    userNameRef.current = userName;
+  }, [activeFieldId, activeSectionIndex, activeSectionLabel, cursor, isDirty, localUpdatedAt, onRemoteBoard, userName]);
 
   useEffect(() => {
     if (!enabled || !userId || !boardRole) {
@@ -151,39 +162,41 @@ export function useBoardRealtime({
       return;
     }
 
-    let cancelled = false;
+    cancelledRef.current = false;
     const supabase = createClient();
     const syncChannelName = `board-sync:${boardId}`;
     const presenceChannelName = `board:${boardId}`;
+    const presenceCache = presenceCacheRef.current;
 
-    async function pushPresenceUpdate(channel = presenceChannelRef.current) {
-      if (!channel || !presenceSubscribedRef.current || cancelled || !userId || !boardRole) {
-        return;
+    function applyPresenceSnapshot(users: BoardPresenceUser[]) {
+      const now = Date.now();
+
+      for (const user of users) {
+        presenceCache.set(user.userId, { user, lastSeen: now });
       }
 
-      const trackStatus = await channel.track(
-        buildPresencePayload(
-          userId!,
-          userName,
-          boardRole!,
-          isDirtyRef.current,
-          activeSectionIndexRef.current,
-          activeSectionLabelRef.current,
-          activeFieldIdRef.current,
-          cursorRef.current,
-        ),
-      );
-
-      if (trackStatus !== 'ok') {
-        console.error('[board-realtime] presence track failed', {
-          trackStatus,
-          presenceChannelName,
-          privatePresence,
-        });
-        return;
+      const merged: BoardPresenceUser[] = [];
+      for (const [cachedUserId, entry] of presenceCache) {
+        if (now - entry.lastSeen <= PRESENCE_STALE_MS) {
+          merged.push(entry.user);
+        } else {
+          presenceCache.delete(cachedUserId);
+        }
       }
 
-      syncPresenceFromChannel(channel, setOnlineUsers);
+      merged.sort((left, right) => left.name.localeCompare(right.name));
+      setOnlineUsers(merged);
+    }
+
+    function syncPresenceFromChannel(channel: RealtimeChannel) {
+      applyPresenceSnapshot(collectPresenceUsers(channel.presenceState<BoardPresenceUser>()));
+    }
+
+    function clearTrackTimer() {
+      if (trackTimerRef.current !== null) {
+        window.clearTimeout(trackTimerRef.current);
+        trackTimerRef.current = null;
+      }
     }
 
     function clearHeartbeat() {
@@ -193,17 +206,109 @@ export function useBoardRealtime({
       }
     }
 
+    function clearReconnectTimer() {
+      if (reconnectTimerRef.current !== null) {
+        window.clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+    }
+
+    function scheduleReconnect() {
+      if (cancelledRef.current) return;
+
+      clearReconnectTimer();
+      const delay = Math.min(
+        RECONNECT_BASE_MS * 2 ** reconnectAttemptRef.current,
+        RECONNECT_MAX_MS,
+      );
+      reconnectAttemptRef.current += 1;
+
+      reconnectTimerRef.current = window.setTimeout(() => {
+        if (!cancelledRef.current) {
+          void connectPresence();
+        }
+      }, delay);
+    }
+
+    function currentPayload(): BoardPresenceUser | null {
+      if (!userId || !boardRole) return null;
+
+      return buildPresencePayload(
+        userId,
+        userNameRef.current,
+        boardRole,
+        isDirtyRef.current,
+        activeSectionIndexRef.current,
+        activeSectionLabelRef.current,
+        activeFieldIdRef.current,
+        cursorRef.current,
+      );
+    }
+
+    async function pushPresenceUpdate(channel = presenceChannelRef.current, force = false) {
+      if (!channel || !presenceSubscribedRef.current || cancelledRef.current || !userId || !boardRole) {
+        return;
+      }
+
+      const payload = currentPayload();
+      if (!payload) return;
+
+      const serialized = JSON.stringify(payload);
+      if (!force && serialized === lastTrackedPayloadRef.current) {
+        syncPresenceFromChannel(channel);
+        return;
+      }
+
+      const trackStatus = await channel.track(payload);
+
+      if (trackStatus !== 'ok') {
+        console.error('[board-realtime] presence track failed', {
+          trackStatus,
+          presenceChannelName,
+          privatePresence,
+        });
+        setChannelState('error');
+        scheduleReconnect();
+        return;
+      }
+
+      lastTrackedPayloadRef.current = serialized;
+      setChannelState('connected');
+      syncPresenceFromChannel(channel);
+    }
+
+    function schedulePresenceTrack(delayMs = PRESENCE_TRACK_DEBOUNCE_MS, force = false) {
+      clearTrackTimer();
+      trackTimerRef.current = window.setTimeout(() => {
+        void pushPresenceUpdate(presenceChannelRef.current, force);
+      }, delayMs);
+    }
+
+    schedulePresenceTrackRef.current = (force = false) => {
+      schedulePresenceTrack(force ? 0 : PRESENCE_TRACK_DEBOUNCE_MS, force);
+    };
+
     function startHeartbeat(channel: RealtimeChannel) {
       clearHeartbeat();
+      lastKeepaliveAtRef.current = Date.now();
+
       heartbeatTimerRef.current = window.setInterval(() => {
-        syncPresenceFromChannel(channel, setOnlineUsers);
-        void pushPresenceUpdate(channel);
-      }, PRESENCE_HEARTBEAT_MS);
+        syncPresenceFromChannel(channel);
+
+        const now = Date.now();
+        if (now - lastKeepaliveAtRef.current >= PRESENCE_KEEPALIVE_MS) {
+          lastKeepaliveAtRef.current = now;
+          void pushPresenceUpdate(channel, true);
+        }
+      }, PRESENCE_SYNC_MS);
     }
 
     async function connectPresence() {
       await ensureSupabaseRealtimeAuth(supabase);
-      if (cancelled) return;
+      if (cancelledRef.current) return;
+
+      clearReconnectTimer();
+      setChannelState('connecting');
 
       const existing = presenceChannelRef.current;
       if (existing) {
@@ -222,16 +327,16 @@ export function useBoardRealtime({
 
       presenceChannel
         .on('presence', { event: 'sync' }, () => {
-          syncPresenceFromChannel(presenceChannel, setOnlineUsers);
+          syncPresenceFromChannel(presenceChannel);
         })
         .on('presence', { event: 'join' }, () => {
-          syncPresenceFromChannel(presenceChannel, setOnlineUsers);
+          syncPresenceFromChannel(presenceChannel);
         })
         .on('presence', { event: 'leave' }, () => {
-          syncPresenceFromChannel(presenceChannel, setOnlineUsers);
+          syncPresenceFromChannel(presenceChannel);
         })
         .subscribe(async (status: string, error?: Error) => {
-          if (cancelled) {
+          if (cancelledRef.current) {
             void supabase.removeChannel(presenceChannel);
             return;
           }
@@ -239,12 +344,14 @@ export function useBoardRealtime({
           if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             presenceSubscribedRef.current = false;
             setPresenceReady(false);
+            setChannelState('error');
             console.error('[board-realtime] presence channel error', {
               status,
               error,
               presenceChannelName,
               privatePresence,
             });
+            scheduleReconnect();
             return;
           }
 
@@ -252,6 +359,7 @@ export function useBoardRealtime({
             presenceSubscribedRef.current = false;
             setPresenceReady(false);
             clearHeartbeat();
+            scheduleReconnect();
             return;
           }
 
@@ -259,9 +367,11 @@ export function useBoardRealtime({
 
           presenceChannelRef.current = presenceChannel;
           presenceSubscribedRef.current = true;
+          reconnectAttemptRef.current = 0;
           setPresenceReady(true);
-          await pushPresenceUpdate(presenceChannel);
-          if (!cancelled) {
+          lastTrackedPayloadRef.current = '';
+          await pushPresenceUpdate(presenceChannel, true);
+          if (!cancelledRef.current) {
             startHeartbeat(presenceChannel);
           }
         });
@@ -269,7 +379,7 @@ export function useBoardRealtime({
 
     async function connect() {
       await ensureSupabaseRealtimeAuth(supabase);
-      if (cancelled) return;
+      if (cancelledRef.current) return;
 
       const syncChannel = supabase
         .channel(syncChannelName)
@@ -299,7 +409,7 @@ export function useBoardRealtime({
           }
         });
 
-      if (cancelled) {
+      if (cancelledRef.current) {
         void supabase.removeChannel(syncChannel);
         return;
       }
@@ -310,50 +420,69 @@ export function useBoardRealtime({
 
     const {
       data: { subscription: authSubscription },
-    } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
-      if (session?.access_token) {
-        void supabase.realtime.setAuth(session.access_token);
-      }
+    } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
+      if (!session?.access_token) return;
+
+      void (async () => {
+        await supabase.realtime.setAuth(session.access_token);
+        if (cancelledRef.current) return;
+
+        if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+          if (presenceSubscribedRef.current) {
+            lastTrackedPayloadRef.current = '';
+            schedulePresenceTrack(0, true);
+          } else {
+            void connectPresence();
+          }
+        }
+      })();
     });
 
     function handleVisibilityChange() {
-      if (document.visibilityState !== 'visible' || cancelled) return;
+      if (document.visibilityState !== 'visible' || cancelledRef.current) return;
 
       void (async () => {
         await ensureSupabaseRealtimeAuth(supabase);
-        if (cancelled) return;
+        if (cancelledRef.current) return;
 
         const channel = presenceChannelRef.current;
         if (!channel || !presenceSubscribedRef.current) {
-          await connectPresence();
+          void connectPresence();
           return;
         }
 
-        syncPresenceFromChannel(channel, setOnlineUsers);
-        await pushPresenceUpdate(channel);
+        syncPresenceFromChannel(channel);
+        schedulePresenceTrack(0, true);
       })();
     }
 
+    function handleOnline() {
+      if (cancelledRef.current) return;
+      reconnectAttemptRef.current = 0;
+      void connectPresence();
+    }
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('online', handleOnline);
     void connect();
 
     return () => {
-      cancelled = true;
+      cancelledRef.current = true;
       presenceSubscribedRef.current = false;
       setPresenceReady(false);
       authSubscription.unsubscribe();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('online', handleOnline);
       clearHeartbeat();
-
-      if (trackTimerRef.current !== null) {
-        window.clearTimeout(trackTimerRef.current);
-        trackTimerRef.current = null;
-      }
+      clearTrackTimer();
+      clearReconnectTimer();
 
       const syncChannel = syncChannelRef.current;
       const presenceChannel = presenceChannelRef.current;
       syncChannelRef.current = null;
       presenceChannelRef.current = null;
+      lastTrackedPayloadRef.current = '';
+      presenceCache.clear();
 
       if (syncChannel) {
         void supabase.removeChannel(syncChannel);
@@ -365,80 +494,35 @@ export function useBoardRealtime({
 
       setOnlineUsers([]);
     };
-  }, [boardId, boardRole, enabled, privatePresence, userId, userName]);
+  }, [boardId, boardRole, enabled, privatePresence, userId]);
 
   useEffect(() => {
     if (!enabled || !userId || !boardRole || !presenceReady) return;
-
-    const channel = presenceChannelRef.current;
-    if (!channel) return;
-
-    void channel
-      .track(
-        buildPresencePayload(
-          userId,
-          userName,
-          boardRole,
-          isDirtyRef.current,
-          activeSectionIndex,
-          activeSectionLabel,
-          activeFieldIdRef.current,
-          cursorRef.current,
-        ),
-      )
-      .then((trackStatus) => {
-        if (trackStatus !== 'ok') {
-          console.error('[board-realtime] presence section update failed', trackStatus);
-          return;
-        }
-        syncPresenceFromChannel(channel, setOnlineUsers);
-      });
-  }, [activeFieldId, activeSectionIndex, activeSectionLabel, boardRole, cursor, enabled, presenceReady, userId, userName]);
-
-  useEffect(() => {
-    if (!enabled || !userId || !boardRole || !presenceReady) return;
-
-    if (trackTimerRef.current !== null) {
-      window.clearTimeout(trackTimerRef.current);
-    }
-
-    trackTimerRef.current = window.setTimeout(() => {
-      const channel = presenceChannelRef.current;
-      if (!channel) return;
-
-      void channel
-        .track(
-          buildPresencePayload(
-            userId,
-            userName,
-            boardRole,
-            isDirty,
-            activeSectionIndexRef.current,
-            activeSectionLabelRef.current,
-            activeFieldIdRef.current,
-            cursorRef.current,
-          ),
-        )
-        .then((trackStatus) => {
-          if (trackStatus !== 'ok') {
-            console.error('[board-realtime] presence dirty update failed', trackStatus);
-            return;
-          }
-          syncPresenceFromChannel(channel, setOnlineUsers);
-        });
-    }, 250);
-
-    return () => {
-      if (trackTimerRef.current !== null) {
-        window.clearTimeout(trackTimerRef.current);
-      }
-    };
-  }, [activeFieldId, boardRole, cursor, enabled, isDirty, presenceReady, userId, userName]);
+    schedulePresenceTrackRef.current(false);
+  }, [
+    activeFieldId,
+    activeSectionIndex,
+    activeSectionLabel,
+    boardRole,
+    cursor,
+    enabled,
+    isDirty,
+    presenceReady,
+    userId,
+  ]);
 
   const activeOnlineUsers = enabled && userId && boardRole ? onlineUsers : [];
   const presenceUsers = userId
     ? activeOnlineUsers.filter((user) => user.userId !== userId)
     : activeOnlineUsers;
+  const connectionState: PresenceConnectionState =
+    !enabled || !userId || !boardRole
+      ? 'disabled'
+      : channelState === 'error' && !presenceReady
+        ? 'error'
+        : !presenceReady
+          ? 'connecting'
+          : channelState;
 
-  return { presenceUsers, onlineUsers: activeOnlineUsers };
+  return { presenceUsers, onlineUsers: activeOnlineUsers, connectionState };
 }

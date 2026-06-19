@@ -299,7 +299,7 @@ function CommandPaletteDialog({ sessionId }: { sessionId: number }) {
           },
           {
             id: 'editor-share',
-            title: 'Share board',
+            title: 'Collaborate',
             description: 'Manage collaborators and public sharing.',
             keywords: ['share', 'collaborate', 'invite'],
             icon: <Share2 className="h-4 w-4" />,

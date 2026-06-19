@@ -22,7 +22,7 @@ flowchart LR
   end
 
   subgraph supabase ["Supabase production"]
-    mig["Run migrations 001–027"]
+    mig["Run migrations 001–028"]
     urls["Auth URL config + redirect URLs"]
     rt["Realtime + RLS policies"]
   end
@@ -225,7 +225,15 @@ where table_schema = 'public'
 
 Expected: two notification columns and the `board_templates` table. Re-deploy Vercel after applying if the app was already live.
 
-> **Presence:** By default the app uses a public Realtime presence channel so collaborators show up without extra setup. If you disable **Allow public access** under Supabase **Project Settings → Realtime**, run migration `016` and set `NEXT_PUBLIC_SUPABASE_REALTIME_PRIVATE=true` in Vercel.
+## Step 5h — Apply latest migration (028)
+
+If production uses **private Realtime** (Supabase **Allow public access** disabled), run in the **production** Supabase SQL Editor:
+
+1. [`supabase/migrations/028_board_field_sync_broadcast.sql`](../supabase/migrations/028_board_field_sync_broadcast.sql)
+
+This authorizes `board-fields:{board_id}` broadcast channels for live field sync. Migration `016` covers presence; `028` covers field patches. Set `NEXT_PUBLIC_SUPABASE_REALTIME_PRIVATE=true` on Vercel when public Realtime access is off.
+
+> **Presence:** By default the app uses a public Realtime presence channel so collaborators show up without extra setup. If you disable **Allow public access** under Supabase **Project Settings → Realtime**, run migrations `016` and `028`, and set `NEXT_PUBLIC_SUPABASE_REALTIME_PRIVATE=true` in Vercel.
 
 > `alter publication supabase_realtime add table` is not idempotent. If `006` was partially applied, check **Database → Publications → supabase_realtime** before re-running.
 

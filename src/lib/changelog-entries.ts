@@ -9,6 +9,17 @@ export type ChangelogEntry = {
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
     date: '2026-06',
+    title: 'Collaboration polish + dashboard fixes',
+    bullets: [
+      'Dashboard filter reset, clear, and toggle-off no longer get stuck on With me / With others',
+      'Presentation mode section pills vertically center labels with icons',
+      'Presence strip shows connecting, live, and offline states; reconnect with grace period reduces flicker',
+      'Toolbar and command palette use Collaborate label for invite/sharing',
+      'Migration 028 adds RLS for private Realtime field-sync broadcast channels',
+    ],
+  },
+  {
+    date: '2026-06',
     sprint: 'T',
     title: 'Verification + docs',
     bullets: [

@@ -10,6 +10,7 @@ type BoardGridProps = {
   sort: BoardSort;
   visibility: VisibilityFilter;
   access: AccessFilter;
+  onClearFilters?: () => void;
 };
 
 function boardHasEditAccess(board: { role?: string }): boolean {
@@ -25,12 +26,17 @@ function EmptyGallery({
   description,
   actionHref,
   actionLabel,
+  onAction,
 }: {
   title: string;
   description: string;
-  actionHref: string;
+  actionHref?: string;
   actionLabel: string;
+  onAction?: () => void;
 }) {
+  const actionClassName =
+    'inline-flex h-11 items-center justify-center rounded-full bg-(--text-strong) px-5 text-sm font-medium text-(--background)! shadow-sm transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)';
+
   return (
     <section
       aria-label="Empty board gallery"
@@ -54,19 +60,22 @@ function EmptyGallery({
         </p>
 
         <div className="mt-7 flex justify-center">
-          <Link
-            href={actionHref}
-            className="inline-flex h-11 items-center justify-center rounded-full bg-(--text-strong) px-5 text-sm font-medium text-(--background)! shadow-sm transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)"
-          >
-            {actionLabel}
-          </Link>
+          {onAction ? (
+            <button type="button" onClick={onAction} className={actionClassName}>
+              {actionLabel}
+            </button>
+          ) : actionHref ? (
+            <Link href={actionHref} className={actionClassName}>
+              {actionLabel}
+            </Link>
+          ) : null}
         </div>
       </div>
     </section>
   );
 }
 
-export function BoardGrid({ sort, visibility, access }: BoardGridProps) {
+export function BoardGrid({ sort, visibility, access, onClearFilters }: BoardGridProps) {
   const boards = useSyncExternalStore(subscribeBoards, loadBoards, loadBoards);
 
   if (!boards.length) {
@@ -118,8 +127,8 @@ export function BoardGrid({ sort, visibility, access }: BoardGridProps) {
         <EmptyGallery
           title={`No favorite ${visibilityLabel} boards yet.`}
           description={`You have no favorite ${visibilityLabel} boards. Adjust the filters or favorite a board to see it here.`}
-          actionHref="/app"
           actionLabel="Clear filters"
+          onAction={onClearFilters}
         />
       );
     }
@@ -129,8 +138,8 @@ export function BoardGrid({ sort, visibility, access }: BoardGridProps) {
         <EmptyGallery
           title="No boards shared with others yet."
           description="Invite collaborators from a board's Collaborate menu. Boards with members or pending invites will appear here."
-          actionHref="/app"
           actionLabel="Clear filters"
+          onAction={onClearFilters}
         />
       );
     }
@@ -151,8 +160,8 @@ export function BoardGrid({ sort, visibility, access }: BoardGridProps) {
         <EmptyGallery
           title="No editable boards here."
           description="Boards you own or can edit will appear when this filter is active."
-          actionHref="/app"
           actionLabel="Clear filters"
+          onAction={onClearFilters}
         />
       );
     }
@@ -162,8 +171,8 @@ export function BoardGrid({ sort, visibility, access }: BoardGridProps) {
         <EmptyGallery
           title="No view-only boards here."
           description="Boards shared with you as a viewer will appear when this filter is active."
-          actionHref="/app"
           actionLabel="Clear filters"
+          onAction={onClearFilters}
         />
       );
     }
@@ -183,8 +192,8 @@ export function BoardGrid({ sort, visibility, access }: BoardGridProps) {
       <EmptyGallery
         title={`No ${visibilityLabel} boards yet.`}
         description={`You don't have any ${visibilityLabel} boards. Change a board's visibility in the editor or adjust the filters.`}
-        actionHref="/app"
         actionLabel="Clear filters"
+        onAction={onClearFilters}
       />
     );
   }

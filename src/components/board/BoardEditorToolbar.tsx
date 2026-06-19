@@ -25,7 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { GenerationSourceBadge } from '@/components/creation/GenerationSourceBadge';
 import { BoardPresenceStrip } from '@/components/board/BoardPresenceStrip';
 import { editorLabelClass, editorToolbarUnreadBadgeClass } from '@/components/board/board-editor-styles';
-import type { BoardPresenceUser } from '@/lib/realtime/use-board-realtime';
+import type { BoardPresenceUser, PresenceConnectionState } from '@/lib/realtime/use-board-realtime';
 import type { BoardVisibility } from '@/types/board';
 
 type BoardEditorToolbarProps = {
@@ -46,6 +46,7 @@ type BoardEditorToolbarProps = {
   unreadSnapshotsCount: number;
   reduceMotionEnabled?: boolean;
   onlineUsers: BoardPresenceUser[];
+  presenceConnectionState?: PresenceConnectionState;
   currentUserId: string | null;
   commentsOpen: boolean;
   activityOpen: boolean;
@@ -183,6 +184,7 @@ export function BoardEditorToolbar({
   unreadSnapshotsCount,
   reduceMotionEnabled = false,
   onlineUsers,
+  presenceConnectionState,
   currentUserId,
   commentsOpen,
   activityOpen,
@@ -266,7 +268,11 @@ export function BoardEditorToolbar({
           <p id="board-controls-label" className={editorLabelClass}>
             Board controls
           </p>
-          <BoardPresenceStrip users={onlineUsers} currentUserId={currentUserId} />
+          <BoardPresenceStrip
+            users={onlineUsers}
+            currentUserId={currentUserId}
+            connectionState={presenceConnectionState}
+          />
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           {showCollaboration || showBoardActions ? (
@@ -319,7 +325,7 @@ export function BoardEditorToolbar({
                 <div className="flex flex-wrap items-center gap-1" aria-label="Board">
                   {isOwner ? (
                     <ToolbarAction
-                      label="Share"
+                      label="Collaborate"
                       icon={<Share2 className="h-4 w-4 shrink-0" />}
                       onClick={onShare}
                     />
