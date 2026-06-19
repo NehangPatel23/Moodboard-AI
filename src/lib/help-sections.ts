@@ -49,6 +49,7 @@ export const HELP_SECTIONS: HelpSection[] = [
     summary: 'Invites, comments, activity replay, snapshots, and real-time sync.',
     bullets: [
       'Invite collaborators by email with owner, editor, or viewer roles.',
+      'Invite emails send automatically when Resend is configured; otherwise copy the invite link.',
       'Comments link to editor sections; use View in section to jump and mark read.',
       'Activity replay shows structured changes; snapshots save restore points.',
       'Yellow dots mark unseen collaborator updates until you mark them read.',

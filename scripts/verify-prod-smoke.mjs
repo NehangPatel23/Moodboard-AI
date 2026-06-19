@@ -101,6 +101,66 @@ async function main() {
       fail('Templates Community tab visible', 'Community templates tab may be missing');
     }
 
+    await page.goto(`${BASE_URL}/discover`, { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle', { timeout: 20_000 }).catch(() => {});
+
+    const discoverApiRes = await fetch(`${BASE_URL}/api/discover`);
+    if (discoverApiRes.ok) {
+      const payload = await discoverApiRes.json();
+      const boards = Array.isArray(payload?.boards) ? payload.boards : Array.isArray(payload) ? payload : [];
+      const shareBoardId = boards[0]?.id;
+      if (shareBoardId) {
+        await page.goto(`${BASE_URL}/share/${shareBoardId}`, { waitUntil: 'domcontentloaded' });
+        await page.waitForLoadState('networkidle', { timeout: 20_000 }).catch(() => {});
+        const remixControl = page
+          .getByRole('button', { name: /Remix this board/i })
+          .or(page.getByRole('link', { name: /Remix this direction/i }));
+        if (await remixControl.isVisible().catch(() => false)) {
+          pass('Share page remix button present');
+        } else {
+          fail('Share page remix button present', `No remix control on /share/${shareBoardId}`);
+        }
+      } else {
+        fail('Share page remix button present', 'Discover board missing id');
+      }
+    } else {
+      fail('Share page remix button present', `Discover API HTTP ${discoverApiRes.status}`);
+    }
+
+    await page.goto(`${BASE_URL}/discover`, { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle', { timeout: 20_000 }).catch(() => {});
+
+    const remixButton = page.getByRole('button', { name: /^Remix$/i }).first();
+    if (await remixButton.isVisible().catch(() => false)) {
+      await page.context().clearCookies();
+      await page.evaluate(() => {
+        localStorage.clear();
+        sessionStorage.clear();
+      });
+      await page.goto(`${BASE_URL}/discover`, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('networkidle', { timeout: 20_000 }).catch(() => {});
+      const unsignedRemix = page.getByRole('button', { name: /^Remix$/i }).first();
+      if (await unsignedRemix.isVisible().catch(() => false)) {
+        await unsignedRemix.click();
+        await page.waitForURL(/\/sign-in/, { timeout: 15_000 });
+        pass('Unauthenticated remix redirects to sign-in');
+      } else {
+        fail('Unauthenticated remix redirects to sign-in', 'Remix button not visible on Discover');
+      }
+    } else {
+      fail('Unauthenticated remix redirects to sign-in', 'No public boards with Remix button on Discover');
+    }
+
+    await page.goto(`${BASE_URL}/help`, { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle', { timeout: 20_000 }).catch(() => {});
+    if (await page.getByRole('heading', { name: /How MoodBoard AI works/i }).isVisible().catch(() => false)) {
+      pass('Help page heading visible');
+    } else if (await page.getByText(/Getting started/i).first().isVisible().catch(() => false)) {
+      pass('Help page heading visible', 'Getting started section present');
+    } else {
+      fail('Help page heading visible');
+    }
+
     await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle', { timeout: 20_000 }).catch(() => {});
     if (await page.getByRole('heading', { name: /Turn rough ideas/i }).isVisible().catch(() => false)) {
@@ -117,6 +177,27 @@ async function main() {
     pass('Discover page loads', `HTTP ${discover.status}`);
   } else {
     fail('Discover page loads', `HTTP ${discover.status}`);
+  }
+
+  const help = await fetchText('/help');
+  if (help.status === 200) {
+    pass('Help page loads', `HTTP ${help.status}`);
+  } else {
+    fail('Help page loads', `HTTP ${help.status}`);
+  }
+
+  const sitemap = await fetchText('/sitemap.xml');
+  if (sitemap.status === 200 && sitemap.text.includes('<urlset')) {
+    pass('Sitemap loads', 'XML urlset present');
+  } else {
+    fail('Sitemap loads', `HTTP ${sitemap.status}`);
+  }
+
+  const robots = await fetchText('/robots.txt');
+  if (robots.status === 200 && robots.text.includes('Sitemap:')) {
+    pass('Robots.txt loads', 'Sitemap reference present');
+  } else {
+    fail('Robots.txt loads', `HTTP ${robots.status}`);
   }
 
   const discoverApi = await fetch(`${BASE_URL}/api/discover`);

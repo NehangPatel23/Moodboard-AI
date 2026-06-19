@@ -81,6 +81,7 @@ const columnChecks = [
   ['user_settings', 'remote_save_toast_enabled'],
   ['board_invites', 'declined_at'],
   ['board_invites', 'invitee_user_id'],
+  ['boards', 'view_count'],
 ];
 
 const missingColumns = [];

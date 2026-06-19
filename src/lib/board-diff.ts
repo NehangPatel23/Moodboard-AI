@@ -317,6 +317,27 @@ export function diffBoards(before: Board, after: Board): BoardActivityChange[] {
     }
   }
 
+  const beforeReferenceIds = before.references.map((item) => item.id);
+  const afterReferenceIds = after.references.map((item) => item.id);
+  const sameReferenceSet =
+    beforeReferenceIds.length === afterReferenceIds.length &&
+    beforeReferenceIds.length > 0 &&
+    beforeReferenceIds.every((id) => afterReferenceIds.includes(id));
+  const referencesReordered =
+    sameReferenceSet && beforeReferenceIds.some((id, index) => afterReferenceIds[index] !== id);
+
+  if (referencesReordered) {
+    changes.push({
+      kind: 'reference',
+      action: 'updated',
+      section: 'references',
+      label: 'References',
+      summary: 'Reordered inspiration references',
+      before: null,
+      after: null,
+    });
+  }
+
   const beforeNotes = new Map(before.notes.map((item) => [item.id, item]));
   const afterNotes = new Map(after.notes.map((item) => [item.id, item]));
 

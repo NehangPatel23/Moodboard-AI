@@ -162,6 +162,8 @@ export type Board = {
   creatorId?: string;
   /** Computed on owned boards from GET /api/boards — true when members or pending invites exist. */
   hasCollaborators?: boolean;
+  /** Public share page views — set on shared boards from migration 032. */
+  viewCount?: number;
 };
 
 export type BoardSnapshot = {

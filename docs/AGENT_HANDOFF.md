@@ -80,8 +80,12 @@ flowchart TD
 - **Creator display name** — public profiles use `profiles.name`; Settings **Your name** via `PATCH /api/profile/me`; workspace name stays separate.
 - **Profile photos** — upload + crop in Settings; migration `024`; red **X** on the avatar tile calls `DELETE /api/profile/avatar/upload` to remove the photo.
 - **Profile layout** — [`src/app/profile/layout.tsx`](../src/app/profile/layout.tsx) wraps public profiles with [`LandingHeader`](../src/components/landing/LandingHeader.tsx) (same shell as landing/discover).
-- **Share / remix** — creator link on share page; Discover nav active on `/share` and `/profile`; prompt pre-fill on `/app/new?prompt=`.
+- **Share / remix** — full-board remix on Discover and share pages via `POST /api/boards/[id]/remix` ([`RemixBoardButton`](../src/components/shared/RemixBoardButton.tsx)); creator link on share page; Discover nav active on `/share` and `/profile`.
+- **Discover view counts** — `view_count` on shared boards (migration `032`); `POST /api/boards/[id]/view` on share page load; shown on Discover cards and share badge.
+- **Snapshot diff** — [`SnapshotDiffModal`](../src/components/board/SnapshotDiffModal.tsx) compares a snapshot to the current board or another snapshot via `diffBoards`.
+- **Mobile nav** — bottom tab bar includes Discover and Settings ([`MobileNav`](../src/components/layout/MobileNav.tsx)).
 - **Auth** — email/password sign-in and sign-up, demo account, and **forgot password** (`requestPasswordReset` → email → [`/auth/callback`](../src/app/auth/callback/route.ts) → `/sign-in?mode=update-password`). Callback handles PKCE `code` and `token_hash` recovery links. OAuth (Google/GitHub) is **not implemented** — deferred.
+- **Invite emails** — [`send-invite-email.ts`](../src/lib/send-invite-email.ts) sends Resend transactional mail on invite create/re-invite when `RESEND_API_KEY` + `RESEND_FROM_EMAIL` are set.
 - **Board auto-save** — [`use-board-auto-save.ts`](../src/lib/use-board-auto-save.ts) debounces PATCH saves; manual Save + confirmation modal unchanged ([`BoardEditorClient.tsx`](../src/components/board/BoardEditorClient.tsx)). Interval in Settings (migration `025`); auto saves omit Activity noise via `saveSource: 'auto'`. Success toast **Changes auto-saved.** fires only when `autosaveToastEnabled` is on (migration `026`).
 - **Landing polish** — softer hero gradients and `--surface-elevated` feature cards in [`app-surface-styles.ts`](../src/components/shared/app-surface-styles.ts).
 - **Portfolio metadata** — favicon ([`public/icon.svg`](../public/icon.svg) via [`AppIcon`](../src/components/shared/AppIcon.tsx)), default OG image ([`opengraph-image.tsx`](../src/app/opengraph-image.tsx)), route meta for Discover/share/profile ([`site-metadata.ts`](../src/lib/site-metadata.ts)).
@@ -94,13 +98,19 @@ flowchart TD
 
 ---
 
+## Project status: complete
+
+**The portfolio build is finished** (Sprints A–X + closure sprint + final wrap-up). The live demo, docs, CI, and smoke tests reflect a shippable product — not an active roadmap. Treat new work as optional enhancements only.
+
 ## When resuming work
 
-**Portfolio MVP is complete** (Sprints A–W). Collaboration includes sync-on-save, field-level patches for summary/notes, and conflict handling — not full Google Docs–style simultaneous typing (long-term upgrade).
+**Portfolio MVP is complete** (Sprints A–X + closure sprint). Collaboration includes sync-on-save, field-level patches for summary/notes, conflict handling, and optional Resend invite emails — not full Google Docs–style simultaneous typing (long-term upgrade).
+
+**Closure sprint:** GitHub Actions CI (`.github/workflows/ci.yml`), `npm run test:smoke`, `/sitemap.xml`, `/robots.txt`, and [`send-invite-email.ts`](../src/lib/send-invite-email.ts) for collaboration invites.
 
 If continuing development, recommended order:
 
 1. **Live cursors / character-level co-editing** — build on existing field sync + presence layer
 2. **Behance / Dribbble reference APIs** (only with legitimate API access)
 
-Run migrations through **`031`** in production if not applied — see [DEPLOY](DEPLOY.md#step-5i--apply-latest-migrations-029031). Verify with `npm run verify:collaboration` and `npm run verify:prod-smoke`.
+Run migrations through **`032`** in production if not applied — see [DEPLOY](DEPLOY.md#step-5j--apply-view-counts-migration-032). Verify with `npm run verify:collaboration` and `npm run verify:prod-smoke`.

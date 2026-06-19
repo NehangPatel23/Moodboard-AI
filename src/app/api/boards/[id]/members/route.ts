@@ -3,6 +3,8 @@ import { getBoardAccess } from '@/lib/db/board-access';
 import { getAuthenticatedUser } from '@/lib/db/auth';
 import { resolveUserByEmail } from '@/lib/db/ensure-profile';
 import { isMissingColumnError } from '@/lib/db/schema-errors';
+import { sendBoardInviteEmail } from '@/lib/send-invite-email';
+import { absoluteUrl } from '@/lib/site-metadata';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { BoardInvite, BoardMember, BoardMemberRole } from '@/types/board';
 
@@ -136,6 +138,36 @@ async function writeInviteRecord(
   throw new Error('Failed to write invite record');
 }
 
+async function buildInviteCreatedResponse(
+  invite: {
+    id: string;
+    email: string;
+    role: string;
+    token: string;
+    status: string;
+    created_at: string;
+    declined_at?: string | null;
+  },
+  boardTitle: string,
+  inviterName: string,
+) {
+  const mappedInvite = mapInviteRow(invite);
+  const emailResult = await sendBoardInviteEmail({
+    to: mappedInvite.email,
+    boardTitle,
+    inviterName,
+    role: mappedInvite.role,
+    inviteUrl: absoluteUrl(`/invite/${mappedInvite.token}`),
+  });
+
+  return NextResponse.json({
+    type: 'invite_created' as const,
+    invite: mappedInvite,
+    invitePath: `/invite/${mappedInvite.token}`,
+    emailSent: emailResult.sent,
+  });
+}
+
 export async function GET(_request: Request, context: RouteContext) {
   const { id } = await context.params;
   const { user } = await getAuthenticatedUser();
@@ -221,10 +253,13 @@ export async function POST(request: Request, context: RouteContext) {
 
   const admin = createAdminClient();
 
-  const { data: boardRow } = await admin.from('boards').select('user_id').eq('id', id).maybeSingle();
+  const { data: boardRow } = await admin.from('boards').select('user_id, title').eq('id', id).maybeSingle();
   if (!boardRow) {
     return NextResponse.json({ error: 'Board not found' }, { status: 404 });
   }
+
+  const boardTitle = typeof boardRow.title === 'string' && boardRow.title.trim() ? boardRow.title.trim() : 'Untitled board';
+  const inviterName = profile?.name?.trim() || profile?.email?.split('@')[0] || 'A collaborator';
 
   const { data: ownerProfile } = await admin
     .from('profiles')
@@ -297,11 +332,7 @@ export async function POST(request: Request, context: RouteContext) {
         user.id,
       );
 
-      return NextResponse.json({
-        type: 'invite_created',
-        invite: mapInviteRow(updatedInvite),
-        invitePath: `/invite/${updatedInvite.token}`,
-      });
+      return buildInviteCreatedResponse(updatedInvite, boardTitle, inviterName);
     } catch (updateError) {
       return NextResponse.json(
         { error: updateError instanceof Error ? updateError.message : 'Failed to update invite' },
@@ -328,11 +359,7 @@ export async function POST(request: Request, context: RouteContext) {
         },
       );
 
-      return NextResponse.json({
-        type: 'invite_created',
-        invite: mapInviteRow(reactivatedInvite),
-        invitePath: `/invite/${reactivatedInvite.token}`,
-      });
+      return buildInviteCreatedResponse(reactivatedInvite, boardTitle, inviterName);
     } catch (reactivateError) {
       return NextResponse.json(
         {
@@ -356,11 +383,7 @@ export async function POST(request: Request, context: RouteContext) {
       user.id,
     );
 
-    return NextResponse.json({
-      type: 'invite_created',
-      invite: mapInviteRow(invite),
-      invitePath: `/invite/${invite.token}`,
-    });
+    return buildInviteCreatedResponse(invite, boardTitle, inviterName);
   } catch (inviteError) {
     return NextResponse.json(
       { error: inviteError instanceof Error ? inviteError.message : 'Failed to create invite' },

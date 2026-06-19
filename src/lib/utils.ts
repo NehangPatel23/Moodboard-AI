@@ -24,6 +24,17 @@ export function formatDateTime(iso: string): string {
   }
 }
 
+export function formatViewCount(count: number): string {
+  if (!Number.isFinite(count) || count <= 0) return '0';
+  if (count < 1000) return String(Math.floor(count));
+  if (count < 1_000_000) {
+    const value = count / 1000;
+    return value >= 10 ? `${Math.floor(value)}k` : `${value.toFixed(1).replace(/\.0$/, '')}k`;
+  }
+  const value = count / 1_000_000;
+  return value >= 10 ? `${Math.floor(value)}M` : `${value.toFixed(1).replace(/\.0$/, '')}M`;
+}
+
 export function safeParse<T>(value: string | null, fallback: T): T {
   if (!value) return fallback;
   try {

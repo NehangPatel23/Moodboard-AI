@@ -3,10 +3,9 @@
 import Link from 'next/link';
 import type { CSSProperties } from 'react';
 import type { Board } from '@/types/board';
-import { formatDateTime } from '@/lib/utils';
-import { Globe, Sparkles } from 'lucide-react';
+import { formatDateTime, formatViewCount, cn } from '@/lib/utils';
+import { Eye, Globe, Sparkles } from 'lucide-react';
 import { resolveReferenceImageUrl } from '@/lib/reference-images';
-import { cn } from '@/lib/utils';
 import {
   appOverlayBadgeClass,
   appPreviewFallbackHex,
@@ -142,6 +141,11 @@ export function DiscoverBoardCard({ board, featured = false }: DiscoverBoardCard
               <span className="mx-2">·</span>
             </>
           ) : null}
+          <span className="inline-flex items-center gap-1">
+            <Eye className="h-3 w-3" aria-hidden="true" />
+            {formatViewCount(board.viewCount ?? 0)} views
+          </span>
+          <span className="mx-2">·</span>
           Updated {formatDateTime(board.updatedAt)}
         </p>
         <DiscoverRemixButton boardId={board.id} boardTitle={board.title} />

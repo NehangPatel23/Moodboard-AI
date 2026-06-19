@@ -52,7 +52,7 @@ AI-assisted workspace for creative direction and moodboarding. Describe a brand 
 | **Solution** | AI generates a structured first draft — palette, type, refs, notes — you refine and share |
 | **Output** | Editable boards exportable as JSON, PNG, or PDF |
 | **Collaboration** | Invites, roles, real-time presence, section-linked comments, activity replay, unread badges |
-| **Status** | MVP live · active development · portfolio-grade product build |
+| **Status** | Portfolio complete · live demo · CI + smoke tests on `main` |
 
 ---
 
@@ -66,6 +66,7 @@ Portfolio captures from the [live demo](https://moodboard-ai-omega.vercel.app):
 | **Discover** — mood dropdown, featured row, creator profiles | ![Discover browse](docs/screenshots/discover.png) |
 | **Dashboard** — board grid, filters, pending invitations | ![Dashboard](docs/screenshots/dashboard.png) |
 | **Board editor** — tabbed sections, palette, references | ![Board editor](docs/screenshots/board-editor.png) |
+| **Collaboration** — comments panel, section context, team feedback | ![Collaboration](docs/screenshots/collaboration.png) |
 | **Share page** — view-only board, remix CTA, creator attribution | ![Share page](docs/screenshots/share.png) |
 | **Settings** — display name, avatar, Editor auto-save interval | ![Settings](docs/screenshots/settings.png) |
 | **Sign-in** — email/password, forgot password, demo account | ![Sign in](docs/screenshots/sign-in.png) |
@@ -382,7 +383,7 @@ flowchart LR
 <details open>
 <summary><strong>Share & collaborate</strong></summary>
 
-- Email invites with **owner / editor / viewer** roles
+- Email invites with **owner / editor / viewer** roles (copy invite link, or automatic email when Resend is configured)
 - **Real-time presence** — colored dots on section tabs show who is on each tab
 - **Section-linked comments** — tag feedback to Overview, Palette, Typography, References, or Notes; **View in section** jumps the editor
 - **Unread indicators** — yellow dots on new comments, activity, and snapshots (your own posts never count as unread)
@@ -422,7 +423,7 @@ Suggested first run: open **New board** → enter a short prompt → watch the l
 ### Run locally
 
 ```bash
-cp .env.local.example .env.local   # Supabase required; Gemini optional
+cp .env.local.example .env.local   # Supabase required; Gemini, Resend, and SITE_URL optional
 npm install
 npm run setup:supabase
 npm run verify:generate
@@ -466,7 +467,7 @@ Yes. Set visibility to **Shared** for a view-only link at `/share/[id]`, or invi
 <details>
 <summary><strong>Is this production-ready?</strong></summary>
 
-It's a deployed MVP with auth, persistence, collaboration, AI generation, and export — actively developed. See [docs/ROADMAP.md](docs/ROADMAP.md) for shipped work and what's next.
+It's a deployed, **portfolio-complete** MVP with auth, persistence, collaboration, AI generation, and export. Resend and `NEXT_PUBLIC_SITE_URL` are optional — see [docs/DEPLOY.md](docs/DEPLOY.md). Shipped work: [docs/ROADMAP.md](docs/ROADMAP.md).
 
 </details>
 
@@ -497,7 +498,10 @@ It's a deployed MVP with auth, persistence, collaboration, AI generation, and ex
 | `npm run verify:generate` | Test Gemini / mock generation |
 | `npm run verify:collaboration` | Test collaboration APIs |
 | `npm run verify:prod-smoke` | Automated checks against the live demo deploy |
+| `npm run test:smoke` | Alias for `verify:prod-smoke` |
 | `npm run capture:screenshots` | Refresh README portfolio screenshots |
+
+**Optional env vars:** Only Supabase keys are required for a full local run. `RESEND_*` enables automatic invite emails; without them, use **Copy invite link** in Collaborate. `NEXT_PUBLIC_SITE_URL` is optional — Vercel injects `VERCEL_URL` in production.
 
 ---
 

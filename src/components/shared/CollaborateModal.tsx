@@ -168,7 +168,7 @@ export function CollaborateModal({
     try {
       const response = await apiFetch<
         | { type: 'member_updated'; member: BoardMember }
-        | { type: 'invite_created'; invitePath: string; invite: BoardInvite }
+        | { type: 'invite_created'; invitePath: string; invite: BoardInvite; emailSent?: boolean }
       >(`/api/boards/${boardId}/members`, {
         method: 'POST',
         body: JSON.stringify({ email: normalizedEmail, role: inviteRole }),
@@ -192,7 +192,12 @@ export function CollaborateModal({
         });
         setLastInvitePath(response.invitePath);
         setInviteEmail('');
-        showToast(`Invitation sent to ${response.invite.email} — waiting for them to accept.`, 'success');
+        showToast(
+          response.emailSent
+            ? `Invitation email sent to ${response.invite.email}.`
+            : `Invitation created for ${response.invite.email} — copy the invite link if email delivery is not configured.`,
+          'success',
+        );
         void reloadBoards();
       }
     } catch (error) {
@@ -252,7 +257,12 @@ export function CollaborateModal({
     setPeopleError(null);
 
     try {
-      const response = await apiFetch<{ type: 'invite_created'; invitePath: string; invite: BoardInvite }>(
+      const response = await apiFetch<{
+        type: 'invite_created';
+        invitePath: string;
+        invite: BoardInvite;
+        emailSent?: boolean;
+      }>(
         `/api/boards/${boardId}/members`,
         {
           method: 'POST',
@@ -265,7 +275,12 @@ export function CollaborateModal({
         return [response.invite, ...withoutExisting];
       });
       setLastInvitePath(response.invitePath);
-      showToast(`Invitation sent again to ${response.invite.email}.`, 'success');
+      showToast(
+        response.emailSent
+          ? `Invitation email sent again to ${response.invite.email}.`
+          : `Invitation refreshed for ${response.invite.email} — copy the invite link if needed.`,
+        'success',
+      );
       void reloadBoards();
     } catch (error) {
       setPeopleError(error instanceof Error ? error.message : 'Failed to re-send invite');
@@ -349,9 +364,8 @@ export function CollaborateModal({
           <div className="mt-5 space-y-5">
             <form noValidate onSubmit={handleInvite} className="space-y-3">
               <p className="text-sm leading-6 text-(--text-muted)">
-                Invite collaborators by email. They must accept before accessing the board. Share the
-                invite link if they do not see the in-app notification — emails are not sent
-                automatically.
+                Invite collaborators by email. They must accept before accessing the board. An invite
+                email is sent when Resend is configured — otherwise copy the invite link below.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
                 <div className="min-w-0 flex-1 space-y-2">

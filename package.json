@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "db:seed-demo": "node --env-file=.env.local scripts/seed-demo-user.mjs",
     "db:seed-demo-boards": "node --env-file=.env.local scripts/seed-demo-boards.mjs",
     "setup:supabase": "node scripts/setup-supabase.mjs",
@@ -14,9 +15,13 @@
     "verify:collaboration": "node --env-file=.env.local scripts/verify-collaboration-migrations.mjs",
     "verify:generate": "node --env-file=.env.local scripts/verify-generate.mjs",
     "capture:screenshots": "node scripts/capture-portfolio-screenshots.mjs",
-    "verify:prod-smoke": "node scripts/verify-prod-smoke.mjs"
+    "verify:prod-smoke": "node scripts/verify-prod-smoke.mjs",
+    "test:smoke": "node scripts/verify-prod-smoke.mjs"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.107.0",
     "@vercel/analytics": "^2.0.1",

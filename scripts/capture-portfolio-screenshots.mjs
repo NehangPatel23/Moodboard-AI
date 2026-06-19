@@ -116,6 +116,21 @@ async function main() {
     await page.getByRole('button', { name: /overview|palette|typography/i }).first().waitFor({ timeout: 15_000 }).catch(() => {});
     await capture(page, 'board-editor.png');
 
+    const commentsButton = page.getByRole('button', { name: /^Comments$/i });
+    if (await commentsButton.isVisible().catch(() => false)) {
+      await commentsButton.click();
+      await page
+        .getByPlaceholder(/Leave feedback for the team/i)
+        .or(page.getByRole('heading', { name: /Comments/i }))
+        .first()
+        .waitFor({ timeout: 10_000 })
+        .catch(() => {});
+      await page.waitForTimeout(500);
+      await capture(page, 'collaboration.png');
+    } else {
+      console.log('  ⚠ collaboration.png skipped — Comments button not visible');
+    }
+
     const boardId = editorUrl.split('/boards/')[1]?.split(/[?#]/)[0] ?? DEMO_BOARD_ID;
     await page.goto(`${BASE_URL}/share/${boardId}`, { waitUntil: 'domcontentloaded' });
     await waitForAppReady(page);

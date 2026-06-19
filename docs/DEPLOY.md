@@ -68,8 +68,13 @@ In Vercel → **Settings** → **Environment Variables**, add:
 | `GEMINI_API_KEY` | Optional — enables free-tier Gemini AI (see [`docs/GEMINI_SETUP.md`](GEMINI_SETUP.md)) |
 | `PEXELS_API_KEY` | Optional — primary reference photo search (see [`docs/REFERENCE_PHOTOS.md`](REFERENCE_PHOTOS.md)) |
 | `UNSPLASH_ACCESS_KEY` | Optional — fallback reference photo search (see [`docs/REFERENCE_PHOTOS.md`](REFERENCE_PHOTOS.md)) |
+| `RESEND_API_KEY` | Optional — sends collaboration invite emails via Resend |
+| `RESEND_FROM_EMAIL` | Optional — verified sender for invite emails (e.g. `MoodBoard AI <invites@yourdomain.com>`) |
+| `NEXT_PUBLIC_SITE_URL` | Optional — canonical site URL for sitemap, OG tags, and invite links (defaults to `VERCEL_URL`) |
 
 Apply to **Production**, **Preview**, and **Development**.
+
+**Not required for launch:** `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, and `NEXT_PUBLIC_SITE_URL` can stay unset. Collaboration invites work via **Copy invite link** in Collaborate and in-app pending notifications; on Vercel, sitemap, OG tags, and invite URLs use the auto-injected `VERCEL_URL`. Add Resend only if you want automatic invite emails.
 
 ## Step 4 — Configure Supabase for production
 
@@ -252,6 +257,20 @@ npm run verify:collaboration
 ```
 
 Expected: `board_invites.declined_at` and `board_invites.invitee_user_id` columns present.
+
+## Step 5j — Apply view counts migration (032)
+
+If Discover view counts stay at zero after deploy, run in the **production** Supabase SQL Editor:
+
+1. [`supabase/migrations/032_board_view_counts.sql`](../supabase/migrations/032_board_view_counts.sql) — `view_count` on `boards` for shared board analytics
+
+Verify:
+
+```bash
+npm run verify:collaboration
+```
+
+Expected: `boards.view_count` column present.
 
 ## Step 6 — Smoke test production
 

@@ -19,6 +19,7 @@ export type BoardRow = {
   created_at: string;
   updated_at: string;
   last_saved_by_name?: string | null;
+  view_count?: number | null;
 };
 
 export function rowToBoard(row: BoardRow): Board {
@@ -40,6 +41,7 @@ export function rowToBoard(row: BoardRow): Board {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     lastSavedByName: row.last_saved_by_name ?? null,
+    viewCount: typeof row.view_count === 'number' ? row.view_count : undefined,
   };
 }
 

@@ -9,6 +9,36 @@ export type ChangelogEntry = {
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
     date: '2026-06',
+    title: 'Four-feature sprint',
+    bullets: [
+      'Mobile nav adds Discover and Settings with five-tab layout and active states',
+      'Snapshot diff preview compares a snapshot to the current board or another snapshot',
+      'Discover view counts on shared boards with share-page tracking (migration 032)',
+      'Collaboration screenshot added to README gallery via capture script',
+    ],
+  },
+  {
+    date: '2026-06',
+    title: 'Final wrap-up',
+    bullets: [
+      'Share page full-board remix matches Discover via shared RemixBoardButton',
+      'Drag-and-drop reorder for inspiration references with keyboard move up/down controls',
+      'About page status copy updated; CI adds TypeScript typecheck',
+      'Production smoke test checks share-page remix button',
+    ],
+  },
+  {
+    date: '2026-06',
+    title: 'Project wrap-up',
+    bullets: [
+      'GitHub Actions CI runs lint, build, and production smoke tests on main',
+      'npm run test:smoke covers Discover, Help, sitemap, robots, and unauthenticated remix redirect',
+      'Public sitemap.xml and robots.txt for landing, Discover, templates, and shared boards',
+      'Collaboration invite emails via Resend on create and re-invite, with copy-link fallback when unset',
+    ],
+  },
+  {
+    date: '2026-06',
     sprint: 'X',
     title: 'Editor token pass',
     bullets: [

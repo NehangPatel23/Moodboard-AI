@@ -6,9 +6,9 @@ Back to [README](../README.md) · Features: [FEATURES](FEATURES.md) · Deploy: [
 
 ## Current status
 
-Waves 1–3 and Sprints A–W are **complete**. The app is a **portfolio-grade MVP** — feature-complete for demo and job-search use.
+Waves 1–3 and Sprints A–X are **complete**. Closure sprint shipped CI, smoke tests, SEO, and invite emails. The app is **portfolio complete**.
 
-**Ops:** Migrations through **`031`** should be applied on production Supabase — verify with `npm run verify:collaboration`.
+**Ops:** Migrations through **`032`** should be applied on production Supabase — verify with `npm run verify:collaboration`.
 
 ---
 
@@ -109,16 +109,38 @@ Waves 1–3 and Sprints A–W are **complete**. The app is a **portfolio-grade M
 
 ## Next priorities
 
-**Portfolio MVP:** no required features remain. Optional follow-ups only.
+**Portfolio MVP:** complete. Closure sprint shipped CI, smoke tests, SEO basics, and collaboration invite emails.
 
-| Priority | Sprint | Scope | When |
-|----------|--------|-------|------|
-| 1 (optional) | — | Behance / Dribbble reference APIs | When legitimate API keys are available |
-| 2 (long-term) | — | Live cursors / character-level co-editing | Upgrade on top of existing field sync + sync-on-save collaboration |
+## Project complete
+
+Final wrap-up sprint (2026-06):
+
+| # | Area | Outcome |
+|---|------|---------|
+| 59 | CI pipeline | GitHub Actions — lint, build, production smoke on `main` |
+| 60 | Smoke tests | `npm run test:smoke` — Discover, Help, sitemap, robots, remix auth redirect |
+| 61 | SEO basics | `/sitemap.xml` and `/robots.txt` for public routes + shared boards |
+| 62 | Invite emails | Resend-backed invite email on create/re-invite; graceful fallback without `RESEND_API_KEY` |
+
+Four-feature sprint (2026-06):
+
+| # | Area | Outcome |
+|---|------|---------|
+| 63 | Mobile nav | Discover + Settings in bottom tab bar with active states |
+| 64 | Snapshot diff | Compare snapshot vs current board or another snapshot ([`SnapshotDiffModal`](../src/components/board/SnapshotDiffModal.tsx)) |
+| 65 | Discover views | `view_count` on shared boards (migration `032`); increment on share page visit |
+| 66 | Portfolio capture | Collaboration comments-panel screenshot in README gallery |
+
+**Optional follow-ups only:**
+
+| Priority | Scope | When |
+|----------|-------|------|
+| 1 (optional) | Behance / Dribbble reference APIs | When legitimate API keys are available |
+| 2 (long-term) | Live cursors / character-level co-editing | Upgrade on top of existing field sync + sync-on-save collaboration |
 
 **Deferred / parked:** OAuth, marketplace, pricing/Stripe, full landing redesign.
 
-**Prod verification:** `npm run verify:prod-smoke` · `npm run verify:collaboration` · refresh README screenshots via `npm run capture:screenshots`
+**Prod verification:** `npm run test:smoke` · `npm run verify:collaboration` · refresh README screenshots via `npm run capture:screenshots`
 
 ---
 

@@ -159,6 +159,7 @@ Implemented.
 Implemented across authenticated routes (`/app`, `/settings`, `/templates`, board editor):
 
 - **Sidebar** — navigation, workspace avatar, collapse state in `localStorage`; collapsed mode shows icon-only nav with tooltips and a bottom-aligned expand control
+- **Mobile nav** — bottom tab bar on small screens: Boards, New, Templates, Discover, Settings ([`MobileNav.tsx`](../src/components/layout/MobileNav.tsx))
 - **TopBar** — brand link, search / `⌘K` command palette trigger, **sun/moon theme toggle** ([`ThemeToggle`](../src/components/shared/ThemeToggle.tsx)), account menu
 - **Tooltips** — frosted custom tooltips ([`tooltip.tsx`](../src/components/ui/tooltip.tsx)) on icon-only controls; supplementary hints use a longer delay when visible labels exist
 - **Surface tokens** — shared shells, cards, buttons, and preview tiles via [`app-surface-styles.ts`](../src/components/shared/app-surface-styles.ts)
@@ -211,7 +212,7 @@ Supports:
 Implemented:
 
 - Sticky notes
-- Reference cards
+- Reference cards with drag-and-drop reorder and keyboard move up/down ([`EditorReferenceSortableGrid`](../src/components/board/EditorReferenceSortableGrid.tsx))
 - Text/content blocks
 
 #### Tabbed sections
@@ -241,7 +242,7 @@ Implemented:
 - Export (JSON, PNG, PDF, design system — with live preview)
 - Duplicate
 - **Save as template** (owner) — publish to Community or save privately via [`SaveTemplateModal`](../src/components/board/SaveTemplateModal.tsx)
-- Snapshots (save, preview, restore, auto-backup before restore; cap + auto-prune via migration `020`)
+- Snapshots (save, preview, **compare diff** vs current board or another snapshot, restore, auto-backup before restore; cap + auto-prune via migration `020`)
 
 #### Team collaboration
 
@@ -260,7 +261,7 @@ POST /api/boards/[id]/favorite     # Per-member favorite (migration 019)
 ```
 
 - **Roles** — owner, editor (can edit), viewer (read-only)
-- **Email invites** — all collaborators must accept before access; pending invitations appear as **board-style cards** in a Pending invitations section on the dashboard (plus TopBar Invites bell); owners see **Members**, **Pending invites**, and **Declined** in Collaborate
+- **Email invites** — all collaborators must accept before access; transactional invite email via Resend when `RESEND_API_KEY` is set (copy-link fallback otherwise); pending invitations appear as **board-style cards** in a Pending invitations section on the dashboard (plus TopBar Invites bell); owners see **Members**, **Pending invites**, and **Declined** in Collaborate
 - Requires migrations `003_board_collaboration.sql`, `029_board_invite_declined.sql`, and `030_board_invite_invitee_user.sql`
 
 **Real-time co-editing** (migration `006`):
@@ -336,6 +337,7 @@ Supports:
 
 - Presentation mode
 - Public view-only sharing at `/share/[id]` when board visibility is **Shared** (migration `002_shared_board_public_read.sql`)
+- **Full-board remix** on share and Discover via [`RemixBoardButton`](../src/components/shared/RemixBoardButton.tsx) and `POST /api/boards/[id]/remix` (sign-in required)
 - **Open Graph meta** on share links for richer social previews
 - Owner preview at `/app/boards/[id]/view`
 - Non-editable consumption
@@ -358,6 +360,7 @@ Implemented:
 - **Mood filter dropdown** — mood selector derived from public boards; composes with search; shareable via `?mood=`
 - **Featured row** — curated highlight strip at the top (when not searching or filtering by mood)
 - **Creator attribution** — creator name on cards via `profiles` join; links to `/profile/[id]`
+- **View counts** — share-page visits increment `boards.view_count` (migration `032`); shown on Discover cards and share page badge
 - Cards link to `/share/[id]` view-only presentation
 - `GET /api/discover` — public list of shared boards (newest first, up to 48)
 - Demo showcase: `npm run db:seed-demo-boards` seeds 8 shared boards from template presets on the demo account

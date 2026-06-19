@@ -9,7 +9,7 @@ import {
   EDITOR_SECTION_ORDER,
   type EditorSectionName,
 } from '@/lib/editor-sections';
-import { useGatedHref } from '@/components/auth/use-gated-href';
+import { moodToSlug } from '@/lib/discover-moods';
 import {
   getBoardStoreSnapshot,
   getServerBoardStoreSnapshot,
@@ -38,7 +38,7 @@ import {
   readAppSettings,
   subscribeAppSettings,
 } from '@/lib/settings-store';
-import { cn, formatDateTime } from '@/lib/utils';
+import { cn, formatDateTime, formatViewCount } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -46,15 +46,13 @@ import {
   Lightbulb,
   ClipboardList,
   Tag,
-  ArrowRight,
-  Sparkles,
   Compass,
+  Eye,
 } from 'lucide-react';
 import {
   appOutlineButtonClass,
-  appPrimaryButtonClass,
 } from '@/components/shared/app-surface-styles';
-import { moodToSlug } from '@/lib/discover-moods';
+import { RemixBoardButton } from '@/components/shared/RemixBoardButton';
 
 type BoardReadOnlyClientProps = {
   boardId: string;
@@ -88,13 +86,9 @@ function PublicViewActions({
   board,
   signInHref,
 }: {
-  board?: Pick<Board, 'prompt' | 'mood' | 'creatorId' | 'creatorName'>;
+  board?: Pick<Board, 'id' | 'title' | 'prompt' | 'mood' | 'creatorId' | 'creatorName'>;
   signInHref: string;
 }) {
-  const remixDestination = board?.prompt
-    ? `/app/new?prompt=${encodeURIComponent(board.prompt.trim())}`
-    : '/app/new';
-  const remixHref = useGatedHref(remixDestination);
   const discoverHref = board?.mood?.trim()
     ? `/discover?mood=${moodToSlug(board.mood)}`
     : '/discover';
@@ -104,11 +98,15 @@ function PublicViewActions({
   return (
     <div className="flex flex-col items-stretch gap-3 lg:items-end">
       <div className="flex flex-wrap items-center gap-3 lg:justify-end">
-        <Link href={remixHref} className={appPrimaryButtonClass}>
-          <Sparkles className="h-4 w-4" aria-hidden="true" />
-          Remix this direction
-          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-        </Link>
+        {board?.id ? (
+          <RemixBoardButton
+            boardId={board.id}
+            boardTitle={board.title}
+            variant="primary"
+            label="Remix this board"
+            loadingLabel="Remixing board…"
+          />
+        ) : null}
         <Link href={discoverHref} className={appOutlineButtonClass}>
           <Compass className="h-4 w-4" aria-hidden="true" />
           Browse Discover
@@ -373,6 +371,48 @@ export function BoardReadOnlyClient({ boardId, publicView = false }: BoardReadOn
     };
   }, [boardId, publicView]);
 
+  useEffect(() => {
+    if (!publicView || !publicFetch.board) return;
+
+    const storageKey = `mb-viewed:${boardId}`;
+    if (typeof window !== 'undefined' && window.sessionStorage.getItem(storageKey)) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function recordView() {
+      try {
+        const response = await fetch(`/api/boards/${boardId}/view`, { method: 'POST' });
+        if (!response.ok || cancelled) return;
+
+        const data = (await response.json()) as { viewCount?: number };
+        if (typeof data.viewCount !== 'number' || cancelled) return;
+
+        if (typeof window !== 'undefined') {
+          window.sessionStorage.setItem(storageKey, '1');
+        }
+
+        setPublicFetch((current) =>
+          current.board
+            ? {
+                ...current,
+                board: { ...current.board, viewCount: data.viewCount },
+              }
+            : current,
+        );
+      } catch {
+        // Non-blocking analytics — ignore failures.
+      }
+    }
+
+    void recordView();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [boardId, publicFetch.board, publicView]);
+
   const board = publicView ? publicFetch.board : storeBoard;
   const isLoading = publicView ? publicFetch.loading : isResolvingBoard;
 
@@ -482,6 +522,12 @@ export function BoardReadOnlyClient({ boardId, publicView = false }: BoardReadOn
                 <Badge variant="outline">
                   {publicView ? 'View-only' : presentationModeEnabled ? 'Presentation mode' : 'Read-only'}
                 </Badge>
+                {publicView ? (
+                  <Badge variant="secondary" className="inline-flex items-center gap-1.5">
+                    <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+                    {formatViewCount(board.viewCount ?? 0)} views
+                  </Badge>
+                ) : null}
                 {!publicView ? <Badge variant="secondary">{board.visibility}</Badge> : null}
                 {!publicView && board.isFavorite ? (
                   <Badge variant="secondary">Favorite</Badge>

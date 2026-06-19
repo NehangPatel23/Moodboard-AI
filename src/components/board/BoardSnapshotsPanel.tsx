@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Camera, Eye, RotateCcw, Trash2, X } from 'lucide-react';
+import { Camera, Eye, GitCompare, RotateCcw, Trash2, X } from 'lucide-react';
 import type { Board, BoardSnapshot } from '@/types/board';
 import { apiFetch } from '@/lib/api-client';
 import { formatDateTime } from '@/lib/utils';
@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ConfirmationModal } from '@/components/shared/ConfirmationModal';
 import { SnapshotPreviewModal } from '@/components/board/SnapshotPreviewModal';
+import { SnapshotDiffModal } from '@/components/board/SnapshotDiffModal';
 import {
   collaborationListItemClassName,
   CollaborationUnseenIndicator,
@@ -62,6 +63,7 @@ export function BoardSnapshotsPanel({
   const [pendingRestore, setPendingRestore] = useState<BoardSnapshot | null>(null);
   const [pendingDelete, setPendingDelete] = useState<BoardSnapshot | null>(null);
   const [previewSnapshot, setPreviewSnapshot] = useState<BoardSnapshot | null>(null);
+  const [diffSnapshot, setDiffSnapshot] = useState<BoardSnapshot | null>(null);
   const [autoBackupBeforeRestore, setAutoBackupBeforeRestore] = useState(true);
 
   const isUnseenSnapshot = useCallback(
@@ -437,6 +439,16 @@ export function BoardSnapshotsPanel({
                           type="button"
                           size="sm"
                           variant="outline"
+                          onClick={() => setDiffSnapshot(snapshot)}
+                          className="rounded-full"
+                        >
+                          <GitCompare className="h-4 w-4" />
+                          Compare
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
                           disabled={restoringId === snapshot.id || deletingId === snapshot.id}
                           onClick={() => {
                             setAutoBackupBeforeRestore(true);
@@ -515,6 +527,14 @@ export function BoardSnapshotsPanel({
         board={previewSnapshot?.boardData ?? board}
         title={previewSnapshot?.label?.trim() || 'Untitled snapshot'}
         onClose={() => setPreviewSnapshot(null)}
+      />
+
+      <SnapshotDiffModal
+        open={diffSnapshot !== null}
+        snapshot={diffSnapshot}
+        currentBoard={board}
+        allSnapshots={snapshots}
+        onClose={() => setDiffSnapshot(null)}
       />
     </>,
     document.body,

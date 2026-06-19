@@ -59,6 +59,7 @@ import { CollaboratorFieldHighlight } from '@/components/board/CollaboratorField
 import { SaveTemplateModal } from '@/components/board/SaveTemplateModal';
 import { RemoteUpdateBanner } from '@/components/board/RemoteUpdateBanner';
 import { ReferenceImageDisplay } from '@/components/board/ReferenceImageDisplay';
+import { EditorReferenceSortableGrid } from '@/components/board/EditorReferenceSortableGrid';
 import { ReferenceImageSearchButton } from '@/components/board/ReferenceImageSearchButton';
 import { AiGenerateButton } from '@/components/shared/AiGenerateButton';
 import { getReferenceSourceLabel, isPexelsReference, isUnsplashReference } from '@/lib/reference-source-label';
@@ -1503,6 +1504,13 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
     setIsNewReference(true);
   };
 
+  const handleReorderReferences = (nextReferences: ReferenceItem[]) => {
+    updateDraft((current) => ({
+      ...current,
+      references: nextReferences,
+    }));
+  };
+
   const handleCloseReferenceEditor = () => {
     if (isNewReference && editingReferenceIndex !== null) {
       updateDraft((current) => ({
@@ -1955,10 +1963,13 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
             <CardContent>
               {renderSectionReplay('references')}
               {editorBoard.references.length ? (
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {editorBoard.references.map((reference, index) => (
+                <EditorReferenceSortableGrid
+                  references={editorBoard.references}
+                  sortable={canMutateBoard && !effectiveReadOnly}
+                  onReorder={handleReorderReferences}
+                >
+                  {(reference, index) => (
                     <article
-                      key={reference.id}
                       className="group relative overflow-hidden rounded-[1.75rem] border border-(--border) bg-(--surface-elevated) transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)]"
                     >
                       {effectiveReadOnly ? (
@@ -2039,14 +2050,14 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
                           aria-label={`Remove reference ${reference.title}`}
                           tooltip={`Remove reference ${reference.title}`}
                           tooltipTriggerClassName="absolute right-3 top-3 z-20"
-                          className="h-9 w-9 rounded-full border border-(--border) bg-(--surface-elevated) text-(--text-muted) opacity-100 transition hover:bg-(--surface-subtle) hover:text-(--text)"
+                          className="h-9 w-9 rounded-full border border-(--border) bg-(--surface-elevated) shadow-sm transition hover:bg-(--surface-subtle)"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4 text-rose-600 dark:text-rose-400" />
                         </Button>
                       ) : null}
                     </article>
-                  ))}
-                </div>
+                  )}
+                </EditorReferenceSortableGrid>
               ) : (
                 <div className="rounded-[1.75rem] border border-dashed border-(--border) bg-(--surface-subtle) px-5 py-10 text-center text-sm text-(--text-muted)">
                   No references yet.

@@ -125,7 +125,7 @@ const INFO_CARDS: InfoCard[] = [
   {
     title: 'Current status',
     icon: Rocket,
-    body: 'Deployed MVP on Vercel with Waves 1–3 and Sprints A–F complete: collaboration notifications, snapshot limits, brand strategy AI, design system export, and public creator profiles. Active development continues with incremental visual polish.',
+    body: 'Portfolio complete and deployed on Vercel. Waves 1–3 and Sprints A–X shipped collaboration (invites, comments, activity replay, field sync), community templates, auto-save, creator profiles, Discover, export, CI + smoke tests, SEO, and invite emails. Optional long-term upgrades: live cursors and additional reference APIs.',
   },
 ];
 
