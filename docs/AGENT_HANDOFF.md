@@ -96,12 +96,11 @@ flowchart TD
 
 ## When resuming work
 
-**Portfolio MVP is complete** (Sprints A–T). Collaboration includes sync-on-save, field-level patches for summary/notes, and conflict handling — not full Google Docs–style simultaneous typing (long-term upgrade).
+**Portfolio MVP is complete** (Sprints A–W). Collaboration includes sync-on-save, field-level patches for summary/notes, and conflict handling — not full Google Docs–style simultaneous typing (long-term upgrade).
 
 If continuing development, recommended order:
 
-1. **Behance / Dribbble reference APIs** (only with legitimate API access)
-2. Incremental visual polish (landing, dashboard) — see [DEVELOPMENT.md](DEVELOPMENT.md)
-3. Live cursors / character-level co-editing — build on existing field sync + presence layer
+1. **Live cursors / character-level co-editing** — build on existing field sync + presence layer
+2. **Behance / Dribbble reference APIs** (only with legitimate API access)
 
-Run migrations through **`028`** in production if not applied — see [DEPLOY](DEPLOY.md#step-5h--apply-latest-migration-028). Verify with `npm run verify:collaboration` and `npm run verify:prod-smoke`.
+Run migrations through **`031`** in production if not applied — see [DEPLOY](DEPLOY.md#step-5i--apply-latest-migrations-029031). Verify with `npm run verify:collaboration` and `npm run verify:prod-smoke`.

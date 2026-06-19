@@ -64,7 +64,7 @@ Creates `profiles`, `boards`, and `user_settings` tables with Row Level Security
 
 18. Run [`supabase/migrations/014_reference_uploads_storage.sql`](../supabase/migrations/014_reference_uploads_storage.sql) to enable the `reference-uploads` storage bucket for board reference images.
 
-19. Run remaining migrations through [`supabase/migrations/024_avatar_image.sql`](../supabase/migrations/024_avatar_image.sql) if you use profile photos, snapshot limits, brand strategy, or other newer features. **If profile photo upload fails with a bucket or column error, run migration 024** — it adds `user_settings.avatar_image_url` and the `avatar-uploads` storage bucket.
+19. Run remaining migrations through [`supabase/migrations/031_backfill_invite_invitee_user.sql`](../supabase/migrations/031_backfill_invite_invitee_user.sql) for the latest features (profile photos `024`, auto-save `025`, notification prefs `026`, community templates `027`, field sync `028`, invite acceptance `029`–`031`). **If profile photo upload fails**, run migration `024` — it adds `user_settings.avatar_image_url` and the `avatar-uploads` storage bucket.
 
 ### Option B — Supabase CLI
 

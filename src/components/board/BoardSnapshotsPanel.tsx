@@ -17,7 +17,7 @@ import {
 } from '@/components/board/CollaborationUnseenIndicator';
 import { isCollaborationItemUnreadForViewer } from '@/lib/collaboration-read-state';
 import { showToast } from '@/components/shared/toast-store';
-import { editorModalScrimClass, editorPanelScrimClass } from '@/components/board/board-editor-styles';
+import { editorLargeModalClass, editorModalScrimClass, editorPanelScrimClass } from '@/components/board/board-editor-styles';
 import { cn } from '@/lib/utils';
 import { lockBodyScroll } from '@/lib/body-scroll-lock';
 
@@ -476,7 +476,7 @@ export function BoardSnapshotsPanel({
             editorModalScrimClass,
           )}
         >
-          <div className="w-full max-w-md rounded-[2rem] border border-(--border) bg-(--surface) p-6 shadow-[0_30px_80px_rgba(15,23,42,0.15)]">
+          <div className={cn(editorLargeModalClass, 'w-full max-w-md p-6')}>
             <h2 className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-(--text-strong)">
               Restore this snapshot?
             </h2>

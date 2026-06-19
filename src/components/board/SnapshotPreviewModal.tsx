@@ -5,7 +5,7 @@ import type { Board } from '@/types/board';
 import { BoardExportCapture } from '@/components/board/BoardExportCapture';
 import { Button } from '@/components/ui/button';
 import { lockBodyScroll } from '@/lib/body-scroll-lock';
-import { editorModalScrimClass } from '@/components/board/board-editor-styles';
+import { editorLargeModalClass, editorModalScrimClass } from '@/components/board/board-editor-styles';
 import { cn } from '@/lib/utils';
 import { useEffect } from 'react';
 
@@ -56,7 +56,10 @@ export function SnapshotPreviewModal({
       onMouseDown={onClose}
     >
       <div
-        className="flex max-h-[min(90vh,900px)] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-(--border) bg-(--surface) shadow-[0_30px_80px_rgba(15,23,42,0.15)]"
+        className={cn(
+          editorLargeModalClass,
+          'flex max-h-[min(90vh,900px)] w-full max-w-5xl flex-col overflow-hidden',
+        )}
         onMouseDown={(event) => event.stopPropagation()}
       >
         <header className="flex items-start justify-between gap-4 border-b border-(--border) px-6 py-4">

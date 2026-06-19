@@ -54,6 +54,12 @@ export const editorReferenceCardClass =
 export const editorModalPanelClass =
   'flex w-full max-w-6xl flex-col overflow-hidden rounded-4xl border border-(--border) bg-(--surface-elevated) text-(--text) shadow-[var(--shadow-elevated)]';
 
+export const editorLargeModalClass =
+  'rounded-[2rem] border border-(--border) bg-(--surface-elevated) text-(--text) shadow-[var(--shadow-elevated)]';
+
+export const editorPresentationSectionClass =
+  'rounded-[2.5rem] border border-(--border) bg-(--surface-elevated) text-(--text-strong) shadow-[var(--shadow-card)]';
+
 export const editorModalScrimClass = 'bg-[var(--overlay-scrim)] backdrop-blur-sm';
 
 export const editorPanelScrimClass = 'bg-[var(--overlay-scrim)] backdrop-blur-sm';

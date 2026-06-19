@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { lockBodyScroll } from '@/lib/body-scroll-lock';
-import { editorModalScrimClass } from '@/components/board/board-editor-styles';
+import { editorLargeModalClass, editorModalScrimClass } from '@/components/board/board-editor-styles';
 import { showToast } from '@/components/shared/toast-store';
 import { apiFetch } from '@/lib/api-client';
+import { cn } from '@/lib/utils';
 import type { Board } from '@/types/board';
 import type { CommunityTemplateRecord } from '@/lib/db/template-mappers';
 
@@ -82,7 +83,7 @@ export function SaveTemplateModal({ open, board, onOpenChange }: SaveTemplateMod
       }}
     >
       <div
-        className="w-full max-w-lg rounded-[2rem] border border-(--border) bg-(--surface) p-6 text-(--text) shadow-[0_30px_80px_rgba(15,23,42,0.15)]"
+        className={cn(editorLargeModalClass, 'w-full max-w-lg p-6')}
         onMouseDown={(event) => event.stopPropagation()}
       >
         <h2

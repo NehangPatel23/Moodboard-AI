@@ -6,7 +6,7 @@ Back to [README](../README.md) · Features: [FEATURES](FEATURES.md) · Deploy: [
 
 ## Current status
 
-Waves 1–3 and Sprints A–P are **complete**. The app is a **portfolio-grade MVP** — feature-complete for demo and job-search use. Supabase persistence, collaboration (presence, sync-on-save, conflict banner), AI generation, snapshots, visual export, developer handoff tokens, public creator profiles, inspiration/help surfaces, command palette AI actions, Discover browsing, email auth with forgot password, board auto-save, and share/profile OG metadata are all shipped. Monetization (marketplace, pricing, Stripe) is **not planned near term**.
+Waves 1–3 and Sprints A–W are **complete**. The app is a **portfolio-grade MVP** — feature-complete for demo and job-search use.
 
 **Ops:** Migrations through **`031`** should be applied on production Supabase — verify with `npm run verify:collaboration`.
 
@@ -74,6 +74,7 @@ Waves 1–3 and Sprints A–P are **complete**. The app is a **portfolio-grade M
 | 55 | Invite acceptance wall | All collaborators must accept before access; dashboard + TopBar pending invites; owner Collaborate modal shows Pending and Declined (migration `029`) |
 | 56 | Portfolio polish | Light/dark token tuning; landing section hierarchy; dashboard header + pending invite consistency; README dashboard screenshot |
 | 57 | Templates & settings polish | Card shadow tokens; elevated panels on templates preview; settings active states and nested panels in dark mode |
+| 58 | Editor token pass | Shared modal/presentation tokens; read-only tab surfaces aligned with `--shadow-*` vars |
 
 ### Sprint summary (completed)
 
@@ -102,6 +103,7 @@ Waves 1–3 and Sprints A–P are **complete**. The app is a **portfolio-grade M
 | **U** | Invite acceptance wall | Mandatory accept/decline; pending invite notifications; owner Declined section (migration `029`) |
 | **V** | Portfolio polish | CSS token pass; landing middle-section elevation; dashboard typography + pending invite cards; README screenshots refresh |
 | **W** | Templates & settings polish | Card `--shadow-card` tokens; templates preview panels; settings elevated shells + active-state contrast |
+| **X** | Editor token pass | `editorLargeModalClass`; read-only presentation tabs; modal shadows use `--shadow-elevated` |
 
 ---
 
@@ -183,6 +185,7 @@ Use these for manual QA after changes:
 - Discover remix: unauthenticated users redirect to sign-in before remix API call
 - Portfolio polish: landing capabilities band uses elevated surface panel; dashboard display headings use display font; README includes dashboard screenshot
 - Templates/settings polish: Card uses `--shadow-card`; templates preview panels elevated; settings active toggles use `--surface-muted`
+- Editor token pass: modals and read-only presentation use `--shadow-elevated`; presentation tabs use `--surface-muted` active state
 
 ---
 

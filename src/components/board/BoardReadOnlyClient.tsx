@@ -27,6 +27,7 @@ import {
   editorGhostButtonClass,
   editorNoteToneCardClass,
   editorPanelClass,
+  editorPresentationSectionClass,
   editorPrimaryButtonClass,
   editorReferenceCardClass,
   editorSectionClass,
@@ -190,15 +191,15 @@ function PresentationPill({
         description ? 'items-start' : 'items-center',
         'border-(--border) bg-(--surface) text-(--text-strong)',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)',
-        'hover:bg-(--surface-subtle) dark:bg-[rgba(255,255,255,0.03)] dark:hover:bg-[rgba(255,255,255,0.06)]',
-        active ? 'bg-(--surface-subtle) shadow-sm dark:bg-[rgba(255,255,255,0.08)]' : '',
+        'hover:bg-(--surface-subtle)',
+        active ? 'bg-(--surface-muted) shadow-[var(--shadow-card)]' : '',
       ].join(' ')}
     >
       <div
         className={[
           'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border',
           description ? 'mt-0.5' : '',
-          'border-(--border) bg-(--surface-elevated) dark:bg-[rgba(255,255,255,0.05)]',
+          'border-(--border) bg-(--surface-soft)',
         ].join(' ')}
       >
         <Icon
@@ -436,7 +437,7 @@ export function BoardReadOnlyClient({ boardId, publicView = false }: BoardReadOn
     const isNetworkError = publicView && publicFetch.error === 'network';
 
     return (
-      <section className="rounded-[2.5rem] border border-(--border) bg-(--surface-elevated) p-8 text-(--text-strong) shadow-[0_24px_60px_rgba(15,23,42,0.08)] dark:shadow-[0_24px_60px_rgba(0,0,0,0.22)]">
+      <section className={cn(editorPresentationSectionClass, 'p-8')}>
         <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
           {isNetworkError ? 'Connection issue' : 'Board not found'}
         </p>
@@ -503,7 +504,7 @@ export function BoardReadOnlyClient({ boardId, publicView = false }: BoardReadOn
                     {board.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="rounded-full border border-(--border) bg-(--surface) px-3 py-1 text-[11px] font-medium tracking-wide text-(--text-muted) dark:bg-[rgba(255,255,255,0.04)]"
+                        className="rounded-full border border-(--border) bg-(--surface-soft) px-3 py-1 text-[11px] font-medium tracking-wide text-(--text-muted)"
                       >
                         {tag}
                       </span>
@@ -714,7 +715,7 @@ export function BoardReadOnlyClient({ boardId, publicView = false }: BoardReadOn
                         className="rounded-[1.75rem] border border-(--border) bg-(--surface-soft) p-4"
                       >
                         <div
-                          className="mb-4 h-24 rounded-[1.35rem] border border-(--border) shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                          className="mb-4 h-24 rounded-[1.35rem] border border-(--border) shadow-[var(--inset-highlight)]"
                           style={{ backgroundColor: item.hex }}
                         />
                         <div className="flex items-center justify-between gap-3">

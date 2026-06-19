@@ -56,19 +56,19 @@ Future work should continue to preserve and expand accessibility support across 
 ### Remaining polish
 
 - Full landing redesign remains **deferred** — incremental token and section refinement only
-- Board editor cluster uses semantic tokens ([`board-editor-styles.ts`](../src/components/board/board-editor-styles.ts)); app shells use [`app-surface-styles.ts`](../src/components/shared/app-surface-styles.ts)
+- Board editor cluster uses semantic tokens in [`board-editor-styles.ts`](../src/components/board/board-editor-styles.ts); Sprint X aligned modals and read-only presentation with `--shadow-*` vars
 
 ---
 
 ## Current known problems
 
-Sprint V and W resolved the main landing, dashboard, templates, and settings hierarchy issues. Remaining gaps are minor:
+Sprints V–X resolved the main landing, dashboard, templates, settings, and editor hierarchy issues. Remaining gaps are minor:
 
 - Full landing redesign is still deferred (current layout preferred)
 
 ### Theme tokens
 
-Landing, dashboard, templates, settings, and discover share semantic tokens via [`app-surface-styles.ts`](../src/components/shared/app-surface-styles.ts) and CSS variables. Sprints V–W tuned backgrounds, Card shadows, preview panels, and settings active states. The board editor cluster remains in [`board-editor-styles.ts`](../src/components/board/board-editor-styles.ts).
+Landing, dashboard, templates, settings, discover, and the board editor cluster share semantic CSS variables. Sprints V–X tuned backgrounds, Card shadows, preview panels, settings active states, and editor modal/presentation surfaces. App shells use [`app-surface-styles.ts`](../src/components/shared/app-surface-styles.ts); the editor cluster remains in [`board-editor-styles.ts`](../src/components/board/board-editor-styles.ts).
 
 ---
 

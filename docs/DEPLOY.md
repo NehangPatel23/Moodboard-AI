@@ -22,7 +22,7 @@ flowchart LR
   end
 
   subgraph supabase ["Supabase production"]
-    mig["Run migrations 001–028"]
+    mig["Run migrations 001–031"]
     urls["Auth URL config + redirect URLs"]
     rt["Realtime + RLS policies"]
   end
@@ -236,6 +236,22 @@ This authorizes `board-fields:{board_id}` broadcast channels for live field sync
 > **Presence:** By default the app uses a public Realtime presence channel so collaborators show up without extra setup. If you disable **Allow public access** under Supabase **Project Settings → Realtime**, run migrations `016` and `028`, and set `NEXT_PUBLIC_SUPABASE_REALTIME_PRIVATE=true` in Vercel.
 
 > `alter publication supabase_realtime add table` is not idempotent. If `006` was partially applied, check **Database → Publications → supabase_realtime** before re-running.
+
+## Step 5i — Apply latest migrations (029–031)
+
+If production does not yet have invite acceptance wall support, run in the **production** Supabase SQL Editor (in order):
+
+1. [`supabase/migrations/029_board_invite_declined.sql`](../supabase/migrations/029_board_invite_declined.sql) — `declined` invite status + `declined_at`
+2. [`supabase/migrations/030_board_invite_invitee_user.sql`](../supabase/migrations/030_board_invite_invitee_user.sql) — `invitee_user_id` on pending invites
+3. [`supabase/migrations/031_backfill_invite_invitee_user.sql`](../supabase/migrations/031_backfill_invite_invitee_user.sql) — backfill `invitee_user_id` from profile email
+
+Verify locally or against production:
+
+```bash
+npm run verify:collaboration
+```
+
+Expected: `board_invites.declined_at` and `board_invites.invitee_user_id` columns present.
 
 ## Step 6 — Smoke test production
 

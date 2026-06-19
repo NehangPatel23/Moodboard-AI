@@ -9,6 +9,16 @@ export type ChangelogEntry = {
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
     date: '2026-06',
+    sprint: 'X',
+    title: 'Editor token pass',
+    bullets: [
+      'Shared editorLargeModalClass and editorPresentationSectionClass use --shadow-elevated and --shadow-card',
+      'Save template, snapshot preview, and restore modals aligned with semantic shadow tokens',
+      'Read-only presentation tabs and tag pills use surface-soft/muted instead of hardcoded rgba',
+    ],
+  },
+  {
+    date: '2026-06',
     sprint: 'W',
     title: 'Templates & settings polish',
     bullets: [
