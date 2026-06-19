@@ -24,6 +24,13 @@ export function parseFieldId(fieldId: string): { kind: 'note' | 'overview-title'
   return { kind: 'overview-summary' };
 }
 
+export function fieldLabelFromId(fieldId: string): string {
+  const parsed = parseFieldId(fieldId);
+  if (parsed.kind === 'overview-title') return 'Board title';
+  if (parsed.kind === 'overview-summary') return 'Creative summary';
+  return 'Notes';
+}
+
 export const COLLABORATOR_COLORS = [
   '#6366f1',
   '#ec4899',

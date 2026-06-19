@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ChevronDown, Eye, Loader2, Pencil, WifiOff } from 'lucide-react';
+import { ChevronDown, Eye, Info, Loader2, Pencil, WifiOff } from 'lucide-react';
 import type { BoardRole } from '@/types/board';
 import { cn } from '@/lib/utils';
 import { Tooltip } from '@/components/ui/tooltip';
+import { CollaboratorInfoDetails } from '@/components/board/CollaboratorInfoDetails';
+import { fieldLabelFromId } from '@/lib/realtime/collaborator-fields';
 import type {
   BoardPresenceUser,
   PresenceConnectionState,
@@ -19,6 +21,7 @@ import {
 } from '@/components/board/board-editor-styles';
 
 type BoardPresenceStripProps = {
+  boardId: string;
   users: BoardPresenceUser[];
   currentUserId?: string | null;
   connectionState?: PresenceConnectionState;
@@ -77,54 +80,93 @@ function PresenceAvatar({
 }
 
 function PresenceUserRow({
+  boardId,
   user,
   isCurrentUser,
+  infoOpen,
+  onToggleInfo,
 }: {
+  boardId: string;
   user: BoardPresenceUser;
   isCurrentUser: boolean;
+  infoOpen: boolean;
+  onToggleInfo: () => void;
 }) {
   const StatusIcon = user.status === 'editing' ? Pencil : Eye;
   const statusLabel = user.status === 'editing' ? 'Editing' : 'Viewing';
   const sectionLabel = user.sectionLabel?.trim();
+  const infoButtonId = `collaborator-info-${user.userId}`;
 
   return (
-    <li className="flex items-start gap-3 rounded-xl px-2 py-2.5">
-      <PresenceAvatar user={user} isCurrentUser={isCurrentUser} size="sm" />
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <p className="truncate text-sm font-medium text-(--text-strong)">
-            {isCurrentUser ? 'You' : user.name}
-          </p>
-          <span className="rounded-full border border-(--border) bg-(--surface-subtle) px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-(--text-muted)">
-            {roleLabel(user.role)}
-          </span>
+    <li className="rounded-xl px-2 py-2.5">
+      <div className="flex items-start gap-3">
+        <PresenceAvatar user={user} isCurrentUser={isCurrentUser} size="sm" />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <p className="truncate text-sm font-medium text-(--text-strong)">
+              {isCurrentUser ? 'You' : user.name}
+            </p>
+            <span className="rounded-full border border-(--border) bg-(--surface-subtle) px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-(--text-muted)">
+              {roleLabel(user.role)}
+            </span>
+            <Tooltip content="Collaborator details" side="left">
+              <button
+                type="button"
+                id={infoButtonId}
+                aria-expanded={infoOpen}
+                aria-controls={infoOpen ? `${infoButtonId}-panel` : undefined}
+                aria-label={`Show details for ${isCurrentUser ? 'you' : user.name}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onToggleInfo();
+                }}
+                className={cn(
+                  'inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-(--border) bg-(--surface-elevated) text-(--text-muted) transition',
+                  'hover:text-(--text-strong) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring)',
+                  infoOpen && 'border-(--text-muted)/30 bg-(--surface-subtle) text-(--text-strong)',
+                )}
+              >
+                <Info className="h-3.5 w-3.5" aria-hidden="true" />
+              </button>
+            </Tooltip>
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-(--text-muted)">
+            <span className="inline-flex items-center gap-1">
+              <StatusIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              {statusLabel}
+            </span>
+            {sectionLabel ? (
+              <>
+                <span aria-hidden="true">·</span>
+                <span className="truncate">On {sectionLabel}</span>
+              </>
+            ) : null}
+            {user.activeFieldId ? (
+              <>
+                <span aria-hidden="true">·</span>
+                <span className="truncate">{fieldLabelFromId(user.activeFieldId)}</span>
+              </>
+            ) : null}
+          </div>
         </div>
-        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-(--text-muted)">
-          <span className="inline-flex items-center gap-1">
-            <StatusIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            {statusLabel}
-          </span>
-          {sectionLabel ? (
-            <>
-              <span aria-hidden="true">·</span>
-              <span className="truncate">On {sectionLabel}</span>
-            </>
-          ) : null}
-          {user.activeFieldId ? (
-            <>
-              <span aria-hidden="true">·</span>
-              <span className="truncate">In a text field</span>
-            </>
-          ) : null}
-        </div>
+        <span
+          className={cn(
+            'mt-2 h-2 w-2 shrink-0 rounded-full',
+            user.status === 'editing' ? editorPresenceEditingDotClass : editorPresenceViewingDotClass,
+          )}
+          aria-hidden="true"
+        />
       </div>
-      <span
-        className={cn(
-          'mt-2 h-2 w-2 shrink-0 rounded-full',
-          user.status === 'editing' ? editorPresenceEditingDotClass : editorPresenceViewingDotClass,
-        )}
-        aria-hidden="true"
-      />
+
+      {infoOpen ? (
+        <div id={`${infoButtonId}-panel`} role="region" aria-labelledby={infoButtonId}>
+          <CollaboratorInfoDetails
+            boardId={boardId}
+            userId={user.userId}
+            isCurrentUser={isCurrentUser}
+          />
+        </div>
+      ) : null}
     </li>
   );
 }
@@ -152,12 +194,14 @@ function PresenceStatusPill({
 }
 
 export function BoardPresenceStrip({
+  boardId,
   users,
   currentUserId,
   connectionState = 'disabled',
   className,
 }: BoardPresenceStripProps) {
   const [open, setOpen] = useState(false);
+  const [activeInfoUserId, setActiveInfoUserId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
 
@@ -177,6 +221,10 @@ export function BoardPresenceStrip({
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
+        if (activeInfoUserId) {
+          setActiveInfoUserId(null);
+          return;
+        }
         setOpen(false);
       }
     }
@@ -188,7 +236,7 @@ export function BoardPresenceStrip({
       document.removeEventListener('mousedown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [open]);
+  }, [activeInfoUserId, open]);
 
   if (connectionState === 'disabled') return null;
 
@@ -242,7 +290,14 @@ export function BoardPresenceStrip({
       >
         <button
           type="button"
-          onClick={() => setOpen((value) => !value)}
+          onClick={() => {
+            setOpen((value) => {
+              if (value) {
+                setActiveInfoUserId(null);
+              }
+              return !value;
+            });
+          }}
           aria-expanded={open}
           aria-controls={open ? panelId : undefined}
           aria-haspopup="dialog"
@@ -304,8 +359,13 @@ export function BoardPresenceStrip({
             {sortedUsers.map((user) => (
               <PresenceUserRow
                 key={user.userId}
+                boardId={boardId}
                 user={user}
                 isCurrentUser={currentUserId === user.userId}
+                infoOpen={activeInfoUserId === user.userId}
+                onToggleInfo={() =>
+                  setActiveInfoUserId((current) => (current === user.userId ? null : user.userId))
+                }
               />
             ))}
           </ul>

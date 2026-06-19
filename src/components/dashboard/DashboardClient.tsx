@@ -9,6 +9,7 @@ import {
   type VisibilityFilter,
 } from './BoardFilterBar';
 import { BoardGrid } from './BoardGrid';
+import { PendingInvitesSection } from './PendingInvitesSection';
 
 export function DashboardClient() {
   const router = useRouter();
@@ -97,6 +98,7 @@ export function DashboardClient() {
         access={access}
         onAccessChange={handleAccessChange}
       />
+      <PendingInvitesSection />
       <BoardGrid
         sort={sort}
         visibility={visibility}

@@ -47,6 +47,7 @@ type BoardEditorToolbarProps = {
   reduceMotionEnabled?: boolean;
   onlineUsers: BoardPresenceUser[];
   presenceConnectionState?: PresenceConnectionState;
+  boardId: string;
   currentUserId: string | null;
   commentsOpen: boolean;
   activityOpen: boolean;
@@ -185,6 +186,7 @@ export function BoardEditorToolbar({
   reduceMotionEnabled = false,
   onlineUsers,
   presenceConnectionState,
+  boardId,
   currentUserId,
   commentsOpen,
   activityOpen,
@@ -269,6 +271,7 @@ export function BoardEditorToolbar({
             Board controls
           </p>
           <BoardPresenceStrip
+            boardId={boardId}
             users={onlineUsers}
             currentUserId={currentUserId}
             connectionState={presenceConnectionState}

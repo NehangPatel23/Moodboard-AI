@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { apiFetch } from '@/lib/api-client';
 import { reloadBoards } from '@/lib/board-store';
+import { refreshPendingInvites } from '@/lib/use-pending-invites';
 import { Button } from '@/components/ui/button';
 
 type InviteAcceptPageProps = {
@@ -23,6 +24,7 @@ export function InviteAcceptClient({ token }: InviteAcceptPageProps) {
   const [preview, setPreview] = useState<InvitePreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState(false);
+  const [declining, setDeclining] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -67,6 +69,7 @@ export function InviteAcceptClient({ token }: InviteAcceptPageProps) {
         method: 'POST',
       });
       await reloadBoards();
+      await refreshPendingInvites();
       const destination =
         data.role === 'viewer'
           ? `/app/boards/${data.boardId}/view`
@@ -77,6 +80,22 @@ export function InviteAcceptClient({ token }: InviteAcceptPageProps) {
       setAccepting(false);
     }
   }
+
+  async function handleDecline() {
+    setDeclining(true);
+    setError(null);
+
+    try {
+      await apiFetch(`/api/invites/${token}/decline`, { method: 'POST' });
+      await refreshPendingInvites();
+      router.push('/app');
+    } catch (declineError) {
+      setError(declineError instanceof Error ? declineError.message : 'Failed to decline invite');
+      setDeclining(false);
+    }
+  }
+
+  const busy = accepting || declining;
 
   if (loading) {
     return (
@@ -111,25 +130,35 @@ export function InviteAcceptClient({ token }: InviteAcceptPageProps) {
   return (
     <section className="rounded-[2.5rem] border border-(--border) bg-(--surface-elevated) p-8 md:p-10">
       <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
-        Board invite
+        Board invitation
       </p>
       <h1 className="mt-3 [font-family:var(--font-display),serif] text-4xl tracking-tight text-(--text-strong) md:text-5xl">
-        Join {preview.boardTitle}
+        You&apos;ve been given {preview.role} access
       </h1>
       <p className="mt-4 max-w-xl text-base leading-7 text-(--text-muted)">
-        You&apos;ve been invited as an <span className="font-medium text-(--text-strong)">{preview.role}</span>{' '}
-        on this board ({preview.email}).
+        Accept access to join <span className="font-medium text-(--text-strong)">{preview.boardTitle}</span>{' '}
+        as an <span className="font-medium text-(--text-strong)">{preview.role}</span> ({preview.email}).
       </p>
 
       {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
 
       <div className="mt-8 flex flex-wrap gap-3">
-        <Button type="button" onClick={handleAccept} disabled={accepting} className="rounded-full">
+        <Button type="button" onClick={handleAccept} disabled={busy} className="rounded-full">
           {accepting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          Accept invite
+          Accept access
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleDecline}
+          disabled={busy}
+          className="rounded-full"
+        >
+          {declining ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          Decline
         </Button>
         <Link href="/app">
-          <Button variant="outline" className="rounded-full">
+          <Button variant="outline" className="rounded-full" disabled={busy}>
             Back to dashboard
           </Button>
         </Link>

@@ -8,7 +8,7 @@ Back to [README](../README.md) · Features: [FEATURES](FEATURES.md) · Deploy: [
 
 Waves 1–3 and Sprints A–P are **complete**. The app is a **portfolio-grade MVP** — feature-complete for demo and job-search use. Supabase persistence, collaboration (presence, sync-on-save, conflict banner), AI generation, snapshots, visual export, developer handoff tokens, public creator profiles, inspiration/help surfaces, command palette AI actions, Discover browsing, email auth with forgot password, board auto-save, and share/profile OG metadata are all shipped. Monetization (marketplace, pricing, Stripe) is **not planned near term**.
 
-**Ops:** Migrations through **`028`** should be applied on production Supabase — verify with `npm run verify:collaboration`.
+**Ops:** Migrations through **`031`** should be applied on production Supabase — verify with `npm run verify:collaboration`.
 
 ---
 
@@ -71,6 +71,7 @@ Waves 1–3 and Sprints A–P are **complete**. The app is a **portfolio-grade M
 | 52 | Notification toast prefs | Settings toggles for auto-save and remote-save toasts (migration `026`) |
 | 53 | Presentation progress | Section dots + `n / 5` indicator in presentation mode; simplified read-only chrome |
 | 54 | Discover remix auth | Remix button redirects unauthenticated users to sign-in via auth store |
+| 55 | Invite acceptance wall | All collaborators must accept before access; dashboard + TopBar pending invites; owner Collaborate modal shows Pending and Declined (migration `029`) |
 
 ### Sprint summary (completed)
 
@@ -96,6 +97,7 @@ Waves 1–3 and Sprints A–P are **complete**. The app is a **portfolio-grade M
 | **R** | Community templates | Save as template modal; Community tab; `templateToBoard` + enrich for community templates |
 | **S** | Notifications + presentation | Toast preference toggles (`026`); presentation section progress; Discover remix auth fix |
 | **T** | Verification + docs | Migration verify script; prod smoke Community tab check; roadmap/features/changelog updates |
+| **U** | Invite acceptance wall | Mandatory accept/decline; pending invite notifications; owner Declined section (migration `029`) |
 
 ---
 

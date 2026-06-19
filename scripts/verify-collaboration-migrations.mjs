@@ -1,5 +1,5 @@
 /**
- * Verifies collaboration migrations 006–013, polish migrations 022–023, and settings migrations 024–026.
+ * Verifies collaboration migrations 006–013, polish migrations 022–023, settings migrations 024–026, and invite migrations 029–031.
  *
  * Usage:
  *   node --env-file=.env.local scripts/verify-collaboration-migrations.mjs
@@ -79,6 +79,8 @@ const columnChecks = [
   ['user_settings', 'autosave_interval'],
   ['user_settings', 'autosave_toast_enabled'],
   ['user_settings', 'remote_save_toast_enabled'],
+  ['board_invites', 'declined_at'],
+  ['board_invites', 'invitee_user_id'],
 ];
 
 const missingColumns = [];
@@ -92,7 +94,7 @@ for (const [table, column] of columnChecks) {
 }
 
 if (missingColumns.length > 0) {
-  console.error('\nSome migration columns are missing. Run migrations 007–026 in docs/DEPLOY.md.');
+  console.error('\nSome migration columns are missing. Run migrations 007–030 in docs/DEPLOY.md.');
   process.exit(1);
 }
 

@@ -35,6 +35,7 @@ export function useBoardFieldSync({
 }: UseBoardFieldSyncOptions) {
   const channelRef = useRef<RealtimeChannel | null>(null);
   const subscribedRef = useRef(false);
+  const connectingRef = useRef(false);
   const onRemotePatchRef = useRef(onRemotePatch);
   const userNameRef = useRef(userName);
   const reconnectTimerRef = useRef<number | null>(null);
@@ -82,50 +83,58 @@ export function useBoardFieldSync({
     }
 
     async function connect() {
-      await ensureSupabaseRealtimeAuth(supabase);
-      if (cancelledRef.current) return;
+      if (connectingRef.current || cancelledRef.current) return;
 
-      clearReconnectTimer();
+      connectingRef.current = true;
 
-      const existing = channelRef.current;
-      if (existing) {
-        subscribedRef.current = false;
-        void supabase.removeChannel(existing);
+      try {
+        await ensureSupabaseRealtimeAuth(supabase);
+        if (cancelledRef.current) return;
+
+        clearReconnectTimer();
+
+        const existing = channelRef.current;
         channelRef.current = null;
+        subscribedRef.current = false;
+        if (existing) {
+          await supabase.removeChannel(existing);
+        }
+        if (cancelledRef.current) return;
+
+        const channel = supabase.channel(channelName, {
+          config: {
+            private: privateChannels,
+            broadcast: { self: false },
+          },
+        });
+
+        channel.on('broadcast', { event: 'field_patch' }, ({ payload }) => {
+          const patch = payload as BoardFieldPatch;
+          if (!patch?.fieldId || patch.userId === userId) return;
+          onRemotePatchRef.current(patch);
+        });
+
+        channel.subscribe((status) => {
+          if (cancelledRef.current) return;
+
+          if (status === 'SUBSCRIBED') {
+            subscribedRef.current = true;
+            reconnectAttemptRef.current = 0;
+            channelRef.current = channel;
+            return;
+          }
+
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            subscribedRef.current = false;
+            if (channelRef.current === channel) {
+              channelRef.current = null;
+            }
+            scheduleReconnect();
+          }
+        });
+      } finally {
+        connectingRef.current = false;
       }
-
-      const channel = supabase.channel(channelName, {
-        config: {
-          private: privateChannels,
-          broadcast: { self: false },
-        },
-      });
-
-      channel.on('broadcast', { event: 'field_patch' }, ({ payload }) => {
-        const patch = payload as BoardFieldPatch;
-        if (!patch?.fieldId || patch.userId === userId) return;
-        onRemotePatchRef.current(patch);
-      });
-
-      channel.subscribe((status) => {
-        if (cancelledRef.current) {
-          void supabase.removeChannel(channel);
-          return;
-        }
-
-        if (status === 'SUBSCRIBED') {
-          subscribedRef.current = true;
-          reconnectAttemptRef.current = 0;
-          channelRef.current = channel;
-          return;
-        }
-
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          subscribedRef.current = false;
-          channelRef.current = null;
-          scheduleReconnect();
-        }
-      });
     }
 
     const {
@@ -159,8 +168,10 @@ export function useBoardFieldSync({
       clearReconnectTimer();
 
       if (channelRef.current) {
-        void supabase.removeChannel(channelRef.current);
+        const channel = channelRef.current;
         channelRef.current = null;
+        subscribedRef.current = false;
+        void supabase.removeChannel(channel);
       }
     };
   }, [boardId, enabled, privateChannels, userId]);

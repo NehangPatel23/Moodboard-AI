@@ -5,6 +5,7 @@ import { Search } from 'lucide-react';
 import { openCommandPalette } from '@/components/shared/command-palette-store';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import { AccountMenu } from '@/components/layout/AccountMenu';
+import { PendingInvitesMenu } from '@/components/layout/PendingInvitesMenu';
 import { AppIcon } from '@/components/shared/AppIcon';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useMinSm } from '@/lib/use-media-query';
@@ -58,6 +59,8 @@ export function TopBar() {
             )}
 
             <ThemeToggle />
+
+            <PendingInvitesMenu />
 
             <AccountMenu />
           </div>

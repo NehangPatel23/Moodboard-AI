@@ -18,7 +18,7 @@ export async function GET(_request: Request, context: RouteContext) {
   const admin = createAdminClient();
   const { data: invite, error } = await admin
     .from('board_invites')
-    .select('id, board_id, email, role, status')
+    .select('id, board_id, email, role, status, invited_by')
     .eq('token', token)
     .maybeSingle();
 
@@ -62,7 +62,7 @@ export async function POST(_request: Request, context: RouteContext) {
   const admin = createAdminClient();
   const { data: invite, error } = await admin
     .from('board_invites')
-    .select('id, board_id, email, role, status')
+    .select('id, board_id, email, role, status, invited_by')
     .eq('token', token)
     .maybeSingle();
 
@@ -83,7 +83,7 @@ export async function POST(_request: Request, context: RouteContext) {
       board_id: invite.board_id,
       user_id: user.id,
       role: invite.role,
-      invited_by: user.id,
+      invited_by: invite.invited_by,
     },
     { onConflict: 'board_id,user_id' },
   );

@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useSyncExternalStore } from 'react';
 import { resetBoardStore, setActiveBoardUser } from '@/lib/board-store';
+import { refreshPendingInvites, resetPendingInvites } from '@/lib/use-pending-invites';
 import { getServerAuthSnapshot, readAuthState, subscribeAuth } from '@/lib/auth-store';
 import { runLocalStorageMigrationIfNeeded } from '@/lib/local-migration';
 
@@ -15,12 +16,14 @@ export function BoardStoreBootstrap() {
       void (async () => {
         await runLocalStorageMigrationIfNeeded();
         await setActiveBoardUser(userId);
+        await refreshPendingInvites();
       })();
       return;
     }
 
     if (auth.status === 'unauthenticated') {
       resetBoardStore();
+      resetPendingInvites();
     }
   }, [auth.status, userId]);
 

@@ -28,7 +28,8 @@ type Tab = 'link' | 'people';
 
 type PendingRemoval =
   | { type: 'member'; userId: string; name: string; role: BoardMemberRole }
-  | { type: 'invite'; inviteId: string; email: string; role: BoardMemberRole };
+  | { type: 'invite'; inviteId: string; email: string; role: BoardMemberRole }
+  | { type: 'declined_invite'; inviteId: string; email: string; role: BoardMemberRole };
 
 const deleteButtonClassName =
   'rounded-full text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950/30 dark:hover:text-red-300';
@@ -69,6 +70,10 @@ export function CollaborateModal({
   const [lastInvitePath, setLastInvitePath] = useState<string | null>(null);
   const [pendingRemoval, setPendingRemoval] = useState<PendingRemoval | null>(null);
   const [removing, setRemoving] = useState(false);
+  const [reinvitingId, setReinvitingId] = useState<string | null>(null);
+
+  const pendingInvites = invites.filter((invite) => invite.status === 'pending');
+  const declinedInvites = invites.filter((invite) => invite.status === 'declined');
 
   const fullShareUrl =
     typeof window !== 'undefined' ? `${window.location.origin}${sharePath}` : '';
@@ -90,7 +95,11 @@ export function CollaborateModal({
 
         if (!cancelled) {
           setMembers(membersResponse.members);
-          setInvites(invitesResponse.invites.filter((invite) => invite.status === 'pending'));
+          setInvites(
+            invitesResponse.invites.filter(
+              (invite) => invite.status === 'pending' || invite.status === 'declined',
+            ),
+          );
         }
       } catch (error) {
         if (!cancelled) {
@@ -121,7 +130,7 @@ export function CollaborateModal({
 
   const visibleInvitePath =
     lastInvitePath &&
-    invites.some((invite) => lastInvitePath === `/invite/${invite.token}`)
+    pendingInvites.some((invite) => lastInvitePath === `/invite/${invite.token}`)
       ? lastInvitePath
       : null;
 
@@ -158,14 +167,14 @@ export function CollaborateModal({
 
     try {
       const response = await apiFetch<
-        | { type: 'member_added'; member: BoardMember }
+        | { type: 'member_updated'; member: BoardMember }
         | { type: 'invite_created'; invitePath: string; invite: BoardInvite }
       >(`/api/boards/${boardId}/members`, {
         method: 'POST',
         body: JSON.stringify({ email: normalizedEmail, role: inviteRole }),
       });
 
-      if (response.type === 'member_added') {
+      if (response.type === 'member_updated') {
         setMembers((current) => {
           const withoutExisting = current.filter((member) => member.userId !== response.member.userId);
           return [...withoutExisting, response.member];
@@ -177,13 +186,13 @@ export function CollaborateModal({
         );
         void reloadBoards();
       } else {
-        setInvites((current) => [response.invite, ...current]);
+        setInvites((current) => {
+          const withoutExisting = current.filter((invite) => invite.id !== response.invite.id);
+          return [response.invite, ...withoutExisting];
+        });
         setLastInvitePath(response.invitePath);
         setInviteEmail('');
-        showToast(
-          `Invite created for ${response.invite.email} with ${accessLabel(response.invite.role)} access.`,
-          'success',
-        );
+        showToast(`Invitation sent to ${response.invite.email} — waiting for them to accept.`, 'success');
         void reloadBoards();
       }
     } catch (error) {
@@ -208,14 +217,24 @@ export function CollaborateModal({
           'success',
         );
       } else {
-        const revokedToken = invites.find((invite) => invite.id === pendingRemoval.inviteId)?.token;
-        await apiFetch(`/api/boards/${boardId}/invites/${pendingRemoval.inviteId}`, { method: 'DELETE' });
-        setInvites((current) => current.filter((invite) => invite.id !== pendingRemoval.inviteId));
+        const inviteId =
+          pendingRemoval.type === 'invite' || pendingRemoval.type === 'declined_invite'
+            ? pendingRemoval.inviteId
+            : null;
+        const revokedToken = inviteId
+          ? invites.find((invite) => invite.id === inviteId)?.token
+          : undefined;
+        if (inviteId) {
+          await apiFetch(`/api/boards/${boardId}/invites/${inviteId}`, { method: 'DELETE' });
+          setInvites((current) => current.filter((invite) => invite.id !== inviteId));
+        }
         if (revokedToken && lastInvitePath === `/invite/${revokedToken}`) {
           setLastInvitePath(null);
         }
         showToast(
-          `Revoked ${accessLabel(pendingRemoval.role)} invite for ${pendingRemoval.email}.`,
+          pendingRemoval.type === 'declined_invite'
+            ? `Removed declined invite for ${pendingRemoval.email}.`
+            : `Revoked ${accessLabel(pendingRemoval.role)} invite for ${pendingRemoval.email}.`,
           'success',
         );
       }
@@ -225,6 +244,33 @@ export function CollaborateModal({
       setPeopleError(error instanceof Error ? error.message : 'Failed to complete removal');
     } finally {
       setRemoving(false);
+    }
+  }
+
+  async function handleInviteAgain(invite: BoardInvite) {
+    setReinvitingId(invite.id);
+    setPeopleError(null);
+
+    try {
+      const response = await apiFetch<{ type: 'invite_created'; invitePath: string; invite: BoardInvite }>(
+        `/api/boards/${boardId}/members`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ email: invite.email, role: invite.role }),
+        },
+      );
+
+      setInvites((current) => {
+        const withoutExisting = current.filter((item) => item.id !== invite.id && item.id !== response.invite.id);
+        return [response.invite, ...withoutExisting];
+      });
+      setLastInvitePath(response.invitePath);
+      showToast(`Invitation sent again to ${response.invite.email}.`, 'success');
+      void reloadBoards();
+    } catch (error) {
+      setPeopleError(error instanceof Error ? error.message : 'Failed to re-send invite');
+    } finally {
+      setReinvitingId(null);
     }
   }
 
@@ -303,8 +349,9 @@ export function CollaborateModal({
           <div className="mt-5 space-y-5">
             <form noValidate onSubmit={handleInvite} className="space-y-3">
               <p className="text-sm leading-6 text-(--text-muted)">
-                Invite collaborators by email. Existing users get access immediately. For new
-                users, share the invite link yourself — emails are not sent automatically.
+                Invite collaborators by email. They must accept before accessing the board. Share the
+                invite link if they do not see the in-app notification — emails are not sent
+                automatically.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
                 <div className="min-w-0 flex-1 space-y-2">
@@ -417,12 +464,12 @@ export function CollaborateModal({
               </div>
             ) : null}
 
-            {!loadingPeople && invites.length > 0 ? (
+            {!loadingPeople && pendingInvites.length > 0 ? (
               <div className="space-y-2">
                 <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
                   Pending invites
                 </p>
-                {invites.map((invite) => (
+                {pendingInvites.map((invite) => (
                   <div
                     key={invite.id}
                     className="flex items-center justify-between gap-3 rounded-2xl border border-(--border) bg-(--surface-soft) px-4 py-3"
@@ -464,6 +511,59 @@ export function CollaborateModal({
                 ))}
               </div>
             ) : null}
+
+            {!loadingPeople && declinedInvites.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
+                  Declined
+                </p>
+                {declinedInvites.map((invite) => (
+                  <div
+                    key={invite.id}
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-(--border) bg-(--surface-soft) px-4 py-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-(--text-strong)">{invite.email}</p>
+                      <p className="text-xs capitalize text-(--text-muted)">{invite.role} · declined</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="rounded-full"
+                        disabled={reinvitingId === invite.id}
+                        onClick={() => void handleInviteAgain(invite)}
+                      >
+                        {reinvitingId === invite.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          'Invite again'
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className={deleteButtonClassName}
+                        aria-label={`Dismiss declined invite for ${invite.email}`}
+                        tooltip={`Dismiss declined invite for ${invite.email}`}
+                        onClick={() =>
+                          setPendingRemoval({
+                            type: 'declined_invite',
+                            inviteId: invite.id,
+                            email: invite.email,
+                            role: invite.role,
+                          })
+                        }
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -479,21 +579,29 @@ export function CollaborateModal({
         title={
           pendingRemoval?.type === 'member'
             ? `Remove ${pendingRemoval.name}?`
-            : 'Revoke invite?'
+            : pendingRemoval?.type === 'declined_invite'
+              ? 'Remove declined invite?'
+              : 'Revoke invite?'
         }
         description={
           pendingRemoval?.type === 'member'
             ? `${pendingRemoval.name} will lose access to this board immediately.`
-            : `The pending invite for ${pendingRemoval?.email ?? 'this collaborator'} will be revoked and the link will stop working.`
+            : pendingRemoval?.type === 'declined_invite'
+              ? `The declined invite for ${pendingRemoval.email} will be removed from this list.`
+              : `The pending invite for ${pendingRemoval?.email ?? 'this collaborator'} will be revoked and the link will stop working.`
         }
         confirmLabel={
           removing
             ? pendingRemoval?.type === 'member'
               ? 'Removing…'
-              : 'Revoking…'
+              : pendingRemoval?.type === 'declined_invite'
+                ? 'Removing…'
+                : 'Revoking…'
             : pendingRemoval?.type === 'member'
               ? 'Remove member'
-              : 'Revoke invite'
+              : pendingRemoval?.type === 'declined_invite'
+                ? 'Remove invite'
+                : 'Revoke invite'
         }
         cancelLabel="Cancel"
         destructive

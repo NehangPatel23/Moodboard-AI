@@ -23,7 +23,7 @@ export async function GET(_request: Request, context: RouteContext) {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from('board_invites')
-    .select('id, email, role, token, status, created_at, accepted_at')
+    .select('id, email, role, token, status, created_at, accepted_at, declined_at')
     .eq('board_id', id)
     .order('created_at', { ascending: false });
 
@@ -40,6 +40,7 @@ export async function GET(_request: Request, context: RouteContext) {
       token: invite.token,
       createdAt: invite.created_at,
       acceptedAt: invite.accepted_at ?? undefined,
+      declinedAt: invite.declined_at ?? undefined,
     })),
   });
 }

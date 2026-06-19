@@ -90,6 +90,9 @@ export function AccountMenu() {
         <span className="block max-w-[10rem] truncate text-sm font-medium text-[var(--text-strong)]">
           {user.name}
         </span>
+        <span className="block max-w-[10rem] truncate text-[11px] text-[var(--text-muted)]">
+          {user.email}
+        </span>
       </span>
       {avatar}
     </button>

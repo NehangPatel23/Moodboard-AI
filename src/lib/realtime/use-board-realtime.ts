@@ -134,6 +134,8 @@ export function useBoardRealtime({
   const syncChannelRef = useRef<RealtimeChannel | null>(null);
   const presenceChannelRef = useRef<RealtimeChannel | null>(null);
   const presenceSubscribedRef = useRef(false);
+  const connectingSyncRef = useRef(false);
+  const connectingPresenceRef = useRef(false);
   const trackTimerRef = useRef<number | null>(null);
   const heartbeatTimerRef = useRef<number | null>(null);
   const reconnectTimerRef = useRef<number | null>(null);
@@ -304,118 +306,145 @@ export function useBoardRealtime({
     }
 
     async function connectPresence() {
-      await ensureSupabaseRealtimeAuth(supabase);
-      if (cancelledRef.current) return;
+      if (connectingPresenceRef.current || cancelledRef.current) return;
 
-      clearReconnectTimer();
-      setChannelState('connecting');
+      connectingPresenceRef.current = true;
 
-      const existing = presenceChannelRef.current;
-      if (existing) {
-        presenceSubscribedRef.current = false;
-        void existing.untrack();
-        void supabase.removeChannel(existing);
+      try {
+        await ensureSupabaseRealtimeAuth(supabase);
+        if (cancelledRef.current) return;
+
+        clearReconnectTimer();
+        setChannelState('connecting');
+
+        const existing = presenceChannelRef.current;
         presenceChannelRef.current = null;
-      }
+        presenceSubscribedRef.current = false;
+        if (existing) {
+          await existing.untrack();
+          await supabase.removeChannel(existing);
+        }
+        if (cancelledRef.current) return;
 
-      const presenceChannel = supabase.channel(presenceChannelName, {
-        config: {
-          private: privatePresence,
-          presence: { key: userId! },
-        },
-      });
-
-      presenceChannel
-        .on('presence', { event: 'sync' }, () => {
-          syncPresenceFromChannel(presenceChannel);
-        })
-        .on('presence', { event: 'join' }, () => {
-          syncPresenceFromChannel(presenceChannel);
-        })
-        .on('presence', { event: 'leave' }, () => {
-          syncPresenceFromChannel(presenceChannel);
-        })
-        .subscribe(async (status: string, error?: Error) => {
-          if (cancelledRef.current) {
-            void supabase.removeChannel(presenceChannel);
-            return;
-          }
-
-          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            presenceSubscribedRef.current = false;
-            setPresenceReady(false);
-            setChannelState('error');
-            console.error('[board-realtime] presence channel error', {
-              status,
-              error,
-              presenceChannelName,
-              privatePresence,
-            });
-            scheduleReconnect();
-            return;
-          }
-
-          if (status === 'CLOSED') {
-            presenceSubscribedRef.current = false;
-            setPresenceReady(false);
-            clearHeartbeat();
-            scheduleReconnect();
-            return;
-          }
-
-          if (status !== 'SUBSCRIBED') return;
-
-          presenceChannelRef.current = presenceChannel;
-          presenceSubscribedRef.current = true;
-          reconnectAttemptRef.current = 0;
-          setPresenceReady(true);
-          lastTrackedPayloadRef.current = '';
-          await pushPresenceUpdate(presenceChannel, true);
-          if (!cancelledRef.current) {
-            startHeartbeat(presenceChannel);
-          }
-        });
-    }
-
-    async function connect() {
-      await ensureSupabaseRealtimeAuth(supabase);
-      if (cancelledRef.current) return;
-
-      const syncChannel = supabase
-        .channel(syncChannelName)
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'boards',
-            filter: `id=eq.${boardId}`,
+        const presenceChannel = supabase.channel(presenceChannelName, {
+          config: {
+            private: privatePresence,
+            presence: { key: userId! },
           },
-          (payload: RealtimePostgresUpdatePayload<Record<string, unknown>>) => {
-            const row = payload.new as Record<string, unknown>;
-            const board = parseBoardRow(row);
-            if (!board) return;
+        });
 
-            if (!isNewerRemoteUpdate(boardId, board.updatedAt, localUpdatedAtRef.current)) {
+        presenceChannel
+          .on('presence', { event: 'sync' }, () => {
+            syncPresenceFromChannel(presenceChannel);
+          })
+          .on('presence', { event: 'join' }, () => {
+            syncPresenceFromChannel(presenceChannel);
+          })
+          .on('presence', { event: 'leave' }, () => {
+            syncPresenceFromChannel(presenceChannel);
+          })
+          .subscribe(async (status: string, error?: Error) => {
+            if (cancelledRef.current) return;
+
+            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              presenceSubscribedRef.current = false;
+              setPresenceReady(false);
+              setChannelState('error');
+              console.error('[board-realtime] presence channel error', {
+                status,
+                error,
+                presenceChannelName,
+                privatePresence,
+              });
+              if (presenceChannelRef.current === presenceChannel) {
+                presenceChannelRef.current = null;
+              }
+              scheduleReconnect();
               return;
             }
 
-            onRemoteBoardRef.current(board, (row.last_saved_by_name as string | null) ?? null);
-          },
-        )
-        .subscribe((status: string, error?: Error) => {
-          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            console.error('[board-realtime] sync channel error', { status, error, syncChannelName });
-          }
-        });
+            if (status === 'CLOSED') {
+              presenceSubscribedRef.current = false;
+              setPresenceReady(false);
+              clearHeartbeat();
+              if (presenceChannelRef.current === presenceChannel) {
+                presenceChannelRef.current = null;
+              }
+              scheduleReconnect();
+              return;
+            }
 
-      if (cancelledRef.current) {
-        void supabase.removeChannel(syncChannel);
-        return;
+            if (status !== 'SUBSCRIBED') return;
+
+            presenceChannelRef.current = presenceChannel;
+            presenceSubscribedRef.current = true;
+            reconnectAttemptRef.current = 0;
+            setPresenceReady(true);
+            lastTrackedPayloadRef.current = '';
+            await pushPresenceUpdate(presenceChannel, true);
+            if (!cancelledRef.current) {
+              startHeartbeat(presenceChannel);
+            }
+          });
+      } finally {
+        connectingPresenceRef.current = false;
       }
+    }
 
-      syncChannelRef.current = syncChannel;
-      await connectPresence();
+    async function connect() {
+      if (connectingSyncRef.current || cancelledRef.current) return;
+
+      connectingSyncRef.current = true;
+
+      try {
+        await ensureSupabaseRealtimeAuth(supabase);
+        if (cancelledRef.current) return;
+
+        const existingSync = syncChannelRef.current;
+        syncChannelRef.current = null;
+        if (existingSync) {
+          await supabase.removeChannel(existingSync);
+        }
+        if (cancelledRef.current) return;
+
+        const syncChannel = supabase
+          .channel(syncChannelName)
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'boards',
+              filter: `id=eq.${boardId}`,
+            },
+            (payload: RealtimePostgresUpdatePayload<Record<string, unknown>>) => {
+              const row = payload.new as Record<string, unknown>;
+              const board = parseBoardRow(row);
+              if (!board) return;
+
+              if (!isNewerRemoteUpdate(boardId, board.updatedAt, localUpdatedAtRef.current)) {
+                return;
+              }
+
+              onRemoteBoardRef.current(board, (row.last_saved_by_name as string | null) ?? null);
+            },
+          )
+          .subscribe((status: string, error?: Error) => {
+            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              console.error('[board-realtime] sync channel error', { status, error, syncChannelName });
+            }
+          });
+
+        if (cancelledRef.current) {
+          await supabase.removeChannel(syncChannel);
+          return;
+        }
+
+        syncChannelRef.current = syncChannel;
+        await connectPresence();
+      } finally {
+        connectingSyncRef.current = false;
+      }
     }
 
     const {

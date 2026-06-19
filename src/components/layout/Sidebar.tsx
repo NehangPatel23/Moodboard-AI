@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { useSyncExternalStore } from 'react';
+import { Fragment, useSyncExternalStore } from 'react';
 import { cn } from '@/lib/utils';
 import { GuardedLink } from '@/components/shared/GuardedLink';
 import { Tooltip } from '@/components/ui/tooltip';
@@ -124,12 +124,16 @@ export function Sidebar() {
             </GuardedLink>
           );
 
-          return collapsed ? (
-            <Tooltip key={item.href} content={item.label} side="right" triggerClassName="block w-full">
-              {link}
-            </Tooltip>
-          ) : (
-            link
+          return (
+            <Fragment key={item.href}>
+              {collapsed ? (
+                <Tooltip content={item.label} side="right" triggerClassName="block w-full">
+                  {link}
+                </Tooltip>
+              ) : (
+                link
+              )}
+            </Fragment>
           );
         })}
       </nav>

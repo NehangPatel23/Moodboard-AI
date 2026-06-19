@@ -610,6 +610,8 @@ export function CommandPalette() {
 
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
+      if (!event.key) return;
+
       const key = event.key.toLowerCase();
 
       if ((event.metaKey || event.ctrlKey) && key === 'k') {

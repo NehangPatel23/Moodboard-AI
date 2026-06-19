@@ -18,10 +18,25 @@ export type BoardInvite = {
   id: string;
   email: string;
   role: BoardMemberRole;
-  status: 'pending' | 'accepted' | 'revoked';
+  status: 'pending' | 'accepted' | 'revoked' | 'declined';
   token: string;
   createdAt: string;
   acceptedAt?: string;
+  declinedAt?: string;
+};
+
+export type PendingBoardInvite = {
+  id: string;
+  token: string;
+  boardId: string;
+  boardTitle: string;
+  boardSummary?: string;
+  boardMood?: string;
+  palette?: Array<{ label: string; hex: string; usage?: string }>;
+  references?: Array<{ imageUrl?: string; title?: string }>;
+  role: BoardMemberRole;
+  inviterName: string;
+  createdAt: string;
 };
 
 

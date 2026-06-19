@@ -1636,6 +1636,7 @@ export function BoardEditorClient({ boardId }: BoardEditorClientProps) {
           reduceMotionEnabled={settings.reduceMotionEnabled}
           onlineUsers={onlineUsers}
           presenceConnectionState={presenceConnectionState}
+          boardId={editorBoard.id}
           currentUserId={auth.user?.id ?? null}
           commentsOpen={commentsOpen}
           activityOpen={activityOpen}

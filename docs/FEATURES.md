@@ -248,18 +248,20 @@ Implemented:
 Routes & APIs:
 
 ```txt
-/invite/[token]                    # Accept email invite (sign-in required)
+/invite/[token]                    # Accept or decline board invite (sign-in required)
 POST /api/boards/[id]/members      # Invite by email (owner)
 GET  /api/boards/[id]/members      # List collaborators
 DELETE /api/boards/[id]/members/[userId]
-GET  /api/boards/[id]/invites      # Pending invites
-POST /api/invites/[token]/accept   # Accept invite
+GET  /api/boards/[id]/invites      # Pending + declined invites (owner)
+GET  /api/invites/pending          # Current user's pending invitations
+POST /api/invites/[token]          # Accept invite
+POST /api/invites/[token]/decline  # Decline invite
 POST /api/boards/[id]/favorite     # Per-member favorite (migration 019)
 ```
 
 - **Roles** — owner, editor (can edit), viewer (read-only)
-- **Email invites** — existing users get access immediately; new users use `/invite/[token]`
-- Requires migration `003_board_collaboration.sql`
+- **Email invites** — all collaborators must accept before access; pending invitations appear as **board-style cards** in a Pending invitations section on the dashboard (plus TopBar Invites bell); owners see **Members**, **Pending invites**, and **Declined** in Collaborate
+- Requires migrations `003_board_collaboration.sql`, `029_board_invite_declined.sql`, and `030_board_invite_invitee_user.sql`
 
 **Real-time co-editing** (migration `006`):
 

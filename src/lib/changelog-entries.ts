@@ -9,6 +9,26 @@ export type ChangelogEntry = {
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
     date: '2026-06',
+    title: 'Pending invite visibility',
+    bullets: [
+      'Pending invitations render as board-style cards in a dedicated dashboard section',
+      'Invite matching uses invitee_user_id plus profile/auth email (migration 030)',
+      'Empty studio state hidden while pending invites exist; TopBar Invites bell with label',
+    ],
+  },
+  {
+    date: '2026-06',
+    sprint: 'U',
+    title: 'Invite acceptance wall',
+    bullets: [
+      'All collaborators must accept board access before joining — no instant access for existing users',
+      'Dashboard pending section and TopBar Invites show Accept access and Decline',
+      'Collaborate modal lists Pending invites and Declined sections; owners can Invite again or Dismiss',
+      'Migration 029 adds declined invite status and declined_at timestamp',
+    ],
+  },
+  {
+    date: '2026-06',
     title: 'Collaboration polish + dashboard fixes',
     bullets: [
       'Dashboard filter reset, clear, and toggle-off no longer get stuck on With me / With others',

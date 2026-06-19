@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { loadBoards, subscribeBoards } from '@/lib/board-store';
+import { usePendingInvites } from '@/lib/use-pending-invites';
 import { BoardCard } from './BoardCard';
 import type { BoardSort, VisibilityFilter, AccessFilter } from './BoardFilterBar';
 
@@ -77,8 +78,13 @@ function EmptyGallery({
 
 export function BoardGrid({ sort, visibility, access, onClearFilters }: BoardGridProps) {
   const boards = useSyncExternalStore(subscribeBoards, loadBoards, loadBoards);
+  const { count: pendingCount } = usePendingInvites();
 
   if (!boards.length) {
+    if (pendingCount > 0) {
+      return null;
+    }
+
     return (
       <EmptyGallery
         title="Your studio is empty."

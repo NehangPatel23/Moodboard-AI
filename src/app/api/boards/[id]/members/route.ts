@@ -2,12 +2,139 @@ import { NextResponse } from 'next/server';
 import { getBoardAccess } from '@/lib/db/board-access';
 import { getAuthenticatedUser } from '@/lib/db/auth';
 import { resolveUserByEmail } from '@/lib/db/ensure-profile';
+import { isMissingColumnError } from '@/lib/db/schema-errors';
 import { createAdminClient } from '@/lib/supabase/admin';
-import type { BoardMember, BoardMemberRole } from '@/types/board';
+import type { BoardInvite, BoardMember, BoardMemberRole } from '@/types/board';
 
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
+
+function mapInviteRow(invite: {
+  id: string;
+  email: string;
+  role: string;
+  token: string;
+  status: string;
+  created_at: string;
+  declined_at?: string | null;
+}): BoardInvite {
+  return {
+    id: invite.id,
+    email: invite.email,
+    role: invite.role as BoardMemberRole,
+    status: invite.status as BoardInvite['status'],
+    token: invite.token,
+    createdAt: invite.created_at,
+    declinedAt: invite.declined_at ?? undefined,
+  };
+}
+
+async function findExistingInviteForRecipient(
+  admin: ReturnType<typeof createAdminClient>,
+  boardId: string,
+  inviteEmail: string,
+  inviteeUserId: string | null,
+) {
+  if (inviteeUserId) {
+    const { data: byUser, error: byUserError } = await admin
+      .from('board_invites')
+      .select('id, email, role, token, status, created_at, declined_at')
+      .eq('board_id', boardId)
+      .eq('invitee_user_id', inviteeUserId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (byUserError && !isMissingColumnError(byUserError, 'invitee_user_id')) {
+      throw byUserError;
+    }
+
+    if (byUser) {
+      return byUser;
+    }
+  }
+
+  const { data: byEmail } = await admin
+    .from('board_invites')
+    .select('id, email, role, token, status, created_at, declined_at')
+    .eq('board_id', boardId)
+    .ilike('email', inviteEmail)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return byEmail;
+}
+
+function buildInviteWritePayload(
+  inviteEmail: string,
+  inviteeUserId: string | null,
+  role: BoardMemberRole,
+  invitedBy: string,
+  includeInviteeUserId: boolean,
+) {
+  const payload: Record<string, unknown> = {
+    email: inviteEmail,
+    role,
+    invited_by: invitedBy,
+  };
+
+  if (includeInviteeUserId && inviteeUserId) {
+    payload.invitee_user_id = inviteeUserId;
+  }
+
+  return payload;
+}
+
+async function writeInviteRecord(
+  admin: ReturnType<typeof createAdminClient>,
+  mode: 'insert' | 'update',
+  boardId: string,
+  inviteId: string | null,
+  inviteEmail: string,
+  inviteeUserId: string | null,
+  role: BoardMemberRole,
+  invitedBy: string,
+  extraFields?: Record<string, unknown>,
+) {
+  const select = 'id, email, role, token, status, created_at, declined_at';
+  let includeInviteeUserId = true;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const payload = {
+      ...buildInviteWritePayload(inviteEmail, inviteeUserId, role, invitedBy, includeInviteeUserId),
+      ...extraFields,
+    };
+
+    const result =
+      mode === 'insert'
+        ? await admin
+            .from('board_invites')
+            .insert({ board_id: boardId, ...payload })
+            .select(select)
+            .single()
+        : await admin
+            .from('board_invites')
+            .update(payload)
+            .eq('id', inviteId!)
+            .select(select)
+            .single();
+
+    if (!result.error) {
+      return result.data;
+    }
+
+    if (includeInviteeUserId && isMissingColumnError(result.error, 'invitee_user_id')) {
+      includeInviteeUserId = false;
+      continue;
+    }
+
+    throw result.error;
+  }
+
+  throw new Error('Failed to write invite record');
+}
 
 export async function GET(_request: Request, context: RouteContext) {
   const { id } = await context.params;
@@ -120,65 +247,124 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
 
+  const inviteEmail = existingProfile?.email.toLowerCase() ?? email;
+  const inviteeUserId = existingProfile?.id ?? null;
+
   if (existingProfile) {
-    const { error: memberError } = await admin.from('board_members').upsert(
-      {
-        board_id: id,
-        user_id: existingProfile.id,
+    const { data: existingMember } = await admin
+      .from('board_members')
+      .select('role')
+      .eq('board_id', id)
+      .eq('user_id', existingProfile.id)
+      .maybeSingle();
+
+    if (existingMember) {
+      const { error: memberError } = await admin
+        .from('board_members')
+        .update({ role })
+        .eq('board_id', id)
+        .eq('user_id', existingProfile.id);
+
+      if (memberError) {
+        return NextResponse.json({ error: memberError.message }, { status: 500 });
+      }
+
+      return NextResponse.json({
+        type: 'member_updated',
+        member: {
+          userId: existingProfile.id,
+          name: existingProfile.name,
+          email: existingProfile.email,
+          role,
+          createdAt: new Date().toISOString(),
+        } satisfies BoardMember,
+      });
+    }
+  }
+
+  const existingInvite = await findExistingInviteForRecipient(admin, id, inviteEmail, inviteeUserId);
+
+  if (existingInvite?.status === 'pending') {
+    try {
+      const updatedInvite = await writeInviteRecord(
+        admin,
+        'update',
+        id,
+        existingInvite.id,
+        inviteEmail,
+        inviteeUserId,
         role,
-        invited_by: user.id,
-      },
-      { onConflict: 'board_id,user_id' },
+        user.id,
+      );
+
+      return NextResponse.json({
+        type: 'invite_created',
+        invite: mapInviteRow(updatedInvite),
+        invitePath: `/invite/${updatedInvite.token}`,
+      });
+    } catch (updateError) {
+      return NextResponse.json(
+        { error: updateError instanceof Error ? updateError.message : 'Failed to update invite' },
+        { status: 500 },
+      );
+    }
+  }
+
+  if (existingInvite?.status === 'declined') {
+    try {
+      const reactivatedInvite = await writeInviteRecord(
+        admin,
+        'update',
+        id,
+        existingInvite.id,
+        inviteEmail,
+        inviteeUserId,
+        role,
+        user.id,
+        {
+          status: 'pending',
+          declined_at: null,
+          accepted_at: null,
+        },
+      );
+
+      return NextResponse.json({
+        type: 'invite_created',
+        invite: mapInviteRow(reactivatedInvite),
+        invitePath: `/invite/${reactivatedInvite.token}`,
+      });
+    } catch (reactivateError) {
+      return NextResponse.json(
+        {
+          error:
+            reactivateError instanceof Error ? reactivateError.message : 'Failed to reactivate invite',
+        },
+        { status: 500 },
+      );
+    }
+  }
+
+  try {
+    const invite = await writeInviteRecord(
+      admin,
+      'insert',
+      id,
+      null,
+      inviteEmail,
+      inviteeUserId,
+      role,
+      user.id,
     );
 
-    if (memberError) {
-      return NextResponse.json({ error: memberError.message }, { status: 500 });
-    }
-
-    await admin
-      .from('board_invites')
-      .update({ status: 'revoked' })
-      .eq('board_id', id)
-      .ilike('email', email)
-      .eq('status', 'pending');
-
     return NextResponse.json({
-      type: 'member_added',
-      member: {
-        userId: existingProfile.id,
-        name: existingProfile.name,
-        email: existingProfile.email,
-        role,
-        createdAt: new Date().toISOString(),
-      } satisfies BoardMember,
+      type: 'invite_created',
+      invite: mapInviteRow(invite),
+      invitePath: `/invite/${invite.token}`,
     });
+  } catch (inviteError) {
+    return NextResponse.json(
+      { error: inviteError instanceof Error ? inviteError.message : 'Failed to create invite' },
+      { status: 500 },
+    );
   }
-
-  const { data: invite, error: inviteError } = await admin
-    .from('board_invites')
-    .insert({
-      board_id: id,
-      email,
-      role,
-      invited_by: user.id,
-    })
-    .select('id, email, role, token, status, created_at')
-    .single();
-
-  if (inviteError) {
-    return NextResponse.json({ error: inviteError.message }, { status: 500 });
-  }
-
-  return NextResponse.json({
-    type: 'invite_created',
-    invite: {
-      id: invite.id,
-      email: invite.email,
-      role: invite.role,
-      status: invite.status,
-      token: invite.token,
-      createdAt: invite.created_at,
-    },
-    invitePath: `/invite/${invite.token}`,
-  });
 }
