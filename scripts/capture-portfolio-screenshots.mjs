@@ -66,13 +66,13 @@ async function bumpReadmeScreenshotCache() {
 
   const readme = await readFile(readmePath, 'utf8');
   const updated = readme.replace(
-    /(docs\/screenshots\/[a-z0-9-]+\.png)\?v=[^)]+/g,
-    `$1?v=${cacheBust}`,
+    /https:\/\/raw\.githubusercontent\.com\/NehangPatel23\/Moodboard-AI\/[a-f0-9]+\/docs\/screenshots\//g,
+    `https://raw.githubusercontent.com/NehangPatel23/Moodboard-AI/${cacheBust}/docs/screenshots/`,
   );
 
   if (updated !== readme) {
     await writeFile(readmePath, updated);
-    console.log(`  ✓ README gallery cache bust → ?v=${cacheBust}`);
+    console.log(`  ✓ README gallery raw URLs → commit ${cacheBust}`);
   }
 }
 

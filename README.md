@@ -60,21 +60,23 @@ AI-assisted workspace for creative direction and moodboarding. Describe a brand 
 
 Portfolio captures from the [live demo](https://moodboard-ai-omega.vercel.app):
 
+<!-- Screenshot URLs use raw.githubusercontent.com + commit SHA so GitHub README thumbnails stay in sync (relative paths are aggressively cached). -->
+
 | Surface | Preview |
 |---------|---------|
-| **Landing** — hero, capabilities, example board preview | ![Landing page](docs/screenshots/landing.png?v=cd08c5e) |
-| **About** — stack and integrations with official brand icons | ![About stack](docs/screenshots/about-stack.png?v=cd08c5e) |
-| **Discover** — mood dropdown, featured row, creator profiles | ![Discover browse](docs/screenshots/discover.png?v=cd08c5e) |
-| **Dashboard** — board grid, filters, pending invitations | ![Dashboard](docs/screenshots/dashboard.png?v=cd08c5e) |
-| **Board editor** — tabbed sections, palette, references | ![Board editor](docs/screenshots/board-editor.png?v=cd08c5e) |
-| **Collaboration** — comments panel, section context, team feedback | ![Collaboration](docs/screenshots/collaboration.png?v=cd08c5e) |
-| **Share page** — view-only board, remix CTA, creator attribution | ![Share page](docs/screenshots/share.png?v=cd08c5e) |
-| **Settings** — display name, avatar, Editor auto-save interval | ![Settings](docs/screenshots/settings.png?v=cd08c5e) |
-| **Sign-in** — email/password, forgot password, demo account | ![Sign in](docs/screenshots/sign-in.png?v=cd08c5e) |
+| **Landing** — hero, capabilities, example board preview | ![Landing page](https://raw.githubusercontent.com/NehangPatel23/Moodboard-AI/35ce132/docs/screenshots/landing.png) |
+| **About** — stack and integrations with official brand icons | ![About stack](https://raw.githubusercontent.com/NehangPatel23/Moodboard-AI/35ce132/docs/screenshots/about-stack.png) |
+| **Discover** — mood dropdown, featured row, creator profiles | ![Discover browse](https://raw.githubusercontent.com/NehangPatel23/Moodboard-AI/35ce132/docs/screenshots/discover.png) |
+| **Dashboard** — board grid, filters, pending invitations | ![Dashboard](https://raw.githubusercontent.com/NehangPatel23/Moodboard-AI/35ce132/docs/screenshots/dashboard.png) |
+| **Board editor** — tabbed sections, palette, references | ![Board editor](https://raw.githubusercontent.com/NehangPatel23/Moodboard-AI/35ce132/docs/screenshots/board-editor.png) |
+| **Collaboration** — comments panel, section context, team feedback | ![Collaboration](https://raw.githubusercontent.com/NehangPatel23/Moodboard-AI/35ce132/docs/screenshots/collaboration.png) |
+| **Share page** — view-only board, remix CTA, creator attribution | ![Share page](https://raw.githubusercontent.com/NehangPatel23/Moodboard-AI/35ce132/docs/screenshots/share.png) |
+| **Settings** — display name, avatar, Editor auto-save interval | ![Settings](https://raw.githubusercontent.com/NehangPatel23/Moodboard-AI/35ce132/docs/screenshots/settings.png) |
+| **Sign-in** — email/password, forgot password, demo account | ![Sign in](https://raw.githubusercontent.com/NehangPatel23/Moodboard-AI/35ce132/docs/screenshots/sign-in.png) |
 
 **Try the demo:** sign in with `admin@moodboard.ai` / `moodboard123`, or browse Discover without an account. Run `npm run db:seed-demo && npm run db:seed-demo-boards` locally to populate showcase boards.
 
-To refresh captures: `npm run capture:screenshots` (requires `npx playwright install chromium` once). The script bumps `?v=` on README image URLs so GitHub shows fresh thumbnails instead of cached previews.
+To refresh captures: `npm run capture:screenshots` (requires `npx playwright install chromium` once). The script updates README raw URLs to the current commit SHA so GitHub renders fresh thumbnails.
 
 ---
 
