@@ -4,7 +4,7 @@ MoodBoard AI uses the [Pexels API](https://www.pexels.com/api/) to fetch **searc
 
 Without a key, references fall back to palette-based SVG placeholders.
 
-## Step 1 — Get a free API key
+## Step 1 — Get a Free API Key
 
 1. Go to [https://www.pexels.com/api/](https://www.pexels.com/api/)
 2. Create a free account and request an API key
@@ -12,7 +12,7 @@ Without a key, references fall back to palette-based SVG placeholders.
 
 Free tier: **200 requests/hour**, **20,000/month** — enough for a portfolio demo.
 
-## Step 2 — Add locally
+## Step 2 — Add Locally
 
 In `.env.local`:
 
@@ -22,7 +22,7 @@ PEXELS_API_KEY=your-pexels-api-key
 
 Restart the dev server after adding the key.
 
-## Step 3 — Add on Vercel (production)
+## Step 3 — Add on Vercel (Production)
 
 Vercel → **Settings** → **Environment Variables**:
 
@@ -32,7 +32,7 @@ Vercel → **Settings** → **Environment Variables**:
 
 Apply to **Production** and **Preview**, then redeploy.
 
-## How it works
+## How It Works
 
 - **New boards** — after `POST /api/generate/draft` returns creative direction, `POST /api/generate/enrich` streams Pexels lookups one reference at a time (NDJSON). The UI shows progress (“Finding reference 3 of 6…”).
 - **Reference editor** — **Find photo** calls `POST /api/reference-images/search` (Pexels → Unsplash → demo placeholder). **Apply URL** and **Upload file** for manual import.

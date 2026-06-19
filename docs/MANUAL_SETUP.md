@@ -23,7 +23,7 @@ flowchart TD
 
 ---
 
-## What the code already does (no action needed)
+## What the Code Already Does (No Action Needed)
 
 - Supabase auth, boards, settings API routes
 - Route protection (`/app`, `/settings`)
@@ -34,7 +34,7 @@ flowchart TD
 
 ---
 
-## One-time: Supabase
+## One-Time: Supabase
 
 | Step | Action | Status |
 |------|--------|--------|
@@ -51,7 +51,7 @@ Full guide: [`docs/SUPABASE_SETUP.md`](SUPABASE_SETUP.md)
 
 ---
 
-## One-time: Gemini (free AI)
+## One-Time: Gemini (Free AI)
 
 | Step | Action |
 |------|--------|
@@ -65,7 +65,7 @@ Full guide: [`docs/GEMINI_SETUP.md`](GEMINI_SETUP.md)
 
 ---
 
-## One-time: Vercel (production)
+## One-Time: Vercel (Production)
 
 | Step | Action |
 |------|--------|
@@ -76,7 +76,7 @@ Full guide: [`docs/GEMINI_SETUP.md`](GEMINI_SETUP.md)
 | 5 | Supabase → **URL Configuration** → set your `https://your-app.vercel.app` domain and `/auth/callback` redirect URL |
 | 6 | Smoke test live site |
 
-### Vercel environment variables
+### Vercel Environment Variables
 
 | Variable | Sensitive? | Mark as Safe? |
 |----------|------------|---------------|
@@ -89,7 +89,7 @@ Full guide: [`docs/DEPLOY.md`](DEPLOY.md)
 
 ---
 
-## Never commit
+## Never Commit
 
 | File | Contains |
 |------|----------|
@@ -99,7 +99,7 @@ Confirm: `git check-ignore -v .env.local` should show a match.
 
 ---
 
-## Before every GitHub push
+## Before Every GitHub Push
 
 ```bash
 npm run setup:supabase    # optional if already verified
@@ -113,7 +113,7 @@ git status                # .env.local must NOT appear
 
 ---
 
-## Local smoke test (5 minutes)
+## Local Smoke Test (5 Minutes)
 
 1. `npm run dev` → [http://localhost:3000](http://localhost:3000)
 2. Sign in with demo account
@@ -125,13 +125,13 @@ git status                # .env.local must NOT appear
 
 ---
 
-## Production smoke test
+## Production Smoke Test
 
 Same as local, on your Vercel URL.
 
 ---
 
-## If something breaks
+## If Something Breaks
 
 | Symptom | Fix |
 |---------|-----|
@@ -144,7 +144,7 @@ Same as local, on your Vercel URL.
 
 ---
 
-## What you do NOT need to do
+## What You Do NOT Need to Do
 
 - Run OpenAI setup (removed)
 - Pay for OpenAI API

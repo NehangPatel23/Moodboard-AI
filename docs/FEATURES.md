@@ -4,9 +4,9 @@ Implemented product features by page and module.
 
 Back to [README](../README.md) · Subsystems: [SYSTEMS](SYSTEMS.md) · Roadmap: [ROADMAP](ROADMAP.md)
 
-User-facing flow diagrams: [README § App flow](../README.md#app-flow)
+User-facing flow diagrams: [README § App Flow](../README.md#app-flow)
 
-## Page flow
+## Page Flow
 
 How users move between major surfaces. See [SYSTEMS](SYSTEMS.md) for API and persistence detail.
 
@@ -73,7 +73,7 @@ A conversion-focused call to action.
 
 ---
 
-### Sign in
+### Sign In
 
 Route:
 
@@ -215,17 +215,17 @@ Implemented:
 - Reference cards with drag-and-drop reorder and keyboard move up/down ([`EditorReferenceSortableGrid`](../src/components/board/EditorReferenceSortableGrid.tsx))
 - Text/content blocks
 
-#### Tabbed sections
+#### Tabbed Sections
 
 Overview, Palette, Typography, References, and Notes — jump via editor tabs or command palette (`⌘K`).
 
-#### AI suggestions
+#### AI Suggestions
 
 - **Suggest palette** — `POST /api/generate/palette`
 - **Suggest typography** — `POST /api/generate/typography`
 - **Suggest brand** — `POST /api/generate/brand` on Overview; persisted on board as `brandStrategy` (migration `021`)
 
-#### Save & auto-save
+#### Save & Auto-Save
 
 - **Manual save** — **Save changes** opens an **Apply these changes?** confirmation modal; success shows a toast
 - **Auto-save** — debounced save after idle edits (default **8 seconds**); success and error toasts (**Changes auto-saved.** / **Auto-save failed.**) when enabled in Settings → Notifications
@@ -244,7 +244,7 @@ Implemented:
 - **Save as template** (owner) — publish to Community or save privately via [`SaveTemplateModal`](../src/components/board/SaveTemplateModal.tsx)
 - Snapshots (save, preview, **compare diff** vs current board or another snapshot, restore, auto-backup before restore; cap + auto-prune via migration `020`)
 
-#### Team collaboration
+#### Team Collaboration
 
 Routes & APIs:
 
@@ -408,7 +408,7 @@ Current functionality:
 - **Live tags** — tags added while creating/editing boards automatically appear as filter options
 - Static template card imagery from Unsplash URLs (generated boards enrich references via Pexels)
 
-#### Template generation UX
+#### Template Generation UX
 
 **Use template** runs the draft → enrich pipeline as prompt creation. **Curated** templates call `POST /api/generate/draft` with full template context via `buildTemplateGenerationPrompt()` in [`src/lib/ai-generate.ts`](../src/lib/ai-generate.ts). **Community** templates use [`templateToBoard()`](../src/lib/board-to-template.ts) then the enrich pipeline (no AI draft regeneration).
 
@@ -475,7 +475,7 @@ User-configurable toggle that gates the keyboard-driven slideshow on the share/v
 - **Remote save toasts** — show/hide collaborator save notifications
 - Migration `026_notification_prefs.sql`
 
-#### Collaboration retention
+#### Collaboration Retention
 
 - Hide comments / activity after a configurable **amount + unit** (minutes, hours, days, weeks, or never)
 - Owner purge limits for permanently deleting old comments and activity on owned boards

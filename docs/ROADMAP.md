@@ -4,7 +4,7 @@ Shipped work, next priorities, and future scope for MoodBoard AI.
 
 Back to [README](../README.md) · Features: [FEATURES](FEATURES.md) · Deploy: [DEPLOY](DEPLOY.md)
 
-## Current status
+## Current Status
 
 Waves 1–3 and Sprints A–X are **complete**. Closure sprint shipped CI, smoke tests, SEO, and invite emails. The app is **portfolio complete**.
 
@@ -76,7 +76,7 @@ Waves 1–3 and Sprints A–X are **complete**. Closure sprint shipped CI, smoke
 | 57 | Templates & settings polish | Card shadow tokens; elevated panels on templates preview; settings active states and nested panels in dark mode |
 | 58 | Editor token pass | Shared modal/presentation tokens; read-only tab surfaces aligned with `--shadow-*` vars |
 
-### Sprint summary (completed)
+### Sprint Summary (Completed)
 
 | Sprint | Scope | Outcome |
 |--------|--------|---------|
@@ -107,11 +107,11 @@ Waves 1–3 and Sprints A–X are **complete**. Closure sprint shipped CI, smoke
 
 ---
 
-## Next priorities
+## Next Priorities
 
 **Portfolio MVP:** complete. Closure sprint shipped CI, smoke tests, SEO basics, and collaboration invite emails.
 
-## Project complete
+## Project Complete
 
 Final wrap-up sprint (2026-06):
 
@@ -144,7 +144,7 @@ Four-feature sprint (2026-06):
 
 ---
 
-## Wave 4 — Growth (future / not planned now)
+## Wave 4 — Growth (Future / Not Planned Now)
 
 | Feature | Notes |
 |---------|--------|
@@ -154,7 +154,7 @@ Four-feature sprint (2026-06):
 
 ---
 
-## Planned pages (not built)
+## Planned Pages (Not Built)
 
 | Route | Purpose | Status |
 |-------|---------|--------|
@@ -167,7 +167,7 @@ Four-feature sprint (2026-06):
 
 `/explore` was removed as a duplicate of Discover (same public boards); `/explore` permanently redirects to `/discover` for bookmarks.
 
-## Success checks
+## Success Checks
 
 Use these for manual QA after changes:
 
@@ -217,7 +217,7 @@ Use these for manual QA after changes:
 
 ---
 
-## Out of scope (near term)
+## Out of Scope (Near Term)
 
 - Google / GitHub OAuth sign-in — **deferred**
 - Full real-time co-editing (shared cursor + simultaneous typing in one field)

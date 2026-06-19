@@ -2,7 +2,7 @@
 
 The app code is ready. You only need to create a Supabase project once and connect it with environment variables.
 
-## Quick checklist
+## Quick Checklist
 
 - [ ] **Step 1** — Create Supabase project at [supabase.com](https://supabase.com)
 - [ ] **Step 2** — Run the SQL migration (dashboard or CLI)
@@ -13,7 +13,7 @@ The app code is ready. You only need to create a Supabase project once and conne
 
 ---
 
-## Step 1 — Create a Supabase project
+## Step 1 — Create a Supabase Project
 
 1. Go to [https://supabase.com](https://supabase.com) and sign up or log in.
 2. Click **New project**.
@@ -26,11 +26,11 @@ The app code is ready. You only need to create a Supabase project once and conne
 
 ---
 
-## Step 2 — Run the database migration
+## Step 2 — Run the Database Migration
 
 Creates `profiles`, `boards`, and `user_settings` tables with Row Level Security.
 
-### Option A — SQL Editor (recommended if new to Supabase)
+### Option A — SQL Editor (Recommended if New to Supabase)
 
 1. In the dashboard, open **SQL Editor** → **New query**.
 2. Copy the entire contents of [`supabase/migrations/001_initial.sql`](../supabase/migrations/001_initial.sql).
@@ -78,7 +78,7 @@ npx supabase db push
 
 ---
 
-## Step 3 — Add environment variables
+## Step 3 — Add Environment Variables
 
 1. In Supabase: **Project Settings** (gear) → **API**.
 2. Copy:
@@ -107,15 +107,15 @@ Never commit `.env.local` or expose the `service_role` key in client code.
 
 ---
 
-## Step 4 — Configure auth for local development
+## Step 4 — Configure Auth for Local Development
 
-### Email sign-in
+### Email Sign-In
 
 1. **Authentication** → **Providers** → **Email**.
 2. Turn **off** “Confirm email” / “Enable email confirmations” for local dev (optional for production).
 3. Save.
 
-### URL configuration (required for password reset)
+### URL Configuration (Required for Password Reset)
 
 1. **Authentication** → **URL Configuration**.
 2. Set **Site URL** to `http://localhost:3000` (production: your Vercel URL, e.g. `https://moodboard-ai-omega.vercel.app`).
@@ -136,7 +136,7 @@ The app handles auth at [`/auth/callback`](../src/app/auth/callback/route.ts):
 
 Reset links must use the same browser when Supabase sends a PKCE `code`; `token_hash` links work across browsers when the email template includes them.
 
-### Password reset emails
+### Password Reset Emails
 
 1. **Authentication** → **Email Templates** → confirm **Reset password** template exists.
 2. Default Supabase mail works for testing (rate-limited). For production deliverability, configure **Custom SMTP** under Project Settings → Auth.
@@ -144,7 +144,7 @@ Reset links must use the same browser when Supabase sends a PKCE `code`; `token_
 
 ---
 
-## Step 5 — Verify and seed
+## Step 5 — Verify and Seed
 
 ```bash
 npm run setup:supabase
@@ -157,7 +157,7 @@ This checks your env vars, confirms tables exist, and creates the demo user:
 
 ---
 
-## Step 6 — Run the app
+## Step 6 — Run the App
 
 ```bash
 npm run dev

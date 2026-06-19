@@ -6,7 +6,7 @@
 - GitHub repo connected to Vercel (or use Vercel CLI)
 - Supabase project running
 
-## Deploy pipeline
+## Deploy Pipeline
 
 ```mermaid
 flowchart LR
@@ -49,14 +49,14 @@ flowchart LR
 git push origin main
 ```
 
-## Step 2 — Create Vercel project
+## Step 2 — Create Vercel Project
 
 1. Go to [vercel.com/new](https://vercel.com/new) and import the repository.
 2. Framework preset: **Next.js** (auto-detected).
 3. Build command: `npm run build` (default).
 4. Output directory: `.next` (default).
 
-## Step 3 — Environment variables
+## Step 3 — Environment Variables
 
 In Vercel → **Settings** → **Environment Variables**, add:
 
@@ -76,7 +76,7 @@ Apply to **Production**, **Preview**, and **Development**.
 
 **Not required for launch:** `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, and `NEXT_PUBLIC_SITE_URL` can stay unset. Collaboration invites work via **Copy invite link** in Collaborate and in-app pending notifications; on Vercel, sitemap, OG tags, and invite URLs use the auto-injected `VERCEL_URL`. Add Resend only if you want automatic invite emails.
 
-## Step 4 — Configure Supabase for production
+## Step 4 — Configure Supabase for Production
 
 In Supabase → **Authentication** → **URL Configuration**:
 
@@ -94,7 +94,7 @@ Trigger a deploy from the Vercel dashboard or:
 npx vercel --prod
 ```
 
-## Step 5b — Run collaboration migrations (production Supabase)
+## Step 5b — Run Collaboration Migrations (Production Supabase)
 
 **Full migration range:** `001` through **`032`**. If production is behind, run any missing files in numeric order from [`supabase/migrations/`](../supabase/migrations/). Steps **5c–5j** below cover incremental catch-up for specific feature drops.
 
@@ -122,7 +122,7 @@ After deploying collaboration features, run these in the **production** Supabase
 
 If collaboration was already live, confirm migrations `004` and `005` are applied before `006`.
 
-## Step 5c — Apply latest migrations (020–021)
+## Step 5c — Apply Latest Migrations (020–021)
 
 If production was deployed before snapshot limits or brand strategy shipped, run these in the **production** Supabase SQL Editor (in order):
 
@@ -147,7 +147,7 @@ where table_schema = 'public'
 
 Expected: one row per column. Re-deploy Vercel after applying if the app was already live.
 
-## Step 5d — Apply latest migrations (022–023)
+## Step 5d — Apply Latest Migrations (022–023)
 
 If production was deployed before section-linked comments or snapshot unread badges shipped, run these in the **production** Supabase SQL Editor (in order):
 
@@ -172,7 +172,7 @@ where table_schema = 'public'
 
 Expected: one row per column. Re-deploy Vercel after applying if the app was already live.
 
-## Step 5e — Apply latest migration (024)
+## Step 5e — Apply Latest Migration (024)
 
 If production was deployed before profile photo upload shipped, run this in the **production** Supabase SQL Editor:
 
@@ -190,7 +190,7 @@ where table_schema = 'public'
 
 Expected: one row. Confirm **Storage** includes the `avatar-uploads` bucket. Re-deploy Vercel after applying if the app was already live.
 
-## Step 5f — Apply latest migration (025)
+## Step 5f — Apply Latest Migration (025)
 
 If production was deployed before board auto-save settings shipped, run this in the **production** Supabase SQL Editor:
 
@@ -208,7 +208,7 @@ where table_schema = 'public'
 
 Expected: one row. Re-deploy Vercel after applying if the app was already live.
 
-## Step 5g — Apply latest migrations (026–027)
+## Step 5g — Apply Latest Migrations (026–027)
 
 If production was deployed before notification prefs or community templates shipped, run these in the **production** Supabase SQL Editor:
 
@@ -232,7 +232,7 @@ where table_schema = 'public'
 
 Expected: two notification columns and the `board_templates` table. Re-deploy Vercel after applying if the app was already live.
 
-## Step 5h — Apply latest migration (028)
+## Step 5h — Apply Latest Migration (028)
 
 If production uses **private Realtime** (Supabase **Allow public access** disabled), run in the **production** Supabase SQL Editor:
 
@@ -244,7 +244,7 @@ This authorizes `board-fields:{board_id}` broadcast channels for live field sync
 
 > `alter publication supabase_realtime add table` is not idempotent. If `006` was partially applied, check **Database → Publications → supabase_realtime** before re-running.
 
-## Step 5i — Apply latest migrations (029–031)
+## Step 5i — Apply Latest Migrations (029–031)
 
 If production does not yet have invite acceptance wall support, run in the **production** Supabase SQL Editor (in order):
 
@@ -260,7 +260,7 @@ npm run verify:collaboration
 
 Expected: `board_invites.declined_at` and `board_invites.invitee_user_id` columns present.
 
-## Step 5j — Apply view counts migration (032)
+## Step 5j — Apply View Counts Migration (032)
 
 If Discover view counts stay at zero after deploy, run in the **production** Supabase SQL Editor:
 
@@ -274,7 +274,7 @@ npm run verify:collaboration
 
 Expected: `boards.view_count` column present.
 
-## Step 6 — Smoke test production
+## Step 6 — Smoke Test Production
 
 Before manual testing, verify the connected Supabase project locally:
 
@@ -339,7 +339,7 @@ Confirm **Production** env vars on Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUB
 
 **Reference upload fails** — Run migration `014_reference_uploads_storage.sql` and confirm `SUPABASE_SERVICE_ROLE_KEY` on Vercel.
 
-## Portfolio demo script (~3 min)
+## Portfolio Demo Script (~3 Min)
 
 Use this flow when recording or walking through the project:
 
@@ -355,7 +355,7 @@ Use this flow when recording or walking through the project:
 
 ---
 
-## Related documentation
+## Related Documentation
 
 | Doc | Description |
 |-----|-------------|

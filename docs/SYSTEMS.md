@@ -4,9 +4,9 @@ Core subsystems: authentication, persistence, AI generation, and visual export.
 
 Back to [README](../README.md) · Setup: [SUPABASE_SETUP](SUPABASE_SETUP.md) · [GEMINI_SETUP](GEMINI_SETUP.md) · [DEPLOY](DEPLOY.md)
 
-Diagrams: [auth flow](#auth-flow) · [persistence](#persistence-flow) · [realtime](#realtime--collaboration) · [AI pipeline](#generation-pipeline) · [export](#export-pipeline) · User flows: [README § App flow](../README.md#app-flow)
+Diagrams: [Auth Flow](#auth-flow) · [Persistence](#persistence-flow) · [Realtime](#realtime--collaboration) · [AI Pipeline](#generation-pipeline) · [Export](#export-pipeline) · User flows: [README § App Flow](../README.md#app-flow)
 
-## Authentication & gated landing CTAs
+## Authentication & Gated Landing CTAs
 
 User login / authentication and gated CTAs use **Supabase Auth** with cookie-based sessions. The auth store (`src/lib/auth-store.ts`) still exposes `subscribeAuth`, `readAuthState`, `hydrateAuthStore`, and `signUp` / `signIn` / `signOut` for UI components.
 
@@ -22,7 +22,7 @@ User login / authentication and gated CTAs use **Supabase Auth** with cookie-bas
 
 Auth is now backed by **Supabase Auth** (see [Database & Persistence](#database--persistence)). The auth store API (`signUp`, `signIn`, `signOut`, `subscribeAuth`) is unchanged for UI components.
 
-### Auth flow
+### Auth Flow
 
 ```mermaid
 flowchart TD
@@ -55,7 +55,7 @@ flowchart TD
 
 ---
 
-## Database & persistence
+## Database & Persistence
 
 User-scoped data is stored in **Supabase (Postgres + Auth)** with Row Level Security. Client stores keep the same `useSyncExternalStore` API; persistence is handled via API routes.
 
@@ -78,7 +78,7 @@ User-scoped data is stored in **Supabase (Postgres + Auth)** with Row Level Secu
 - **Migration** — `src/lib/local-migration.ts` imports legacy `localStorage` boards/settings on first authenticated load, then clears old keys.
 - **Sidebar collapse** remains in `localStorage` (device UI preference, not account data).
 
-### Persistence flow
+### Persistence Flow
 
 ```mermaid
 flowchart TB
@@ -115,7 +115,7 @@ flowchart TB
   profiles --> boards_tbl
 ```
 
-### Realtime & collaboration
+### Realtime & Collaboration
 
 ```mermaid
 sequenceDiagram
@@ -149,7 +149,7 @@ sequenceDiagram
 
 ---
 
-## AI generation
+## AI Generation
 
 Prompt and template board creation use a **staged progressive pipeline** with authenticated sessions:
 
@@ -182,7 +182,7 @@ The client shows a live preview as the draft arrives, then fills reference slots
 
 **Production:** Add `GEMINI_API_KEY` and `PEXELS_API_KEY` to Vercel. See [DEPLOY.md](DEPLOY.md).
 
-### Generation pipeline
+### Generation Pipeline
 
 ```mermaid
 sequenceDiagram
@@ -220,7 +220,7 @@ sequenceDiagram
 
 ---
 
-## Visual board export
+## Visual Board Export
 
 The board editor **Export** action opens [`ExportModal`](../src/components/shared/ExportModal.tsx) with a **live preview** before download.
 
@@ -247,7 +247,7 @@ The board editor **Export** action opens [`ExportModal`](../src/components/share
 
 **Touch:** [`ExportModal`](../src/components/shared/ExportModal.tsx), [`BoardExportCapture`](../src/components/board/BoardExportCapture.tsx), [`export-capture.ts`](../src/lib/export-capture.ts), [`export-pdf.ts`](../src/lib/export-pdf.ts), [`export-design-system.ts`](../src/lib/export-design-system.ts).
 
-### Design system export
+### Design System Export
 
 ```mermaid
 flowchart TD
@@ -269,7 +269,7 @@ flowchart TD
   tokens --> preview
 ```
 
-### Export pipeline
+### Export Pipeline
 
 ```mermaid
 flowchart TD

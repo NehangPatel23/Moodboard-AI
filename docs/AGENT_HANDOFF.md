@@ -1,4 +1,4 @@
-# Agent handoff
+# Agent Handoff
 
 Notes for AI agents and contributors continuing development in Cursor or other environments.
 
@@ -6,11 +6,11 @@ Back to [README](../README.md) · Roadmap: [ROADMAP](ROADMAP.md) · Features: [F
 
 Also read [`AGENTS.md`](../AGENTS.md) for Next.js framework conventions (this project uses Next.js 16 with breaking API differences).
 
-Flow diagrams: [README § App flow](../README.md#app-flow) · [ARCHITECTURE](ARCHITECTURE.md) · [SYSTEMS](SYSTEMS.md) · [FEATURES § Page flow](FEATURES.md#page-flow)
+Flow diagrams: [README § App Flow](../README.md#app-flow) · [ARCHITECTURE](ARCHITECTURE.md) · [SYSTEMS](SYSTEMS.md) · [FEATURES § Page Flow](FEATURES.md#page-flow)
 
 ---
 
-## Where to look
+## Where to Look
 
 ```mermaid
 flowchart TD
@@ -42,7 +42,7 @@ flowchart TD
 
 ---
 
-## Important context
+## Important Context
 
 - Landing page full redesign was **deferred** (current design preferred).
 - Theme **sync** across landing ↔ app is fixed; incremental visual polish remains.
@@ -98,11 +98,11 @@ flowchart TD
 
 ---
 
-## Project status: complete
+## Project Status: Complete
 
 **The portfolio build is finished** (Sprints A–X + closure sprint + final wrap-up). The live demo, docs, CI, and smoke tests reflect a shippable product — not an active roadmap. Treat new work as optional enhancements only.
 
-## When resuming work
+## When Resuming Work
 
 **Portfolio MVP is complete** (Sprints A–X + closure sprint). Collaboration includes sync-on-save, field-level patches for summary/notes, conflict handling, and optional Resend invite emails — not full Google Docs–style simultaneous typing (long-term upgrade).
 

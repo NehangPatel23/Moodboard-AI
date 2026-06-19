@@ -25,26 +25,26 @@ AI-assisted workspace for creative direction and moodboarding. Describe a brand 
 
 ---
 
-## Table of contents
+## Table of Contents
 
-- [At a glance](#at-a-glance)
+- [At a Glance](#at-a-glance)
 - [Screenshots](#screenshots)
-- [What is this?](#what-is-this)
-- [Why it exists](#why-it-exists)
-- [How it works](#how-it-works)
-- [App flow](#app-flow)
+- [What Is This?](#what-is-this)
+- [Why It Exists](#why-it-exists)
+- [How It Works](#how-it-works)
+- [App Flow](#app-flow)
 - [Traditional vs MoodBoard AI](#traditional-vs-moodboard-ai)
-- [Who it's for](#who-its-for)
-- [What you can do](#what-you-can-do)
-- [Try it](#try-it)
+- [Who It's For](#who-its-for)
+- [What You Can Do](#what-you-can-do)
+- [Try It](#try-it)
 - [FAQ](#faq)
-- [For developers](#for-developers)
+- [For Developers](#for-developers)
 - [Documentation](#documentation)
 - [License](#license)
 
 ---
 
-## At a glance
+## At a Glance
 
 | | |
 |---|---|
@@ -80,7 +80,7 @@ To refresh captures: `npm run capture:screenshots` (requires `npx playwright ins
 
 ---
 
-## What is this?
+## What Is This?
 
 A **moodboard** is a visual reference board used to capture the *feel* of a project before anything gets built — colors, typography, photography style, tone of voice, and layout inspiration.
 
@@ -100,7 +100,7 @@ Edit by hand, ask AI for suggestions, invite teammates, or export the result.
 
 ---
 
-## Why it exists
+## Why It Exists
 
 Creative projects often start with language like *"make it feel premium but approachable"* or *"Scandinavian minimal meets streetwear."* Turning that into something a team can align on is slow and inconsistent.
 
@@ -117,7 +117,7 @@ This is a self-directed portfolio build designed to feel premium and app-like, n
 
 ---
 
-## How it works
+## How It Works
 
 ```mermaid
 flowchart LR
@@ -130,7 +130,7 @@ flowchart LR
   E --> H[Publish to Discover]
 ```
 
-### Step by step
+### Step by Step
 
 | Step | You do | App does |
 |------|--------|----------|
@@ -142,10 +142,10 @@ flowchart LR
 
 **Example:** A founder launching a coffee brand types *"warm, artisanal, morning ritual, earthy tones."* MoodBoard AI returns espresso brown, oat cream, and sage green swatches, serif + sans-serif pairings, reference photos, and a brand summary. They adjust two colors, upload a logo reference, share with a designer, and export a PDF for investors.
 
-→ Detailed route and system diagrams below in **[App flow](#app-flow)**.
+→ Detailed route and system diagrams below in **[App Flow](#app-flow)**.
 
 <details>
-<summary><strong>Under the hood (developers)</strong></summary>
+<summary><strong>Under the Hood (Developers)</strong></summary>
 
 1. **`POST /api/generate/draft`** — Gemini (or demo fallback) returns direction with placeholder references
 2. **`POST /api/generate/enrich`** — Pexels/Unsplash photos stream in via NDJSON while the UI updates
@@ -158,13 +158,13 @@ flowchart LR
 
 ---
 
-## App flow
+## App Flow
 
 Visual maps of how users move through the product. These render as interactive diagrams on GitHub.
 
-**Technical diagrams:** [ARCHITECTURE.md](docs/ARCHITECTURE.md) (system overview) · [SYSTEMS.md](docs/SYSTEMS.md) (auth, AI, DB, export) · [FEATURES.md](docs/FEATURES.md) (page flow)
+**Technical diagrams:** [ARCHITECTURE.md](docs/ARCHITECTURE.md) (System Overview) · [SYSTEMS.md](docs/SYSTEMS.md) (Auth, AI, DB, Export) · [FEATURES.md](docs/FEATURES.md) (Page Flow)
 
-### Site map — pages & routes
+### Site Map — Pages & Routes
 
 ```mermaid
 flowchart TB
@@ -206,7 +206,7 @@ flowchart TB
   invite --> editor
 ```
 
-### Create a board — AI generation pipeline
+### Create a Board — AI Generation Pipeline
 
 ```mermaid
 flowchart TD
@@ -233,7 +233,7 @@ flowchart TD
   redirect --> saved["Board saved in Supabase"]
 ```
 
-### Board editor — sections & actions
+### Board Editor — Sections & Actions
 
 ```mermaid
 flowchart TB
@@ -265,7 +265,7 @@ flowchart TB
   end
 ```
 
-### Sign-in & gated access
+### Sign-In & Gated Access
 
 ```mermaid
 flowchart TD
@@ -288,7 +288,7 @@ flowchart TD
   dest --> workspace["Dashboard, editor, settings, templates"]
 ```
 
-### Collaboration & sharing
+### Collaboration & Sharing
 
 ```mermaid
 flowchart TD
@@ -324,7 +324,7 @@ flowchart TD
   public --> sharepage["Anyone opens /share/id — no account needed"]
 ```
 
-### Export flow
+### Export Flow
 
 ```mermaid
 flowchart LR
@@ -353,7 +353,7 @@ flowchart LR
 
 ---
 
-## Who it's for
+## Who It's For
 
 | Audience | How they use it |
 |----------|-----------------|
@@ -365,7 +365,7 @@ flowchart LR
 
 ---
 
-## What you can do
+## What You Can Do
 
 <details open>
 <summary><strong>Account</strong></summary>
@@ -377,7 +377,7 @@ flowchart LR
 </details>
 
 <details open>
-<summary><strong>Create & edit</strong></summary>
+<summary><strong>Create & Edit</strong></summary>
 
 - Generate from a **prompt** or **template** with progressive live preview
 - Tabbed editor — Overview, Palette, Typography, References, Notes
@@ -388,7 +388,7 @@ flowchart LR
 </details>
 
 <details open>
-<summary><strong>Share & collaborate</strong></summary>
+<summary><strong>Share & Collaborate</strong></summary>
 
 - Email invites with **owner / editor / viewer** roles (copy invite link, or automatic email when Resend is configured)
 - **Real-time presence** — colored dots on section tabs show who is on each tab
@@ -401,7 +401,7 @@ flowchart LR
 </details>
 
 <details open>
-<summary><strong>Export & organize</strong></summary>
+<summary><strong>Export & Organize</strong></summary>
 
 - **JSON**, **PNG**, **PDF**, or **design system** export with live preview
 - Dashboard filters — All, With me, With others, Public, Private
@@ -413,9 +413,9 @@ flowchart LR
 
 ---
 
-## Try it
+## Try It
 
-### Live app
+### Live App
 
 **[moodboard-ai-omega.vercel.app](https://moodboard-ai-omega.vercel.app)**
 
@@ -428,7 +428,7 @@ Sign in with the demo account (pre-seeded workspace):
 
 Suggested first run: open **New board** → enter a short prompt → watch the live preview → open the editor → try **Export** or **Collaborate**.
 
-### Run locally
+### Run Locally
 
 ```bash
 cp .env.local.example .env.local   # Supabase required; Gemini, Resend, and SITE_URL optional
@@ -482,9 +482,9 @@ It's a deployed, **portfolio-complete** MVP with auth, persistence, collaboratio
 
 ---
 
-## For developers
+## For Developers
 
-### Tech stack
+### Tech Stack
 
 | Layer | Tools |
 |-------|-------|
@@ -521,7 +521,7 @@ It's a deployed, **portfolio-complete** MVP with auth, persistence, collaboratio
 
 ## Documentation
 
-### Setup & deploy
+### Setup & Deploy
 
 | Doc | Description |
 |-----|-------------|
@@ -531,12 +531,12 @@ It's a deployed, **portfolio-complete** MVP with auth, persistence, collaboratio
 | [REFERENCE_PHOTOS.md](docs/REFERENCE_PHOTOS.md) | Pexels / Unsplash reference images |
 | [DEPLOY.md](docs/DEPLOY.md) | Production deploy + smoke tests |
 
-### Project reference
+### Project Reference
 
 | Doc | Description |
 |-----|-------------|
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Stack, repo layout, system diagrams |
-| [FEATURES.md](docs/FEATURES.md) | Implemented features + page flow |
+| [FEATURES.md](docs/FEATURES.md) | Implemented features + Page Flow |
 | [SYSTEMS.md](docs/SYSTEMS.md) | Auth, persistence, AI, export pipelines |
 | [DEVELOPMENT.md](docs/DEVELOPMENT.md) | Standards, a11y, theme, known issues |
 | [ROADMAP.md](docs/ROADMAP.md) | Shipped work and what's next |

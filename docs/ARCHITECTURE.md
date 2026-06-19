@@ -4,9 +4,9 @@ Tech stack, repository layout, and product vision for MoodBoard AI.
 
 Back to [README](../README.md) · See also [FEATURES](FEATURES.md) · [SYSTEMS](SYSTEMS.md)
 
-Diagrams in this doc: [system overview](#system-overview) · User flows: [README § App flow](../README.md#app-flow)
+Diagrams in this doc: [System Overview](#system-overview) · User flows: [README § App Flow](../README.md#app-flow)
 
-## Product vision
+## Product Vision
 
 MoodBoard AI helps:
 
@@ -35,11 +35,11 @@ The long-term vision is to become:
 
 The product is meant to feel polished, premium, and app-like, while remaining practical and highly usable.
 
-User-facing route diagrams: [README § App flow](../README.md#app-flow) · Technical subsystem diagrams: [SYSTEMS](SYSTEMS.md)
+User-facing route diagrams: [README § App Flow](../README.md#app-flow) · Technical subsystem diagrams: [SYSTEMS](SYSTEMS.md)
 
 ---
 
-## System overview
+## System Overview
 
 High-level view of how the app, API layer, and external services connect.
 
@@ -81,7 +81,7 @@ flowchart TB
   components --> storage
 ```
 
-### Client data flow
+### Client Data Flow
 
 How authenticated reads and writes move through the stack.
 
@@ -103,7 +103,7 @@ sequenceDiagram
   Note over Store,SB: Optimistic updates in board-store before API confirms
 ```
 
-### App bootstrap
+### App Bootstrap
 
 What loads on first paint and after sign-in.
 
@@ -160,7 +160,7 @@ Implemented:
 
 ---
 
-## Project structure
+## Project Structure
 
 ```txt
 src/

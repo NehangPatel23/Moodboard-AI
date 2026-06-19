@@ -4,7 +4,7 @@ UX standards, accessibility, theme status, known issues, and contributor require
 
 Back to [README](../README.md) · Roadmap: [ROADMAP](ROADMAP.md)
 
-## UX infrastructure
+## UX Infrastructure
 
 The project already includes a solid UX foundation.
 
@@ -44,7 +44,7 @@ Future work should continue to preserve and expand accessibility support across 
 
 ---
 
-## Theme system
+## Theme System
 
 ### Implemented
 
@@ -53,26 +53,26 @@ Future work should continue to preserve and expand accessibility support across 
 - Flash-free first paint (`theme-init` script reads cookie before hydration)
 - **Cross-route sync** — `SettingsBootstrap` + cookie/local cache keep landing and app on the same theme (no random flips on navigation)
 
-### Remaining polish
+### Remaining Polish
 
 - Full landing redesign remains **deferred** — incremental token and section refinement only
 - Board editor cluster uses semantic tokens in [`board-editor-styles.ts`](../src/components/board/board-editor-styles.ts); Sprint X aligned modals and read-only presentation with `--shadow-*` vars
 
 ---
 
-## Current known problems
+## Current Known Problems
 
 Sprints V–X resolved the main landing, dashboard, templates, settings, and editor hierarchy issues. Remaining gaps are minor:
 
 - Full landing redesign is still deferred (current layout preferred)
 
-### Theme tokens
+### Theme Tokens
 
 Landing, dashboard, templates, settings, discover, and the board editor cluster share semantic CSS variables. Sprints V–X tuned backgrounds, Card shadows, preview panels, settings active states, and editor modal/presentation surfaces. App shells use [`app-surface-styles.ts`](../src/components/shared/app-surface-styles.ts); the editor cluster remains in [`board-editor-styles.ts`](../src/components/board/board-editor-styles.ts).
 
 ---
 
-## Development requirements
+## Development Requirements
 
 These rules should continue to be followed.
 
