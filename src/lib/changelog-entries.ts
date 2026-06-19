@@ -9,6 +9,15 @@ export type ChangelogEntry = {
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
     date: '2026-06',
+    title: 'Brand icons and stack polish',
+    bullets: [
+      'About page stack section uses official Simple Icons for Next.js, React, Supabase, Gemini, and more',
+      'Google Gemini badge and stack icon use multicolor gradient on the official sparkle mark',
+      'Pexels and Unsplash icons on reference source labels in the editor, export, and read-only cards',
+    ],
+  },
+  {
+    date: '2026-06',
     title: 'Four-feature sprint',
     bullets: [
       'Mobile nav adds Discover and Settings with five-tab layout and active states',

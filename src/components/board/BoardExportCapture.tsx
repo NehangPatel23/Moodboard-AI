@@ -1,7 +1,7 @@
 'use client';
 
 import type { Board, NoteType } from '@/types/board';
-import { getReferenceSourceLabel } from '@/lib/reference-source-label';
+import { ReferenceSourceLabel } from '@/components/board/ReferenceSourceLabel';
 import { EXPORT_BACKGROUND_COLOR, EXPORT_CAPTURE_WIDTH } from '@/lib/export-capture';
 
 type BoardExportCaptureProps = {
@@ -415,7 +415,11 @@ export function BoardExportCapture({ board, layout = 'fixed' }: BoardExportCaptu
                       }}
                     >
                       {reference.category} ·{' '}
-                      {getReferenceSourceLabel(reference.source, reference.imageUrl)}
+                      <ReferenceSourceLabel
+                        source={reference.source}
+                        imageUrl={reference.imageUrl}
+                        iconClassName="h-2.5 w-2.5"
+                      />
                     </p>
                   </div>
                 </div>

@@ -75,6 +75,13 @@ async function main() {
     await waitForAppReady(page);
     await capture(page, 'sign-in.png');
 
+    await page.goto(`${BASE_URL}/about`, { waitUntil: 'domcontentloaded' });
+    await waitForAppReady(page);
+    const stackHeading = page.locator('#stack-heading');
+    await stackHeading.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(400);
+    await capture(page, 'about-stack.png');
+
     console.log('\nAuthenticated pages');
     await signInWithDemo(page);
 

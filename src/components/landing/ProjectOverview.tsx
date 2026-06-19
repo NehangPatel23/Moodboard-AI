@@ -17,18 +17,19 @@ import {
   appHeroSectionClass,
   appSectionLabelClass,
 } from '@/components/shared/app-surface-styles';
+import { BrandIcons, type BrandId } from '@/components/shared/BrandIcon';
 
 const sectionLabelClass = appSectionLabelClass;
 
-const TECH_STACK = [
-  { label: 'Next.js 16', detail: 'App Router' },
-  { label: 'React 19', detail: 'UI' },
-  { label: 'TypeScript', detail: 'Types' },
-  { label: 'Tailwind CSS v4', detail: 'Styling' },
-  { label: 'Supabase', detail: 'Auth · DB · Realtime' },
-  { label: 'Google Gemini', detail: 'AI generation' },
-  { label: 'Pexels + Unsplash', detail: 'Reference photos' },
-  { label: 'Vercel', detail: 'Deploy' },
+const TECH_STACK: { label: string; detail: string; brands: BrandId[] }[] = [
+  { label: 'Next.js 16', detail: 'App Router', brands: ['nextjs'] },
+  { label: 'React 19', detail: 'UI', brands: ['react'] },
+  { label: 'TypeScript', detail: 'Types', brands: ['typescript'] },
+  { label: 'Tailwind CSS v4', detail: 'Styling', brands: ['tailwindcss'] },
+  { label: 'Supabase', detail: 'Auth · DB · Realtime', brands: ['supabase'] },
+  { label: 'Google Gemini', detail: 'AI generation', brands: ['googlegemini'] },
+  { label: 'Pexels + Unsplash', detail: 'Reference photos', brands: ['pexels', 'unsplash'] },
+  { label: 'Vercel', detail: 'Deploy', brands: ['vercel'] },
 ];
 
 const WORKFLOW_STEPS = [
@@ -360,10 +361,15 @@ export function ProjectOverview() {
             {TECH_STACK.map((tech) => (
               <div
                 key={tech.label}
-                className="rounded-[1.25rem] border border-(--border) bg-(--surface-elevated) px-4 py-3"
+                className="rounded-[1.25rem] border border-(--border) bg-(--surface-elevated) px-4 py-3.5"
               >
-                <p className="text-sm font-medium text-(--text-strong)">{tech.label}</p>
-                <p className="mt-0.5 text-xs text-(--text-muted)">{tech.detail}</p>
+                <div className="flex items-center gap-3">
+                  <BrandIcons brands={tech.brands} className="h-6 w-6" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-(--text-strong)">{tech.label}</p>
+                    <p className="mt-0.5 text-xs text-(--text-muted)">{tech.detail}</p>
+                  </div>
+                </div>
               </div>
             ))}
           </div>

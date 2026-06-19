@@ -38,6 +38,23 @@ export function getReferenceSourceLabel(source?: string, imageUrl?: string): str
   return source?.trim() || 'Unknown source';
 }
 
+export type ReferenceBrand = 'pexels' | 'unsplash';
+
+export function getReferenceBrand(
+  source?: string,
+  imageUrl?: string,
+): ReferenceBrand | null {
+  if (isPexelsReference(source, imageUrl)) {
+    return 'pexels';
+  }
+
+  if (isUnsplashReference(source, imageUrl)) {
+    return 'unsplash';
+  }
+
+  return null;
+}
+
 export function isPexelsReference(source?: string, imageUrl?: string): boolean {
   return isPexelsImageUrl(imageUrl) || source === REFERENCE_IMAGE_SOURCE_PEXELS;
 }

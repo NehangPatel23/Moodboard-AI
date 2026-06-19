@@ -62,7 +62,8 @@ import { ReferenceImageDisplay } from '@/components/board/ReferenceImageDisplay'
 import { EditorReferenceSortableGrid } from '@/components/board/EditorReferenceSortableGrid';
 import { ReferenceImageSearchButton } from '@/components/board/ReferenceImageSearchButton';
 import { AiGenerateButton } from '@/components/shared/AiGenerateButton';
-import { getReferenceSourceLabel, isPexelsReference, isUnsplashReference } from '@/lib/reference-source-label';
+import { ReferenceSourceLabel } from '@/components/board/ReferenceSourceLabel';
+import { isPexelsReference, isUnsplashReference } from '@/lib/reference-source-label';
 import {
   REFERENCE_IMAGE_SOURCE,
   REFERENCE_IMAGE_SOURCE_CUSTOM,
@@ -476,7 +477,7 @@ function ReferenceEditorModal({
               <div className="flex flex-wrap gap-2">
                 <Badge variant="secondary">{draft.category}</Badge>
                 <Badge variant={isPexelsReference(draft.source, draft.imageUrl) || isUnsplashReference(draft.source, draft.imageUrl) ? 'default' : 'outline'}>
-                  {getReferenceSourceLabel(draft.source, draft.imageUrl)}
+                  <ReferenceSourceLabel source={draft.source} imageUrl={draft.imageUrl} />
                 </Badge>
               </div>
             </div>

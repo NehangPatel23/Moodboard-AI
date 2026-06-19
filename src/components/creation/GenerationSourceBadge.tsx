@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge';
+import { BrandIcon } from '@/components/shared/BrandIcon';
 import { GEMINI_GRADIENT } from '@/lib/gemini-brand';
 import { cn } from '@/lib/utils';
 
@@ -14,11 +15,12 @@ export function GenerationSourceBadge({ source, className }: GenerationSourceBad
     return (
       <span
         className={cn(
-          'gemini-source-badge inline-flex w-fit items-center rounded-full border border-slate-900/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] shadow-[0_2px_10px_rgba(147,197,253,0.3)] dark:border-slate-900/15',
+          'gemini-source-badge inline-flex w-fit items-center gap-1.5 rounded-full border border-slate-900/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] shadow-[0_2px_10px_rgba(147,197,253,0.3)] dark:border-slate-900/15',
           className,
         )}
         style={{ backgroundImage: GEMINI_GRADIENT, color: '#0f172a' }}
       >
+        <BrandIcon brand="googlegemini" className="h-3.5 w-3.5" />
         Powered by Gemini
       </span>
     );

@@ -63,6 +63,7 @@ Portfolio captures from the [live demo](https://moodboard-ai-omega.vercel.app):
 | Surface | Preview |
 |---------|---------|
 | **Landing** — hero, capabilities, example board preview | ![Landing page](docs/screenshots/landing.png) |
+| **About** — stack and integrations with official brand icons | ![About stack](docs/screenshots/about-stack.png) |
 | **Discover** — mood dropdown, featured row, creator profiles | ![Discover browse](docs/screenshots/discover.png) |
 | **Dashboard** — board grid, filters, pending invitations | ![Dashboard](docs/screenshots/dashboard.png) |
 | **Board editor** — tabbed sections, palette, references | ![Board editor](docs/screenshots/board-editor.png) |

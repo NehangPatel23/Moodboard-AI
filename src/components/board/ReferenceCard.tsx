@@ -13,6 +13,7 @@ import { Pencil, Trash2, X } from 'lucide-react';
 import { showToast } from '@/components/shared/toast-store';
 import { ReferenceImageDisplay } from '@/components/board/ReferenceImageDisplay';
 import { ReferenceImageSearchButton } from '@/components/board/ReferenceImageSearchButton';
+import { ReferenceSourceLabel } from '@/components/board/ReferenceSourceLabel';
 import { sanitizeReferenceItem } from '@/lib/reference-images';
 import type { Board } from '@/types/board';
 import {
@@ -300,9 +301,12 @@ export function ReferenceCard({
               <div className="min-w-0 flex-1 space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="secondary">{reference.category}</Badge>
-                  {reference.source ? (
+                  {reference.source || reference.imageUrl ? (
                     <span className="min-w-0 text-xs text-(--text-muted) wrap-break-word">
-                      {reference.source}
+                      <ReferenceSourceLabel
+                        source={reference.source}
+                        imageUrl={reference.imageUrl}
+                      />
                     </span>
                   ) : null}
                 </div>
