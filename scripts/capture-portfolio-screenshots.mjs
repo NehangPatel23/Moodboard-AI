@@ -7,8 +7,9 @@
  *   BASE_URL=http://localhost:3000 node scripts/capture-portfolio-screenshots.mjs
  */
 
+import { execSync } from 'node:child_process';
 import { chromium } from 'playwright';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -52,6 +53,27 @@ async function capture(page, filename) {
   const path = join(OUT_DIR, filename);
   await page.screenshot({ path, fullPage: false });
   console.log(`  ✓ ${filename}`);
+}
+
+async function bumpReadmeScreenshotCache() {
+  const readmePath = join(dirname(fileURLToPath(import.meta.url)), '..', 'README.md');
+  let cacheBust;
+  try {
+    cacheBust = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+  } catch {
+    cacheBust = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  }
+
+  const readme = await readFile(readmePath, 'utf8');
+  const updated = readme.replace(
+    /(docs\/screenshots\/[a-z0-9-]+\.png)\?v=[^)]+/g,
+    `$1?v=${cacheBust}`,
+  );
+
+  if (updated !== readme) {
+    await writeFile(readmePath, updated);
+    console.log(`  ✓ README gallery cache bust → ?v=${cacheBust}`);
+  }
 }
 
 async function main() {
@@ -142,6 +164,8 @@ async function main() {
     await page.goto(`${BASE_URL}/share/${boardId}`, { waitUntil: 'domcontentloaded' });
     await waitForAppReady(page);
     await capture(page, 'share.png');
+
+    await bumpReadmeScreenshotCache();
 
     console.log(`\nDone — screenshots saved to docs/screenshots/`);
   } finally {
