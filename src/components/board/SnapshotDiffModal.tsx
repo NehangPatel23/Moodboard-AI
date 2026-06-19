@@ -24,31 +24,30 @@ type SnapshotDiffModalProps = {
   onClose: () => void;
 };
 
+type SnapshotDiffModalContentProps = {
+  snapshot: BoardSnapshot;
+  currentBoard: Board;
+  allSnapshots: BoardSnapshot[];
+  onClose: () => void;
+};
+
 type BaselineOption = 'current' | string;
 
 function isEditorSection(value: string): value is EditorSectionName {
   return (EDITOR_SECTION_ORDER as readonly string[]).includes(value);
 }
 
-export function SnapshotDiffModal({
-  open,
+function SnapshotDiffModalContent({
   snapshot,
   currentBoard,
   allSnapshots,
   onClose,
-}: SnapshotDiffModalProps) {
+}: SnapshotDiffModalContentProps) {
   const [baseline, setBaseline] = useState<BaselineOption>('current');
   const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
-    if (!open) {
-      setBaseline('current');
-      setPreviewOpen(false);
-    }
-  }, [open, snapshot?.id]);
-
-  useEffect(() => {
-    if (!open || typeof document === 'undefined') return;
+    if (typeof document === 'undefined') return;
 
     const unlockBodyScroll = lockBodyScroll();
 
@@ -69,15 +68,14 @@ export function SnapshotDiffModal({
       unlockBodyScroll();
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [open, onClose, previewOpen]);
+  }, [onClose, previewOpen]);
 
   const compareBoard = useMemo(() => {
-    if (!snapshot) return null;
     if (baseline === 'current') return currentBoard;
 
     const other = allSnapshots.find((item) => item.id === baseline);
     return other?.boardData ?? currentBoard;
-  }, [allSnapshots, baseline, currentBoard, snapshot]);
+  }, [allSnapshots, baseline, currentBoard]);
 
   const baselineLabel = useMemo(() => {
     if (baseline === 'current') return 'Current board';
@@ -86,10 +84,7 @@ export function SnapshotDiffModal({
     return other.label?.trim() || 'Untitled snapshot';
   }, [allSnapshots, baseline]);
 
-  const changes = useMemo(() => {
-    if (!snapshot || !compareBoard) return [];
-    return diffBoards(snapshot.boardData, compareBoard);
-  }, [compareBoard, snapshot]);
+  const changes = useMemo(() => diffBoards(snapshot.boardData, compareBoard), [compareBoard, snapshot.boardData]);
 
   const groupedChanges = useMemo(() => {
     const groups = new Map<EditorSectionName, typeof changes>();
@@ -108,12 +103,10 @@ export function SnapshotDiffModal({
     })).filter((group) => group.changes.length > 0);
   }, [changes]);
 
-  if (!open || !snapshot || typeof document === 'undefined') return null;
-
   const snapshotTitle = snapshot.label?.trim() || 'Untitled snapshot';
   const otherSnapshots = allSnapshots.filter((item) => item.id !== snapshot.id);
 
-  return createPortal(
+  return (
     <>
       {!previewOpen ? (
         <div
@@ -211,7 +204,27 @@ export function SnapshotDiffModal({
         title={snapshotTitle}
         onClose={() => setPreviewOpen(false)}
       />
-    </>,
+    </>
+  );
+}
+
+export function SnapshotDiffModal({
+  open,
+  snapshot,
+  currentBoard,
+  allSnapshots,
+  onClose,
+}: SnapshotDiffModalProps) {
+  if (!open || !snapshot || typeof document === 'undefined') return null;
+
+  return createPortal(
+    <SnapshotDiffModalContent
+      key={snapshot.id}
+      snapshot={snapshot}
+      currentBoard={currentBoard}
+      allSnapshots={allSnapshots}
+      onClose={onClose}
+    />,
     document.body,
   );
 }
