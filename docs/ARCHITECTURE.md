@@ -165,38 +165,47 @@ Implemented:
 ```txt
 src/
 ├── app/
-│   ├── api/           # boards, comments, discover, generate/draft|enrich, profile, migrate, settings, snapshots
-│   ├── auth/callback/ # password-reset code exchange
-│   ├── page.tsx       # landing
-│   ├── layout.tsx     # ThemeSync + SettingsBootstrap
+│   ├── api/              # boards, comments, discover, generate/*, invites, profile, remix, templates, view, reference-images, settings, migrate
+│   ├── auth/callback/    # PKCE code + token_hash recovery exchange
+│   ├── robots.ts         # /robots.txt
+│   ├── sitemap.ts        # /sitemap.xml
+│   ├── page.tsx          # landing
+│   ├── layout.tsx        # ThemeSync + SettingsBootstrap
 │   ├── (auth)/sign-in/
-│   ├── app/           # dashboard, editor, new board
+│   ├── app/              # dashboard, editor, new board, owner preview
 │   ├── discover/
-│   ├── profile/[id]/  # public creator profiles (layout.tsx + LandingHeader)
+│   ├── invite/[token]/   # accept / decline collaboration invite
+│   ├── profile/[id]/     # public creator profiles
 │   ├── settings/
-│   ├── share/[id]/    # public view + Open Graph meta
+│   ├── share/[id]/       # public view-only board + remix CTA
 │   ├── templates/
 │   ├── help/
 │   ├── changelog/
 │   └── about/
 ├── components/
-│   ├── auth/          # AuthForm, AuthGuard, use-gated-href
-│   ├── landing/
-│   ├── layout/        # AppShell, Sidebar, TopBar, BoardStoreBootstrap
-│   ├── board/         # BoardEditorClient, BoardExportCapture, BoardSnapshotsPanel, board-editor-styles.ts
-│   ├── creation/      # PromptComposer, GenerationPreview, TemplateGenerationPanel
-│   └── shared/        # ExportModal, CommandPalette, AppIcon, ThemeToggle, SettingsBootstrap, Toast
+│   ├── auth/             # AuthForm, AuthGuard, use-gated-href
+│   ├── board/            # BoardEditorClient, BoardReadOnlyClient, SnapshotDiffModal, EditorReferenceSortableGrid, panels
+│   ├── creation/         # PromptComposer, GenerationPreview, TemplateGenerationPanel
+│   ├── dashboard/        # BoardGrid, BoardFilterBar, PendingInvitesSection
+│   ├── discover/         # DiscoverBoardCard, DiscoverRemixButton, mood filters
+│   ├── invite/           # InviteAcceptClient
+│   ├── landing/          # Hero, FeatureGrid, ExampleBoardPreview
+│   ├── layout/           # AppShell, Sidebar, TopBar, MobileNav, BoardStoreBootstrap
+│   ├── page-shells/      # DashboardShell, BoardEditorShell, BoardReadOnlyShell
+│   ├── profile/          # ProfileHeader, PublicProfileAvatar
+│   ├── settings/         # AvatarCropModal, AvatarEmoji
+│   ├── shared/           # ExportModal, CollaborateModal, RemixBoardButton, CommandPalette, ThemeToggle
+│   └── ui/               # button, card, input, badge, skeleton, tooltip
 ├── lib/
-│   ├── ai-generate.ts
-│   ├── ai.ts          # runProgressiveBoardGeneration, streamEnrichedBoard
-│   ├── auth-store.ts
-│   ├── board-store.ts
-│   ├── export-capture.ts
-│   ├── export-pdf.ts
-│   ├── retention-duration.ts
-│   ├── settings-store.ts
-│   └── supabase/
-docs/                  # setup, deploy, ARCHITECTURE, FEATURES, SYSTEMS, ROADMAP, etc.
-scripts/               # setup:supabase, verify:generate, seed-demo, seed-demo-boards
-supabase/migrations/   # 001–024 (collaboration, snapshots, retention, brand strategy, section comments, avatars)
+│   ├── ai-generate*.ts   # draft, palette, typography, brand, design-system
+│   ├── board-store.ts    # useSyncExternalStore board CRUD + collaboration
+│   ├── board-diff.ts     # snapshot / activity diff summaries
+│   ├── db/               # board mappers, access, activity, collaboration-state
+│   ├── realtime/         # presence, field sync, collaborator highlights
+│   ├── export-*.ts       # capture, PDF, design-system assembly
+│   └── supabase/         # browser + admin clients
+docs/                     # setup, deploy, ARCHITECTURE, FEATURES, SYSTEMS, ROADMAP, screenshots/
+scripts/                  # setup:supabase, verify:*, seed-demo*, capture:screenshots
+supabase/migrations/      # 001–032 (collaboration, snapshots, templates, invites, view counts)
+.github/workflows/        # ci.yml — lint, typecheck, build, smoke on main
 ```

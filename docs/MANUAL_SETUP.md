@@ -9,7 +9,9 @@ flowchart TD
   start(["First-time setup"]) --> env["Copy .env.local.example"]
   env --> sb["Supabase project + migrations"]
   sb --> setup["npm run setup:supabase"]
-  setup --> gemini{"Want real AI?"}
+  setup --> verifySb["npm run setup:verify — optional"]
+  verifySb --> gemini{"Want real AI?"}
+  setup --> gemini
   gemini -->|Yes| key["Add GEMINI_API_KEY"]
   gemini -->|Optional| photos["Add Pexels / Unsplash keys"]
   key --> verify["npm run verify:generate"]
@@ -37,11 +39,11 @@ flowchart TD
 | Step | Action | Status |
 |------|--------|--------|
 | 1 | Create project at [supabase.com](https://supabase.com) | You did this |
-| 2 | Run [`supabase/migrations/001_initial.sql`](../supabase/migrations/001_initial.sql) in SQL Editor | Verify tables exist |
+| 2 | Run migrations through [`032_board_view_counts.sql`](../supabase/migrations/032_board_view_counts.sql) in SQL Editor (or `npx supabase db push`) | Verify tables exist |
 | 3 | Copy 3 keys into `.env.local` | You did this |
 | 4 | **Authentication → Providers → Email** → disable **Confirm email** | Check if not done |
 | 5 | **Authentication → URL Configuration** → Site URL `http://localhost:3000`; add `http://localhost:3000/auth/callback` for password reset | Check if not done |
-| 6 | Run `npm run setup:supabase` | Should pass |
+| 6 | Run `npm run setup:supabase` then `npm run setup:verify` | Should pass |
 
 Demo login: `admin@moodboard.ai` / `moodboard123`
 
@@ -101,8 +103,10 @@ Confirm: `git check-ignore -v .env.local` should show a match.
 
 ```bash
 npm run setup:supabase    # optional if already verified
+npm run setup:verify      # optional — tables, RLS, env wiring
 npm run verify:generate   # optional
 npm run lint
+npm run typecheck
 npm run build
 git status                # .env.local must NOT appear
 ```

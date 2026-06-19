@@ -1,5 +1,6 @@
 /**
- * Verifies collaboration migrations 006–013, polish migrations 022–023, settings migrations 024–026, and invite migrations 029–031.
+ * Verifies collaboration migrations 006–013, polish migrations 022–023, settings migrations 024–026,
+ * invite migrations 029–031, and view counts migration 032.
  *
  * Usage:
  *   node --env-file=.env.local scripts/verify-collaboration-migrations.mjs
@@ -95,7 +96,7 @@ for (const [table, column] of columnChecks) {
 }
 
 if (missingColumns.length > 0) {
-  console.error('\nSome migration columns are missing. Run migrations 007–030 in docs/DEPLOY.md.');
+  console.error('\nSome migration columns are missing. Run migrations 007–032 in docs/DEPLOY.md.');
   process.exit(1);
 }
 

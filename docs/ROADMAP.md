@@ -117,7 +117,7 @@ Final wrap-up sprint (2026-06):
 
 | # | Area | Outcome |
 |---|------|---------|
-| 59 | CI pipeline | GitHub Actions — lint, build, production smoke on `main` |
+| 59 | CI pipeline | GitHub Actions — lint, **typecheck**, build, production smoke on `main` |
 | 60 | Smoke tests | `npm run test:smoke` — Discover, Help, sitemap, robots, remix auth redirect |
 | 61 | SEO basics | `/sitemap.xml` and `/robots.txt` for public routes + shared boards |
 | 62 | Invite emails | Resend-backed invite email on create/re-invite; graceful fallback without `RESEND_API_KEY` |
@@ -163,7 +163,7 @@ Four-feature sprint (2026-06):
 | `/pricing` | Subscription plans | Future / not planned |
 | `/help` | Documentation and support | **Shipped** |
 | `/changelog` | Product updates | **Shipped** |
-| `/profile` | User profiles | **Shipped** |
+| `/profile/[id]` | User profiles | **Shipped** |
 
 `/explore` was removed as a duplicate of Discover (same public boards); `/explore` permanently redirects to `/discover` for bookmarks.
 
@@ -208,6 +208,12 @@ Use these for manual QA after changes:
 - Portfolio polish: landing capabilities band uses elevated surface panel; dashboard display headings use display font; README includes dashboard screenshot
 - Templates/settings polish: Card uses `--shadow-card`; templates preview panels elevated; settings active toggles use `--surface-muted`
 - Editor token pass: modals and read-only presentation use `--shadow-elevated`; presentation tabs use `--surface-muted` active state
+- Mobile nav: bottom tab bar shows Boards, New, Templates, Discover, Settings with active states on narrow viewports
+- Snapshot diff: Snapshots panel **Compare** opens diff vs current board or another snapshot; preview stacks above diff modal
+- Discover views: share page increments `view_count`; Discover cards and share badge show formatted count (migration `032`)
+- Share remix: `/share/[id]` and Discover use full-board remix via [`RemixBoardButton`](../src/components/shared/RemixBoardButton.tsx)
+- Reference reorder: drag-and-drop or arrow controls reorder inspiration photos in the editor
+- CI: `npm run lint`, `npm run typecheck`, and `npm run build` pass locally before push (matches GitHub Actions on `main`)
 
 ---
 

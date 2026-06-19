@@ -22,7 +22,7 @@ flowchart LR
   end
 
   subgraph supabase ["Supabase production"]
-    mig["Run migrations 001–031"]
+    mig["Run migrations 001–032"]
     urls["Auth URL config + redirect URLs"]
     rt["Realtime + RLS policies"]
   end
@@ -95,6 +95,8 @@ npx vercel --prod
 ```
 
 ## Step 5b — Run collaboration migrations (production Supabase)
+
+**Full migration range:** `001` through **`032`**. If production is behind, run any missing files in numeric order from [`supabase/migrations/`](../supabase/migrations/). Steps **5c–5j** below cover incremental catch-up for specific feature drops.
 
 After deploying collaboration features, run these in the **production** Supabase SQL Editor (in order):
 
@@ -300,7 +302,7 @@ Confirm **Production** env vars on Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUB
 | Save in browser A while B has unsaved edits | B shows conflict banner with saver name (Reload / Keep editing) |
 | Viewer opens shared board | Inputs read-only; comments still work |
 | User A posts comment | User B sees A's name via realtime (not "Collaborator") |
-| Comments / Activity unread badges | New items show unread styling; Eye/EyeOff toggles per item; opening panel marks all read |
+| Comments / Activity unread badges | New items show unread styling; Eye/EyeOff toggles per item; **Mark all as seen** / read buttons mark read (panels do not auto-clear on open) |
 | Per-item hide / Hidden filter | Hide removes item from your view only; restore from Hidden filter |
 | Owner comment/activity delete | Trash visible only for owners; non-owners use Hide; app confirmation modal |
 | Settings → Collaboration | Hide/purge retention with minutes/hours/days/weeks (migration 018) |

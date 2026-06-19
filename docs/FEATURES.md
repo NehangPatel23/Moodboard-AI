@@ -93,7 +93,7 @@ Implemented:
 Auth callback:
 
 ```txt
-/auth/callback   # Password-reset code exchange (exchangeCodeForSession)
+/auth/callback   # PKCE code exchange + token_hash recovery links
 ```
 
 ---

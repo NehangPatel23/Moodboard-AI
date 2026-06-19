@@ -106,7 +106,7 @@ flowchart TD
 
 **Portfolio MVP is complete** (Sprints A–X + closure sprint). Collaboration includes sync-on-save, field-level patches for summary/notes, conflict handling, and optional Resend invite emails — not full Google Docs–style simultaneous typing (long-term upgrade).
 
-**Closure sprint:** GitHub Actions CI (`.github/workflows/ci.yml`), `npm run test:smoke`, `/sitemap.xml`, `/robots.txt`, and [`send-invite-email.ts`](../src/lib/send-invite-email.ts) for collaboration invites.
+**Closure sprint:** GitHub Actions CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, and smoke on `main`; `npm run test:smoke`, `/sitemap.xml`, `/robots.txt`, and [`send-invite-email.ts`](../src/lib/send-invite-email.ts) for collaboration invites.
 
 If continuing development, recommended order:
 

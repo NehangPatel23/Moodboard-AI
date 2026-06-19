@@ -16,7 +16,7 @@ The project already includes a solid UX foundation.
 - Empty states
 - Confirmation modals
 - Export modal (live Visual / JSON preview before download)
-- Share modals
+- Collaborate modal (invites, roles, share link)
 - Keyboard shortcuts
 - URL persistence where relevant
 - State persistence where relevant
@@ -90,6 +90,7 @@ These rules should continue to be followed.
 
 When making updates:
 
+- Run `npm run lint` and `npm run typecheck` before pushing (matches CI on `main`)
 - Provide complete updated files
 - Avoid partial snippets
 - Avoid hallucinated files

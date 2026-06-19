@@ -52,7 +52,7 @@ AI-assisted workspace for creative direction and moodboarding. Describe a brand 
 | **Solution** | AI generates a structured first draft — palette, type, refs, notes — you refine and share |
 | **Output** | Editable boards exportable as JSON, PNG, or PDF |
 | **Collaboration** | Invites, roles, real-time presence, section-linked comments, activity replay, unread badges |
-| **Status** | Portfolio complete · live demo · CI + smoke tests on `main` |
+| **Status** | Portfolio complete · live demo · CI (lint, typecheck, build, smoke) on `main` |
 
 ---
 
@@ -300,8 +300,11 @@ flowchart TD
   role -->|Editor| editAccess["Can edit all sections"]
   role -->|Viewer| viewAccess["Read-only in editor"]
 
-  invite --> accept["Existing user — instant access"]
-  invite --> token["New user — /invite/token link"]
+  invite --> pending["Invitee sees pending notification"]
+  pending --> accept["Accept or decline at /invite/token"]
+  accept -->|Accepted as Editor| editAccess
+  accept -->|Accepted as Viewer| viewAccess
+  accept -->|Declined| declined["Owner sees Declined in Collaborate"]
 
   editAccess --> realtime
 
@@ -376,7 +379,8 @@ flowchart LR
 - Generate from a **prompt** or **template** with progressive live preview
 - Tabbed editor — Overview, Palette, Typography, References, Notes
 - AI **suggest palette, typography, or brand strategy** on demand
-- **Snapshots** — save checkpoints with preview-before-restore
+- **Snapshots** — save checkpoints with preview-before-restore; **Compare** diffs vs current board or another snapshot
+- **Reference reorder** — drag-and-drop or arrow controls on inspiration photos
 
 </details>
 
@@ -388,7 +392,8 @@ flowchart LR
 - **Section-linked comments** — tag feedback to Overview, Palette, Typography, References, or Notes; **View in section** jumps the editor
 - **Unread indicators** — yellow dots on new comments, activity, and snapshots (your own posts never count as unread)
 - **Activity replay** with section badges and save notifications
-- View-only links at `/share/[id]` · public boards on `/discover` · creator profiles at `/profile/[id]`
+- View-only links at `/share/[id]` with **full-board remix** · public boards on `/discover` with view counts · creator profiles at `/profile/[id]`
+- **Mobile nav** — bottom tabs for Boards, New, Templates, Discover, and Settings
 
 </details>
 
@@ -426,6 +431,7 @@ Suggested first run: open **New board** → enter a short prompt → watch the l
 cp .env.local.example .env.local   # Supabase required; Gemini, Resend, and SITE_URL optional
 npm install
 npm run setup:supabase
+npm run setup:verify
 npm run verify:generate
 npm run dev
 ```
@@ -493,10 +499,15 @@ It's a deployed, **portfolio-complete** MVP with auth, persistence, collaboratio
 |---------|---------|
 | `npm run dev` | Start dev server |
 | `npm run build` | Production build |
+| `npm run start` | Serve production build locally |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | TypeScript check (`tsc --noEmit`) |
 | `npm run setup:supabase` | Verify Supabase + seed demo user |
+| `npm run setup:verify` | Verify Supabase tables, RLS, and env wiring |
+| `npm run db:seed-demo` | Seed demo user (`admin@moodboard.ai`) |
 | `npm run db:seed-demo-boards` | Seed shared demo boards for Discover (requires demo user) |
 | `npm run verify:generate` | Test Gemini / mock generation |
-| `npm run verify:collaboration` | Test collaboration APIs |
+| `npm run verify:collaboration` | Verify collaboration migrations through `032` |
 | `npm run verify:prod-smoke` | Automated checks against the live demo deploy |
 | `npm run test:smoke` | Alias for `verify:prod-smoke` |
 | `npm run capture:screenshots` | Refresh README portfolio screenshots |
