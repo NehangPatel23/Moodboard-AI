@@ -133,7 +133,7 @@ function SettingsSection({
   return (
     <Card
       id={id}
-      className="scroll-mt-28 rounded-4xl border border-(--border) bg-(--surface) shadow-sm"
+      className="scroll-mt-28 rounded-4xl border border-(--border) bg-(--surface-elevated)"
     >
       <CardHeader className="space-y-3 border-b border-(--border)/70 pb-5">
         <p className="text-[10px] font-medium uppercase tracking-[0.32em] text-(--text-muted)">
@@ -169,7 +169,7 @@ function ToggleRow({
         'flex w-full items-center justify-between gap-4 rounded-3xl border p-4 text-left transition',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)',
         enabled
-          ? 'border-(--border) bg-(--surface-subtle)'
+          ? 'border-(--border) bg-(--surface-muted)'
           : 'border-(--border) bg-(--surface) hover:bg-(--surface-subtle)',
       )}
     >
@@ -366,7 +366,7 @@ function VisibilityToggle({
           'rounded-3xl border p-4 text-left transition',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)',
           value === 'private'
-            ? 'border-(--border) bg-(--surface-subtle)'
+            ? 'border-(--border) bg-(--surface-muted)'
             : 'border-(--border) bg-(--surface) hover:bg-(--surface-subtle)',
         )}
       >
@@ -387,7 +387,7 @@ function VisibilityToggle({
           'rounded-3xl border p-4 text-left transition',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)',
           value === 'shared'
-            ? 'border-(--border) bg-(--surface-subtle)'
+            ? 'border-(--border) bg-(--surface-muted)'
             : 'border-(--border) bg-(--surface) hover:bg-(--surface-subtle)',
         )}
       >
@@ -451,7 +451,7 @@ function ThemeToggle({
               'rounded-3xl border p-4 text-left transition',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) focus-visible:ring-offset-2 focus-visible:ring-offset-(--background)',
               active
-                ? 'border-(--text-strong) bg-(--surface-subtle) shadow-sm'
+                ? 'border-(--text-strong) bg-(--surface-muted) shadow-[var(--shadow-card)]'
                 : 'border-(--border) bg-(--surface) hover:bg-(--surface-subtle)',
             )}
           >
@@ -1144,7 +1144,7 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-8">
-      <section className={`${appSectionClass} bg-(--surface)`}>
+      <section className={`${appSectionClass} bg-(--surface-elevated) shadow-[var(--shadow-card)]`}>
         <div className="flex gap-4 md:gap-6">
           <PageLabel label="Settings" />
 
@@ -1186,7 +1186,7 @@ export default function SettingsPage() {
 
       <div className="grid gap-6 xl:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="space-y-4 xl:sticky xl:top-6 xl:h-fit">
-          <Card className="rounded-4xl border border-(--border) bg-(--surface) shadow-sm">
+          <Card className="rounded-4xl border border-(--border) bg-(--surface-elevated)">
             <CardHeader className="space-y-2">
               <CardTitle className="[font-family:var(--font-display),serif] text-2xl tracking-tight text-(--text-strong)">
                 On this page
@@ -1276,7 +1276,7 @@ export default function SettingsPage() {
                 </label>
               </div>
 
-              <div className="space-y-3 rounded-2xl border border-(--border) bg-(--surface-soft)/50 p-3.5">
+              <div className="space-y-3 rounded-2xl border border-(--border) bg-(--surface-soft) p-3.5">
                 <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-(--text-muted)">
                   Avatar
                 </p>

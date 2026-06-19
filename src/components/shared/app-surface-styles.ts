@@ -80,4 +80,4 @@ export const appDisplayHeadingClass =
   '[font-family:var(--font-display),serif] tracking-[-0.04em] text-(--text-strong)';
 
 export const appHeroGradientClass =
-  'pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_0%_0%,color-mix(in_srgb,var(--accent)_22%,transparent),transparent_58%),radial-gradient(90%_70%_at_100%_0%,color-mix(in_srgb,var(--ring)_24%,transparent),transparent_52%),radial-gradient(80%_60%_at_50%_100%,color-mix(in_srgb,var(--accent-strong)_18%,transparent),transparent_58%)]';
+  'pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_0%_0%,color-mix(in_srgb,var(--accent)_18%,transparent),transparent_58%),radial-gradient(90%_70%_at_100%_0%,color-mix(in_srgb,var(--ring)_18%,transparent),transparent_52%),radial-gradient(80%_60%_at_50%_100%,color-mix(in_srgb,var(--accent-strong)_14%,transparent),transparent_58%)]';

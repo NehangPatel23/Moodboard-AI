@@ -29,11 +29,18 @@ async function signInWithDemo(page) {
   await waitForAppReady(page);
 
   const demoButton = page.getByRole('button', { name: /Explore with the demo account/i });
+  const emailField = page.getByRole('textbox', { name: /^Email$/i });
+
+  await Promise.race([
+    demoButton.waitFor({ state: 'visible', timeout: 45_000 }),
+    emailField.waitFor({ state: 'visible', timeout: 45_000 }),
+  ]);
+
   if (await demoButton.isVisible().catch(() => false)) {
     await demoButton.click();
   } else {
-    await page.getByLabel(/email/i).fill(DEMO_EMAIL);
-    await page.getByLabel(/^password$/i).fill(DEMO_PASSWORD);
+    await emailField.fill(DEMO_EMAIL);
+    await page.getByLabel(/^Password$/i).fill(DEMO_PASSWORD);
     await page.getByRole('button', { name: /^Sign in$/i }).click();
   }
 
@@ -70,6 +77,11 @@ async function main() {
 
     console.log('\nAuthenticated pages');
     await signInWithDemo(page);
+
+    await page.goto(`${BASE_URL}/app`, { waitUntil: 'domcontentloaded' });
+    await waitForAppReady(page);
+    await page.getByRole('heading', { name: /curated spaces|welcome/i }).first().waitFor({ timeout: 15_000 }).catch(() => {});
+    await capture(page, 'dashboard.png');
 
     await page.goto(`${BASE_URL}/settings`, { waitUntil: 'domcontentloaded' });
     await waitForAppReady(page);

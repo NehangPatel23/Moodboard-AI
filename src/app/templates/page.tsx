@@ -230,7 +230,7 @@ function TemplateCard({
           {template.tags.slice(0, 3).map((tag) => (
             <span
               key={tag}
-              className="rounded-full border border-(--border) bg-(--surface-soft) px-3 py-1 text-[11px] font-medium capitalize tracking-wide text-(--text)"
+              className="rounded-full border border-(--border) bg-(--surface-soft) px-3 py-1 text-[11px] font-medium capitalize tracking-wide text-(--text-muted)"
             >
               {tag}
             </span>
@@ -356,7 +356,7 @@ function TemplatePreviewModal({
           </div>
 
           <DetailSection label="Prompt">
-            <p className="rounded-3xl border border-(--border) bg-(--surface-subtle) p-4 text-sm leading-6 text-(--text)">
+            <p className="rounded-3xl border border-(--border) bg-(--surface-soft) p-4 text-sm leading-6 text-(--text)">
               {template.prompt}
             </p>
           </DetailSection>
@@ -390,7 +390,7 @@ function TemplatePreviewModal({
                 {template.notes.slice(0, 3).map((item) => (
                   <li
                     key={`${template.id}-${item.type}-${item.text}`}
-                    className="rounded-[1.25rem] border border-(--border) bg-(--surface-subtle) p-3 text-sm leading-6 text-(--text)"
+                    className="rounded-[1.25rem] border border-(--border) bg-(--surface-elevated) p-3 text-sm leading-6 text-(--text)"
                   >
                     {item.text}
                   </li>
@@ -489,7 +489,7 @@ function TagFilterDropdown({
           className={cn(
             outerPanelClass,
             'absolute left-0 z-30 mt-2 max-h-72 w-56 overflow-y-auto rounded-2xl p-2',
-            'bg-(--surface-muted) backdrop-blur-xl',
+            'border border-(--border) bg-(--surface-elevated) shadow-[var(--shadow-elevated)] backdrop-blur-xl',
           )}
         >
           {options.length ? (
@@ -962,11 +962,11 @@ function TemplatesPageContent() {
 function TemplatesPageFallback() {
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
-      <div className="h-10 w-48 animate-pulse rounded-full bg-(--surface-subtle)" />
-      <div className="h-12 w-full max-w-xl animate-pulse rounded-2xl bg-(--surface-subtle)" />
+      <div className="h-10 w-48 animate-pulse rounded-full bg-(--surface-muted)" />
+      <div className="h-12 w-full max-w-xl animate-pulse rounded-2xl bg-(--surface-muted)" />
       <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
         {Array.from({ length: 6 }).map((_, index) => (
-          <div key={index} className="h-72 animate-pulse rounded-3xl bg-(--surface-subtle)" />
+          <div key={index} className="h-72 animate-pulse rounded-3xl bg-(--surface-muted)" />
         ))}
       </div>
     </div>

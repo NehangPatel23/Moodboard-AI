@@ -9,6 +9,27 @@ export type ChangelogEntry = {
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
     date: '2026-06',
+    sprint: 'W',
+    title: 'Templates & settings polish',
+    bullets: [
+      'Shared Card component uses --shadow-card token for consistent dark-mode elevation',
+      'Templates preview modal and tag filter dropdown use elevated surface panels',
+      'Settings hero, sidebar, and active toggles use stronger surface contrast in dark mode',
+    ],
+  },
+  {
+    date: '2026-06',
+    sprint: 'V',
+    title: 'Portfolio polish',
+    bullets: [
+      'Light and dark CSS token tuning for clearer surface hierarchy and muted text contrast',
+      'Landing capabilities band uses elevated surface-soft panel with card shadow',
+      'Dashboard display headings and pending invite section aligned with board card styling',
+      'README screenshots refreshed; dashboard capture added to capture:screenshots script',
+    ],
+  },
+  {
+    date: '2026-06',
     title: 'Pending invite visibility',
     bullets: [
       'Pending invitations render as board-style cards in a dedicated dashboard section',

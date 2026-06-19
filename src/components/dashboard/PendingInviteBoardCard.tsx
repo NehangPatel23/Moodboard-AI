@@ -81,7 +81,7 @@ export function PendingInviteBoardCard({ invite, onAccept, onDecline }: PendingI
   }
 
   return (
-    <article className={`${dashboardCardClass} ring-2 ring-[var(--border)] ring-offset-2 ring-offset-[var(--background)]`}>
+    <article className={dashboardCardClass}>
       <div className="relative p-4 pb-0">
         <div className="pointer-events-none absolute left-7 top-7 z-10 flex flex-wrap gap-2">
           <span className={appOverlayBadgeClass}>

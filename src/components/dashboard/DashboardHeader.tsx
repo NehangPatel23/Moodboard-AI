@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { PageLabel } from '@/components/shared/PageLabel';
+import { appDisplayHeadingClass } from '@/components/shared/app-surface-styles';
 import {
   consumeWelcomeSession,
   markWelcomeSessionShown,
@@ -55,7 +56,9 @@ export function DashboardHeader() {
             {copy.eyebrow}
           </p>
 
-          <h2 className="[font-family:var(--font-display),serif] text-[clamp(3.5rem,8vw,5.75rem)] leading-[0.95] text-(--text-strong)">
+          <h2
+            className={`text-[clamp(3.5rem,8vw,5.75rem)] leading-[0.95] ${appDisplayHeadingClass}`}
+          >
             {welcomeName === 'there' ? copy.eyebrow : welcomeName}
           </h2>
 
@@ -72,7 +75,9 @@ export function DashboardHeader() {
       <PageLabel label="Dashboard" />
 
       <div className="max-w-5xl space-y-4">
-        <h2 className="text-[clamp(3.5rem,8vw,5.75rem)] leading-[0.95] text-(--text-strong)">
+        <h2
+          className={`text-[clamp(3.5rem,8vw,5.75rem)] leading-[0.95] ${appDisplayHeadingClass}`}
+        >
           Curated Spaces
         </h2>
 

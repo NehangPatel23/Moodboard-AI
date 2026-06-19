@@ -64,6 +64,7 @@ Portfolio captures from the [live demo](https://moodboard-ai-omega.vercel.app):
 |---------|---------|
 | **Landing** — hero, capabilities, example board preview | ![Landing page](docs/screenshots/landing.png) |
 | **Discover** — mood dropdown, featured row, creator profiles | ![Discover browse](docs/screenshots/discover.png) |
+| **Dashboard** — board grid, filters, pending invitations | ![Dashboard](docs/screenshots/dashboard.png) |
 | **Board editor** — tabbed sections, palette, references | ![Board editor](docs/screenshots/board-editor.png) |
 | **Share page** — view-only board, remix CTA, creator attribution | ![Share page](docs/screenshots/share.png) |
 | **Settings** — display name, avatar, Editor auto-save interval | ![Settings](docs/screenshots/settings.png) |

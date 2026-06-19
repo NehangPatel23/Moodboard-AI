@@ -72,6 +72,8 @@ Waves 1–3 and Sprints A–P are **complete**. The app is a **portfolio-grade M
 | 53 | Presentation progress | Section dots + `n / 5` indicator in presentation mode; simplified read-only chrome |
 | 54 | Discover remix auth | Remix button redirects unauthenticated users to sign-in via auth store |
 | 55 | Invite acceptance wall | All collaborators must accept before access; dashboard + TopBar pending invites; owner Collaborate modal shows Pending and Declined (migration `029`) |
+| 56 | Portfolio polish | Light/dark token tuning; landing section hierarchy; dashboard header + pending invite consistency; README dashboard screenshot |
+| 57 | Templates & settings polish | Card shadow tokens; elevated panels on templates preview; settings active states and nested panels in dark mode |
 
 ### Sprint summary (completed)
 
@@ -98,6 +100,8 @@ Waves 1–3 and Sprints A–P are **complete**. The app is a **portfolio-grade M
 | **S** | Notifications + presentation | Toast preference toggles (`026`); presentation section progress; Discover remix auth fix |
 | **T** | Verification + docs | Migration verify script; prod smoke Community tab check; roadmap/features/changelog updates |
 | **U** | Invite acceptance wall | Mandatory accept/decline; pending invite notifications; owner Declined section (migration `029`) |
+| **V** | Portfolio polish | CSS token pass; landing middle-section elevation; dashboard typography + pending invite cards; README screenshots refresh |
+| **W** | Templates & settings polish | Card `--shadow-card` tokens; templates preview panels; settings elevated shells + active-state contrast |
 
 ---
 
@@ -108,8 +112,7 @@ Waves 1–3 and Sprints A–P are **complete**. The app is a **portfolio-grade M
 | Priority | Sprint | Scope | When |
 |----------|--------|-------|------|
 | 1 (optional) | — | Behance / Dribbble reference APIs | When legitimate API keys are available |
-| 2 (optional) | — | Incremental landing / dashboard visual polish | Portfolio refresh |
-| 3 (long-term) | — | Live cursors / character-level co-editing | Upgrade on top of existing field sync + sync-on-save collaboration |
+| 2 (long-term) | — | Live cursors / character-level co-editing | Upgrade on top of existing field sync + sync-on-save collaboration |
 
 **Deferred / parked:** OAuth, marketplace, pricing/Stripe, full landing redesign.
 
@@ -178,6 +181,8 @@ Use these for manual QA after changes:
 - Notification toasts: Settings → Notifications toggles for auto-save and remote-save toasts (migration `026`)
 - Presentation mode: section progress dots and `n / 5` counter; simplified header chrome
 - Discover remix: unauthenticated users redirect to sign-in before remix API call
+- Portfolio polish: landing capabilities band uses elevated surface panel; dashboard display headings use display font; README includes dashboard screenshot
+- Templates/settings polish: Card uses `--shadow-card`; templates preview panels elevated; settings active toggles use `--surface-muted`
 
 ---
 

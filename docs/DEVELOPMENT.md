@@ -55,49 +55,20 @@ Future work should continue to preserve and expand accessibility support across 
 
 ### Remaining polish
 
-- Visual refinement on landing (full redesign deferred — current design preferred)
-- Incremental token standardization across landing and dashboard clusters
-- Board editor cluster uses semantic tokens ([`board-editor-styles.ts`](../src/components/board/board-editor-styles.ts)); presence, read-only view, dashboard cards, and modal scrims migrated in Sprint C
+- Full landing redesign remains **deferred** — incremental token and section refinement only
+- Board editor cluster uses semantic tokens ([`board-editor-styles.ts`](../src/components/board/board-editor-styles.ts)); app shells use [`app-surface-styles.ts`](../src/components/shared/app-surface-styles.ts)
 
 ---
 
 ## Current known problems
 
-### Landing Page
+Sprint V and W resolved the main landing, dashboard, templates, and settings hierarchy issues. Remaining gaps are minor:
 
-Needs a complete visual refinement pass.
-
-#### Light Mode
-
-Problems:
-
-- Lacks premium feel
-- Visual hierarchy needs improvement
-- Some sections feel too dark for a light theme
-
-#### Dark Mode
-
-Problems:
-
-- Overly dark in some areas
-- Contrast inconsistencies
-- Background treatments need refinement
-
-### Design Consistency
-
-Needs an audit across:
-
-- Landing
-- Dashboard
-- Templates
-- Settings
-- Board editor
+- Full landing redesign is still deferred (current layout preferred)
 
 ### Theme tokens
 
-Landing, dashboard, templates, settings, and discover now share semantic tokens via [`app-surface-styles.ts`](../src/components/shared/app-surface-styles.ts) and CSS variables (`--shadow-card`, `--shadow-elevated`, `--overlay-scrim`, etc.). The board editor cluster remains in [`board-editor-styles.ts`](../src/components/board/board-editor-styles.ts).
-
-Remaining polish: incremental landing section refinement (full redesign still deferred).
+Landing, dashboard, templates, settings, and discover share semantic tokens via [`app-surface-styles.ts`](../src/components/shared/app-surface-styles.ts) and CSS variables. Sprints V–W tuned backgrounds, Card shadows, preview panels, and settings active states. The board editor cluster remains in [`board-editor-styles.ts`](../src/components/board/board-editor-styles.ts).
 
 ---
 

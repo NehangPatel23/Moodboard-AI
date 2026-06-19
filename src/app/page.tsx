@@ -10,7 +10,7 @@ export default function HomePage() {
       <LandingHeader />
       <div className="mt-6 flex flex-col gap-16 md:mt-8 md:gap-20">
         <Hero />
-        <div className="rounded-[2.5rem] border border-(--border) bg-(--surface-subtle) px-4 py-10 md:px-8 md:py-12">
+        <div className="rounded-[2.5rem] border border-(--border) bg-(--surface-soft) px-4 py-10 shadow-[var(--shadow-card)] md:px-8 md:py-12">
           <div className="flex flex-col gap-16 md:gap-20">
             <FeatureGrid />
             <ExampleBoardPreview />

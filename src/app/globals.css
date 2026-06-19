@@ -8,22 +8,22 @@
 
 :root {
   color-scheme: light;
-  --background: #f8f7f4;
-  --background-2: #fbfaf8;
+  --background: #faf9f6;
+  --background-2: #fdfcfa;
   --surface: rgba(255, 255, 255, 0.96);
   --surface-elevated: #ffffff;
-  --surface-soft: rgba(255, 255, 255, 0.88);
-  --surface-muted: #f3f1ec;
-  --surface-subtle: #f7f5f0;
+  --surface-soft: rgba(255, 255, 255, 0.92);
+  --surface-muted: #f0ece5;
+  --surface-subtle: #f5f2eb;
   --text: #1f2937;
   --text-strong: #0f172a;
-  --text-muted: #64748b;
-  --border: rgba(15, 23, 42, 0.1);
+  --text-muted: #5c6b7e;
+  --border: rgba(15, 23, 42, 0.11);
   --ring: rgba(15, 23, 42, 0.18);
   --accent: #cbd7c8;
   --accent-strong: #b8c6b1;
-  --shadow-card: 0 12px 40px rgba(15, 23, 42, 0.06);
-  --shadow-elevated: 0 20px 60px rgba(15, 23, 42, 0.08);
+  --shadow-card: 0 12px 40px rgba(15, 23, 42, 0.07);
+  --shadow-elevated: 0 20px 60px rgba(15, 23, 42, 0.09);
   --shadow-button: 0 12px 30px rgba(15, 23, 42, 0.14);
   --overlay-scrim: rgba(15, 23, 42, 0.45);
   --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.35);
@@ -37,18 +37,18 @@ html {
 
 html.dark {
   color-scheme: dark;
-  --background: #09111d;
-  --background-2: #0b1220;
-  --surface: rgba(15, 23, 42, 0.92);
-  --surface-elevated: rgba(15, 23, 42, 0.88);
-  --surface-soft: rgba(10, 16, 29, 0.82);
-  --surface-muted: #162033;
-  --surface-subtle: #1b2740;
-  --text: #dbe5f2;
-  --text-strong: #f0f4fb;
-  --text-muted: #94a3b8;
-  --border: rgba(148, 163, 184, 0.18);
-  --ring: rgba(148, 163, 184, 0.24);
+  --background: #0c1424;
+  --background-2: #101b2e;
+  --surface: rgba(18, 28, 46, 0.94);
+  --surface-elevated: rgba(22, 34, 54, 0.92);
+  --surface-soft: rgba(16, 24, 40, 0.86);
+  --surface-muted: #1a2740;
+  --surface-subtle: #1f2d48;
+  --text: #e2eaf4;
+  --text-strong: #f3f6fb;
+  --text-muted: #a8b4c4;
+  --border: rgba(148, 163, 184, 0.2);
+  --ring: rgba(148, 163, 184, 0.26);
   --accent: #8e9e89;
   --accent-strong: #788774;
   --shadow-card: 0 12px 40px rgba(0, 0, 0, 0.22);

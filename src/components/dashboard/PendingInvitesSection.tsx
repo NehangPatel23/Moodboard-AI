@@ -2,6 +2,7 @@
 
 import { Loader2 } from 'lucide-react';
 import { PendingInviteBoardCard } from '@/components/dashboard/PendingInviteBoardCard';
+import { appDisplayHeadingClass, appSectionLabelClass } from '@/components/shared/app-surface-styles';
 import { usePendingInvites } from '@/lib/use-pending-invites';
 
 export function PendingInvitesSection() {
@@ -9,7 +10,7 @@ export function PendingInvitesSection() {
 
   if (loading && count === 0) {
     return (
-      <section className="flex items-center gap-2 text-sm text-[var(--text-muted)]" aria-label="Pending invitations">
+      <section className="flex items-center gap-2 text-sm text-(--text-muted)" aria-label="Pending invitations">
         <Loader2 className="h-4 w-4 animate-spin" />
         Checking for board invitations…
       </section>
@@ -23,10 +24,11 @@ export function PendingInvitesSection() {
   return (
     <section className="space-y-6" aria-label="Pending invitations">
       <div>
-        <h2 className="[font-family:var(--font-display),serif] text-3xl tracking-tight text-[var(--text-strong)]">
+        <p className={appSectionLabelClass}>Collaboration</p>
+        <h2 className={`mt-2 text-3xl md:text-4xl ${appDisplayHeadingClass}`}>
           Pending invitations
         </h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-muted)]">
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-(--text-muted) md:text-base">
           Accept access to add these boards to your studio.
         </p>
       </div>
