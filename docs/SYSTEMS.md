@@ -4,7 +4,7 @@ Core subsystems: authentication, persistence, AI generation, and visual export.
 
 Back to [README](../README.md) · Setup: [SUPABASE_SETUP](SUPABASE_SETUP.md) · [GEMINI_SETUP](GEMINI_SETUP.md) · [DEPLOY](DEPLOY.md)
 
-Diagrams: [Auth Flow](#auth-flow) · [Persistence](#persistence-flow) · [Realtime](#realtime--collaboration) · [AI Pipeline](#generation-pipeline) · [Export](#export-pipeline) · User flows: [README § App Flow](../README.md#app-flow)
+Diagrams: [Auth Flow](#auth-flow) · [Persistence Flow](#persistence-flow) · [Realtime & Collaboration](#realtime--collaboration) · [Generation Pipeline](#generation-pipeline) · [Export Pipeline](#export-pipeline) · User flows: [README § App Flow](../README.md#app-flow)
 
 ## Authentication & Gated Landing CTAs
 

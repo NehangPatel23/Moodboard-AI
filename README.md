@@ -25,26 +25,29 @@ AI-assisted workspace for creative direction and moodboarding. Describe a brand 
 
 ---
 
-## Table of Contents
+<br>
 
-- [At a Glance](#at-a-glance)
+## Table Of Contents
+
+- [At A Glance](#at-a-glance)
 - [Screenshots](#screenshots)
 - [What Is This?](#what-is-this)
 - [Why It Exists](#why-it-exists)
 - [How It Works](#how-it-works)
 - [App Flow](#app-flow)
-- [Traditional vs MoodBoard AI](#traditional-vs-moodboard-ai)
+- [Traditional Vs MoodBoard AI](#traditional-vs-moodboard-ai)
 - [Who It's For](#who-its-for)
 - [What You Can Do](#what-you-can-do)
 - [Try It](#try-it)
 - [FAQ](#faq)
 - [For Developers](#for-developers)
 - [Documentation](#documentation)
-- [License](#license)
 
 ---
 
-## At a Glance
+<br>
+
+## At A Glance
 
 | | |
 |---|---|
@@ -55,6 +58,8 @@ AI-assisted workspace for creative direction and moodboarding. Describe a brand 
 | **Status** | Portfolio complete · live demo · CI (lint, typecheck, build, smoke) on `main` |
 
 ---
+
+<br>
 
 ## Screenshots
 
@@ -72,13 +77,15 @@ Portfolio captures from the [live demo](https://moodboard-ai-omega.vercel.app):
 | **Collaboration** — comments panel, section context, team feedback | ![Collaboration](https://raw.githubusercontent.com/NehangPatel23/Moodboard-AI/35ce132/docs/screenshots/collaboration.png) |
 | **Share page** — view-only board, remix CTA, creator attribution | ![Share page](https://raw.githubusercontent.com/NehangPatel23/Moodboard-AI/35ce132/docs/screenshots/share.png) |
 | **Settings** — display name, avatar, Editor auto-save interval | ![Settings](https://raw.githubusercontent.com/NehangPatel23/Moodboard-AI/35ce132/docs/screenshots/settings.png) |
-| **Sign-in** — email/password, forgot password, demo account | ![Sign in](https://raw.githubusercontent.com/NehangPatel23/Moodboard-AI/35ce132/docs/screenshots/sign-in.png) |
+| **Sign-In** — email/password, forgot password, demo account | ![Sign in](https://raw.githubusercontent.com/NehangPatel23/Moodboard-AI/35ce132/docs/screenshots/sign-in.png) |
 
 **Try the demo:** sign in with `admin@moodboard.ai` / `moodboard123`, or browse Discover without an account. Run `npm run db:seed-demo && npm run db:seed-demo-boards` locally to populate showcase boards.
 
 To refresh captures: `npm run capture:screenshots` (requires `npx playwright install chromium` once). The script updates README raw URLs to the current commit SHA so GitHub renders fresh thumbnails.
 
 ---
+
+<br>
 
 ## What Is This?
 
@@ -100,6 +107,8 @@ Edit by hand, ask AI for suggestions, invite teammates, or export the result.
 
 ---
 
+<br>
+
 ## Why It Exists
 
 Creative projects often start with language like *"make it feel premium but approachable"* or *"Scandinavian minimal meets streetwear."* Turning that into something a team can align on is slow and inconsistent.
@@ -117,6 +126,8 @@ This is a self-directed portfolio build designed to feel premium and app-like, n
 
 ---
 
+<br>
+
 ## How It Works
 
 ```mermaid
@@ -130,7 +141,9 @@ flowchart LR
   E --> H[Publish to Discover]
 ```
 
-### Step by Step
+<br>
+
+### Step By Step
 
 | Step | You do | App does |
 |------|--------|----------|
@@ -145,7 +158,7 @@ flowchart LR
 → Detailed route and system diagrams below in **[App Flow](#app-flow)**.
 
 <details>
-<summary><strong>Under the Hood (Developers)</strong></summary>
+<summary><strong>Under the hood (developers)</strong></summary>
 
 1. **`POST /api/generate/draft`** — Gemini (or demo fallback) returns direction with placeholder references
 2. **`POST /api/generate/enrich`** — Pexels/Unsplash photos stream in via NDJSON while the UI updates
@@ -158,11 +171,15 @@ flowchart LR
 
 ---
 
+<br>
+
 ## App Flow
 
 Visual maps of how users move through the product. These render as interactive diagrams on GitHub.
 
-**Technical diagrams:** [ARCHITECTURE.md](docs/ARCHITECTURE.md) (System Overview) · [SYSTEMS.md](docs/SYSTEMS.md) (Auth, AI, DB, Export) · [FEATURES.md](docs/FEATURES.md) (Page Flow)
+**Technical diagrams:** [ARCHITECTURE.md](docs/ARCHITECTURE.md) (System Overview) · [SYSTEMS.md](docs/SYSTEMS.md) (auth, AI, DB, export) · [FEATURES.md](docs/FEATURES.md) (Page Flow)
+
+<br>
 
 ### Site Map — Pages & Routes
 
@@ -206,7 +223,9 @@ flowchart TB
   invite --> editor
 ```
 
-### Create a Board — AI Generation Pipeline
+<br>
+
+### Create A Board — AI Generation Pipeline
 
 ```mermaid
 flowchart TD
@@ -232,6 +251,8 @@ flowchart TD
   live --> redirect["Open board editor"]
   redirect --> saved["Board saved in Supabase"]
 ```
+
+<br>
 
 ### Board Editor — Sections & Actions
 
@@ -265,6 +286,8 @@ flowchart TB
   end
 ```
 
+<br>
+
 ### Sign-In & Gated Access
 
 ```mermaid
@@ -287,6 +310,8 @@ flowchart TD
 
   dest --> workspace["Dashboard, editor, settings, templates"]
 ```
+
+<br>
 
 ### Collaboration & Sharing
 
@@ -324,6 +349,8 @@ flowchart TD
   public --> sharepage["Anyone opens /share/id — no account needed"]
 ```
 
+<br>
+
 ### Export Flow
 
 ```mermaid
@@ -340,7 +367,9 @@ flowchart LR
 
 ---
 
-## Traditional vs MoodBoard AI
+<br>
+
+## Traditional Vs MoodBoard AI
 
 | | Traditional moodboarding | MoodBoard AI |
 |---|--------------------------|--------------|
@@ -352,6 +381,8 @@ flowchart LR
 | **Iteration** | Start over or duplicate files | Snapshots, restore, AI re-suggestions |
 
 ---
+
+<br>
 
 ## Who It's For
 
@@ -365,6 +396,8 @@ flowchart LR
 
 ---
 
+<br>
+
 ## What You Can Do
 
 <details open>
@@ -377,7 +410,7 @@ flowchart LR
 </details>
 
 <details open>
-<summary><strong>Create & Edit</strong></summary>
+<summary><strong>Create & edit</strong></summary>
 
 - Generate from a **prompt** or **template** with progressive live preview
 - Tabbed editor — Overview, Palette, Typography, References, Notes
@@ -388,7 +421,7 @@ flowchart LR
 </details>
 
 <details open>
-<summary><strong>Share & Collaborate</strong></summary>
+<summary><strong>Share & collaborate</strong></summary>
 
 - Email invites with **owner / editor / viewer** roles (copy invite link, or automatic email when Resend is configured)
 - **Real-time presence** — colored dots on section tabs show who is on each tab
@@ -401,7 +434,7 @@ flowchart LR
 </details>
 
 <details open>
-<summary><strong>Export & Organize</strong></summary>
+<summary><strong>Export & organize</strong></summary>
 
 - **JSON**, **PNG**, **PDF**, or **design system** export with live preview
 - Dashboard filters — All, With me, With others, Public, Private
@@ -413,7 +446,11 @@ flowchart LR
 
 ---
 
+<br>
+
 ## Try It
+
+<br>
 
 ### Live App
 
@@ -427,6 +464,8 @@ Sign in with the demo account (pre-seeded workspace):
 | **Password** | `moodboard123` |
 
 Suggested first run: open **New board** → enter a short prompt → watch the live preview → open the editor → try **Export** or **Collaborate**.
+
+<br>
 
 ### Run Locally
 
@@ -442,6 +481,8 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000) · Setup guide: [docs/MANUAL_SETUP.md](docs/MANUAL_SETUP.md)
 
 ---
+
+<br>
 
 ## FAQ
 
@@ -482,7 +523,11 @@ It's a deployed, **portfolio-complete** MVP with auth, persistence, collaboratio
 
 ---
 
+<br>
+
 ## For Developers
+
+<br>
 
 ### Tech Stack
 
@@ -495,6 +540,8 @@ It's a deployed, **portfolio-complete** MVP with auth, persistence, collaboratio
 | **Deploy** | Vercel · Analytics |
 
 → [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/AGENT_HANDOFF.md](docs/AGENT_HANDOFF.md) (agent context)
+
+<br>
 
 ### Scripts
 
@@ -519,7 +566,11 @@ It's a deployed, **portfolio-complete** MVP with auth, persistence, collaboratio
 
 ---
 
+<br>
+
 ## Documentation
+
+<br>
 
 ### Setup & Deploy
 
@@ -531,6 +582,8 @@ It's a deployed, **portfolio-complete** MVP with auth, persistence, collaboratio
 | [REFERENCE_PHOTOS.md](docs/REFERENCE_PHOTOS.md) | Pexels / Unsplash reference images |
 | [DEPLOY.md](docs/DEPLOY.md) | Production deploy + smoke tests |
 
+<br>
+
 ### Project Reference
 
 | Doc | Description |
@@ -541,9 +594,3 @@ It's a deployed, **portfolio-complete** MVP with auth, persistence, collaboratio
 | [DEVELOPMENT.md](docs/DEVELOPMENT.md) | Standards, a11y, theme, known issues |
 | [ROADMAP.md](docs/ROADMAP.md) | Shipped work and what's next |
 | [AGENT_HANDOFF.md](docs/AGENT_HANDOFF.md) | Notes for AI agents and contributors |
-
----
-
-## License
-
-Private project. All rights reserved.

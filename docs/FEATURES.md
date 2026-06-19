@@ -73,7 +73,7 @@ A conversion-focused call to action.
 
 ---
 
-### Sign In
+### Sign-In
 
 Route:
 
@@ -225,7 +225,7 @@ Overview, Palette, Typography, References, and Notes — jump via editor tabs or
 - **Suggest typography** — `POST /api/generate/typography`
 - **Suggest brand** — `POST /api/generate/brand` on Overview; persisted on board as `brandStrategy` (migration `021`)
 
-#### Save & Auto-Save
+#### Save & Auto-save
 
 - **Manual save** — **Save changes** opens an **Apply these changes?** confirmation modal; success shows a toast
 - **Auto-save** — debounced save after idle edits (default **8 seconds**); success and error toasts (**Changes auto-saved.** / **Auto-save failed.**) when enabled in Settings → Notifications

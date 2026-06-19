@@ -4,6 +4,8 @@ Everything **you** must do by hand. The codebase handles the rest.
 
 Use this as your single source of truth after the Supabase + Gemini + Vercel work.
 
+Back to [README](../README.md) · Supabase: [SUPABASE_SETUP](SUPABASE_SETUP.md) · Gemini: [GEMINI_SETUP](GEMINI_SETUP.md) · Deploy: [DEPLOY](DEPLOY.md)
+
 ```mermaid
 flowchart TD
   start(["First-time setup"]) --> env["Copy .env.local.example"]
@@ -23,7 +25,7 @@ flowchart TD
 
 ---
 
-## What the Code Already Does (No Action Needed)
+## What The Code Already Does (No Action Needed)
 
 - Supabase auth, boards, settings API routes
 - Route protection (`/app`, `/settings`)
@@ -144,7 +146,7 @@ Same as local, on your Vercel URL.
 
 ---
 
-## What You Do NOT Need to Do
+## What You Do NOT Need To Do
 
 - Run OpenAI setup (removed)
 - Pay for OpenAI API

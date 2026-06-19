@@ -10,7 +10,7 @@ Flow diagrams: [README § App Flow](../README.md#app-flow) · [ARCHITECTURE](ARC
 
 ---
 
-## Where to Look
+## Where To Look
 
 ```mermaid
 flowchart TD

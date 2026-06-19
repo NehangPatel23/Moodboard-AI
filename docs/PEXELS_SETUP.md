@@ -4,7 +4,9 @@ MoodBoard AI uses the [Pexels API](https://www.pexels.com/api/) to fetch **searc
 
 Without a key, references fall back to palette-based SVG placeholders.
 
-## Step 1 — Get a Free API Key
+Back to [README](../README.md) · Overview: [REFERENCE_PHOTOS](REFERENCE_PHOTOS.md) · Checklist: [MANUAL_SETUP](MANUAL_SETUP.md)
+
+## Step 1 — Get A Free API Key
 
 1. Go to [https://www.pexels.com/api/](https://www.pexels.com/api/)
 2. Create a free account and request an API key
@@ -22,7 +24,7 @@ PEXELS_API_KEY=your-pexels-api-key
 
 Restart the dev server after adding the key.
 
-## Step 3 — Add on Vercel (Production)
+## Step 3 — Add On Vercel (Production)
 
 Vercel → **Settings** → **Environment Variables**:
 

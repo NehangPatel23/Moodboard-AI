@@ -217,7 +217,7 @@ Use these for manual QA after changes:
 
 ---
 
-## Out of Scope (Near Term)
+## Out Of Scope (Near Term)
 
 - Google / GitHub OAuth sign-in — **deferred**
 - Full real-time co-editing (shared cursor + simultaneous typing in one field)

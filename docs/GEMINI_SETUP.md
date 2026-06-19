@@ -2,9 +2,11 @@
 
 MoodBoard AI uses **Google Gemini** (`gemini-2.5-flash`) for real board generation. The free tier is enough for a portfolio demo. Without a key, the app uses built-in demo/mock generation.
 
+Back to [README](../README.md) · Checklist: [MANUAL_SETUP](MANUAL_SETUP.md) · Photos: [REFERENCE_PHOTOS](REFERENCE_PHOTOS.md)
+
 > **Note:** `gemini-2.0-flash` no longer has free-tier quota (Google returns 429 with `limit: 0`). This project uses a free-tier fallback chain instead.
 
-### Model Fallback Chain
+## Model Fallback Chain
 
 When generating a board, the server tries these models in order:
 
@@ -14,7 +16,7 @@ When generating a board, the server tries these models in order:
 
 Retryable errors (503 high demand, 429 quota, etc.) automatically try the next model. You won't see raw JSON errors in the UI anymore.
 
-## Step 1 — Get a Free Gemini API Key
+## Step 1 — Get A Free Gemini API Key
 
 1. Go to [https://aistudio.google.com/apikey](https://aistudio.google.com/apikey)
 2. Sign in with your Google account
@@ -24,7 +26,7 @@ Retryable errors (503 high demand, 429 quota, etc.) automatically try the next m
 
 No credit card is required for the free tier.
 
-## Step 2 — Add the Key Locally
+## Step 2 — Add The Key Locally
 
 1. Open `.env.local` in the project root
 2. Add:
@@ -54,14 +56,14 @@ GEMINI_API_KEY is set. Testing API connectivity...
 Gemini API reachable. POST /api/generate/draft will return source: "gemini".
 ```
 
-## Step 4 — Test in the App
+## Step 4 — Test In The App
 
 1. Open [http://localhost:3000](http://localhost:3000)
 2. Sign in: `admin@moodboard.ai` / `moodboard123`
 3. Go to `/app/new`, enter a prompt, click **Generate board**
 4. You should see **“Powered by Gemini”** (not “Demo generation”) and a live preview while references load
 
-## Step 5 — Add to Vercel (Production)
+## Step 5 — Add To Vercel (Production)
 
 1. Vercel → your project → **Settings → Environment Variables**
 2. **Delete** `OPENAI_API_KEY` if you added it earlier

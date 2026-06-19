@@ -2,6 +2,8 @@
 
 The app code is ready. You only need to create a Supabase project once and connect it with environment variables.
 
+Back to [README](../README.md) · Checklist: [MANUAL_SETUP](MANUAL_SETUP.md) · Deploy: [DEPLOY](DEPLOY.md)
+
 ## Quick Checklist
 
 - [ ] **Step 1** — Create Supabase project at [supabase.com](https://supabase.com)
@@ -13,7 +15,7 @@ The app code is ready. You only need to create a Supabase project once and conne
 
 ---
 
-## Step 1 — Create a Supabase Project
+## Step 1 — Create A Supabase Project
 
 1. Go to [https://supabase.com](https://supabase.com) and sign up or log in.
 2. Click **New project**.
@@ -26,11 +28,11 @@ The app code is ready. You only need to create a Supabase project once and conne
 
 ---
 
-## Step 2 — Run the Database Migration
+## Step 2 — Run The Database Migration
 
 Creates `profiles`, `boards`, and `user_settings` tables with Row Level Security.
 
-### Option A — SQL Editor (Recommended if New to Supabase)
+### Option A — SQL Editor (Recommended If New To Supabase)
 
 1. In the dashboard, open **SQL Editor** → **New query**.
 2. Copy the entire contents of [`supabase/migrations/001_initial.sql`](../supabase/migrations/001_initial.sql).
@@ -107,7 +109,7 @@ Never commit `.env.local` or expose the `service_role` key in client code.
 
 ---
 
-## Step 4 — Configure Auth for Local Development
+## Step 4 — Configure Auth For Local Development
 
 ### Email Sign-In
 
@@ -115,7 +117,7 @@ Never commit `.env.local` or expose the `service_role` key in client code.
 2. Turn **off** “Confirm email” / “Enable email confirmations” for local dev (optional for production).
 3. Save.
 
-### URL Configuration (Required for Password Reset)
+### URL Configuration (Required For Password Reset)
 
 1. **Authentication** → **URL Configuration**.
 2. Set **Site URL** to `http://localhost:3000` (production: your Vercel URL, e.g. `https://moodboard-ai-omega.vercel.app`).
@@ -144,7 +146,7 @@ Reset links must use the same browser when Supabase sends a PKCE `code`; `token_
 
 ---
 
-## Step 5 — Verify and Seed
+## Step 5 — Verify And Seed
 
 ```bash
 npm run setup:supabase
@@ -157,7 +159,7 @@ This checks your env vars, confirms tables exist, and creates the demo user:
 
 ---
 
-## Step 6 — Run the App
+## Step 6 — Run The App
 
 ```bash
 npm run dev
@@ -192,7 +194,7 @@ Open [http://localhost:3000](http://localhost:3000):
 
 ---
 
-## Deploying to Vercel
+## Deploying To Vercel
 
 See the full guide in [`docs/DEPLOY.md`](DEPLOY.md). Short version:
 

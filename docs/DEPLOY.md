@@ -1,4 +1,6 @@
-# Deploy MoodBoard AI to Vercel
+# Deploy MoodBoard AI To Vercel
+
+Back to [README](../README.md) · Checklist: [MANUAL_SETUP](MANUAL_SETUP.md) · Supabase: [SUPABASE_SETUP](SUPABASE_SETUP.md)
 
 ## Prerequisites
 
@@ -43,7 +45,7 @@ flowchart LR
 
 ---
 
-## Step 1 — Push to GitHub
+## Step 1 — Push To GitHub
 
 ```bash
 git push origin main
@@ -76,7 +78,7 @@ Apply to **Production**, **Preview**, and **Development**.
 
 **Not required for launch:** `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, and `NEXT_PUBLIC_SITE_URL` can stay unset. Collaboration invites work via **Copy invite link** in Collaborate and in-app pending notifications; on Vercel, sitemap, OG tags, and invite URLs use the auto-injected `VERCEL_URL`. Add Resend only if you want automatic invite emails.
 
-## Step 4 — Configure Supabase for Production
+## Step 4 — Configure Supabase For Production
 
 In Supabase → **Authentication** → **URL Configuration**:
 

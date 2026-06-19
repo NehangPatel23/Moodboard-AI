@@ -8,6 +8,8 @@ Pexels → Unsplash → demo SVG placeholder
 
 Manual import is also supported: **Apply URL** (any `https://` image) or **Upload file** (stored in Supabase `reference-uploads`).
 
+Back to [README](../README.md) · Pexels: [PEXELS_SETUP](PEXELS_SETUP.md) · Checklist: [MANUAL_SETUP](MANUAL_SETUP.md)
+
 ## API Keys
 
 ### Pexels (Primary)
